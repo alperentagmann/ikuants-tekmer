@@ -15,7 +15,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "İKÜANTS TEKMER | Teknolojinin Yeni Adresi",
+  title: "İKÜANTS TEKMER",
   description: "İnovasyon ve teknoloji merkezimizde girişimcileri, kurumları ve yatırımcıları bir araya getiriyoruz.",
 };
 

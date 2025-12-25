@@ -6,7 +6,6 @@ import { siteContent } from "@/data/content";
 export const Supports = () => {
     const { supports } = siteContent;
 
-
     return (
         <section id="supports" className="py-24 relative bg-[#050510]">
             <div className="absolute left-1/2 top-0 bottom-0 w-[2px] bg-white/5 -translate-x-1/2 hidden md:block" />
