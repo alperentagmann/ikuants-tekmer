@@ -1,59 +1,55 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { sendMail, generateEmailTemplate } from '@/lib/email-service';
 
 export async function POST(request: NextRequest) {
     try {
         const formData = await request.json();
 
-        // Log the form data (this will appear in the server console)
-        console.log('='.repeat(50));
-        console.log('YENİ BAŞVURU ALINDI');
-        console.log('='.repeat(50));
-        console.log('Proje Adı:', formData.projectName);
-        console.log('Ad Soyad:', formData.fullName);
-        console.log('E-posta:', formData.email);
-        console.log('Telefon:', formData.phone);
-        console.log('Görev:', formData.projectRole);
-        console.log('Sektör:', formData.sectors);
-        console.log('Proje Özeti:', formData.projectSummary);
-        console.log('='.repeat(50));
+        // Log to console for debugging
+        console.log('YENİ BAŞVURU:', formData.projectName);
 
-        // Email sending would go here
-        // For now, we'll simulate a successful submission
-        // To enable email, you can:
-        // 1. Use Nodemailer with SMTP (requires email server config)
-        // 2. Use a service like SendGrid, Resend, or EmailJS
+        // Prepare email content
+        // We select key fields to show in the email table to avoid an overly long email
+        // but we can include everything if needed. For now, let's include key info.
+        const emailData = {
+            'Proje Adı': formData.projectName,
+            'Ad Soyad': formData.fullName,
+            'E-Posta': formData.email,
+            'Telefon': formData.phone,
+            'Görev': formData.projectRole,
+            'Sektör': formData.sectors,
+            'Proje Özeti': formData.projectSummary,
+            'Aşama': formData.projectStage,
+            'MVP Durumu': formData.hasMVP,
+            'Ekip Büyüklüğü': formData.teamSize
+        };
 
-        // Example email configuration (commented out - needs server setup):
-        /*
-        const nodemailer = require('nodemailer');
-        const transporter = nodemailer.createTransport({
-            host: 'smtp.example.com',
-            port: 587,
-            auth: {
-                user: process.env.EMAIL_USER,
-                pass: process.env.EMAIL_PASS
-            }
-        });
-        
-        await transporter.sendMail({
-            from: 'noreply@ikuantstekmer.com',
+        const html = generateEmailTemplate('🚀 Yeni ANTSPARK Başvurusu', emailData);
+
+        // Send email
+        const result = await sendMail({
             to: 'bilgi@ikuantstekmer.com',
-            subject: `Yeni Başvuru: ${formData.projectName}`,
-            html: `
-                <h2>Yeni TEKMER Başvurusu</h2>
-                <p><strong>Proje:</strong> ${formData.projectName}</p>
-                <p><strong>İsim:</strong> ${formData.fullName}</p>
-                <p><strong>E-posta:</strong> ${formData.email}</p>
-                <p><strong>Telefon:</strong> ${formData.phone}</p>
-                <p><strong>Özet:</strong> ${formData.projectSummary}</p>
-            `
+            subject: `ANTSPARK Başvurusu: ${formData.projectName}`,
+            html: html,
+            replyTo: formData.email
         });
-        */
 
-        return NextResponse.json({
-            success: true,
-            message: 'Başvurunuz başarıyla alındı!'
-        });
+        if (result.success) {
+            return NextResponse.json({
+                success: true,
+                message: 'Başvurunuz başarıyla alındı ve e-posta gönderildi!'
+            });
+        } else {
+            // If email fails, we log it but still might return false to warn the user
+            console.error('Application email failed:', result.error);
+
+            // In a real production app, we should save to DB first, so email failure isn't critical.
+            // Since we don't have a DB here, we must rely on email.
+            return NextResponse.json({
+                success: false,
+                message: 'Başvuru alındı ancak e-posta gönderilemedi. Lütfen iletişime geçin.'
+            }, { status: 500 });
+        }
     } catch (error) {
         console.error('Form submission error:', error);
         return NextResponse.json(
