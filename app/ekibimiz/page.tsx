@@ -7,7 +7,7 @@ const teamMembers = [
     {
         name: "Alperen Tağman",
         title: "Teknoloji Geliştirme Uzmanı",
-        description: "RTTP (Registered Technology Transfer Professional). Girişimcilik ekosisteminde aktif rol almakta, mentorluk ve danışmanlık hizmetleri sunmaktadır. Teknoloji transferi ve inovasyon yönetimi konularında uluslararası deneyime sahip, stratejik iş geliştirme süreçlerinde liderlik etmektedir.",
+        description: "RTTP (Registered Technology Transfer Professional). Girişimcilik ekosistemini güçlendirmek adına aktif çalışmalar yürütmektedir. Aynı zamanda TEKMER alanında bilgi birikimiyle akademik programlar, ön kuluçka ve kuluçka süreçleri kapsamında girişimcilere rehberlik ve organizasyonel yönetim desteği sağlamaktadır. Şirketlere danışmanlık sunmakta olup, teknoloji transferi ve inovasyon yönetimi alanında stratejik iş geliştirme ve proje süreçlerine liderlik etmektedir.",
         linkedin: "https://www.linkedin.com/in/alperentagmann/",
         email: "alperen.tagman@ikuantstekmer.com",
         phone: "0212 498 41 03",
@@ -18,7 +18,7 @@ const teamMembers = [
     {
         name: "Mustafa Cem Okur",
         title: "TEKMER Uzmanı",
-        description: "İKÜANTS TEKMER uzmanı, Ar-Ge ve Endüstriyel Tasarım alanlarında deneyimli. TEKMER'in operasyonel süreçlerinin yönetimi ve girişimcilere idari destek sağlanmasında aktif görev almaktadır.",
+        description: "Ar-Ge ve Endüstriyel Tasarım alanlarındaki deneyimiyle İKÜANTS TEKMER bünyesinde Uzman olarak görev yapmaktadır. Merkezin operasyonel döngüsünün sürdürülmesi, girişimcilerin idari süreçlerinin takibi ve tesis imkanlarının etkin kullanımı konularında çalışmalar yürütmektedir. Girişimcilere sağlanan altyapı hizmetlerinin koordinasyonu ve idari iş akışlarının yürütülmesinde rol oynamaktadır.",
         linkedin: "https://www.linkedin.com/in/cem-okur-600bb3159/",
         email: "cem.okur@ikuantstekmer.com",
         phone: "0212 498 41 62",
