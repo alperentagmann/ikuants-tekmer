@@ -23,7 +23,14 @@ ANTSPARK MasterClass, üniversite odaklı girişimcilik ekosisteminin güçlenme
 İKÜANTS TEKMER olarak girişimcilik ekosisteminin geliştirilmesi ve güçlendirilmesi için bu tür etkinlikler düzenlemeye devam edeceğiz.`,
         date: "15 Aralık 2024",
         category: "Etkinlik",
-        image: "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800&h=500&fit=crop",
+        image: "/images/news/antspark-masterclass/05.jpg",
+        gallery: [
+            "/images/news/antspark-masterclass/01.jpg",
+            "/images/news/antspark-masterclass/02.jpg",
+            "/images/news/antspark-masterclass/03.jpg",
+            "/images/news/antspark-masterclass/04.jpg",
+            "/images/news/antspark-masterclass/05.jpg"
+        ],
         featured: true
     },
     {
@@ -55,7 +62,13 @@ ANTSPARK Ön Kuluçka Programı, önümüzdeki haftalarda da kapsamlı eğitim v
 İKÜANTS TEKMER'i sosyal medya hesaplarından (@ikuantstekmer) takip ederek program hakkında duyurulara erişebilirsiniz.`,
         date: "8 Aralık 2024",
         category: "Program",
-        image: "https://images.unsplash.com/photo-1552664730-d307ca884978?w=800&h=500&fit=crop",
+        image: "/images/news/antspark-egitim-haftasi/04.jpg",
+        gallery: [
+            "/images/news/antspark-egitim-haftasi/01.jpg",
+            "/images/news/antspark-egitim-haftasi/02.jpg",
+            "/images/news/antspark-egitim-haftasi/03.jpg",
+            "/images/news/antspark-egitim-haftasi/04.jpg"
+        ],
         featured: false
     },
     {
@@ -83,7 +96,12 @@ ANTSPARK Ön Kuluçka Programı, girişimcilerin ihtiyaç duyduğu tüm yetkinli
 Sosyal medya hesaplarımızdan (@ikuantstekmer) bizi takip ederek güncel gelişmelerden haberdar olabilirsiniz.`,
         date: "1 Aralık 2024",
         category: "Program",
-        image: "https://images.unsplash.com/photo-1515187029135-18ee286d815b?w=800&h=500&fit=crop",
+        image: "/images/news/antspark-verimli-hafta/01.jpg",
+        gallery: [
+            "/images/news/antspark-verimli-hafta/01.jpg",
+            "/images/news/antspark-verimli-hafta/02.jpg",
+            "/images/news/antspark-verimli-hafta/03.jpg"
+        ],
         featured: false
     },
     {
@@ -109,7 +127,14 @@ Kongre kapsamında gerçekleştirilen faaliyetler:
 İKÜANTS TEKMER; Türkiye'nin girişimcilik ve teknoloji geliştirme ekosistemine katkı sunmak amacıyla, üniversite–sanayi iş birliği ve girişimcilik süreçlerinde aktif rol almaya ve ulusal platformlarda görünürlüğünü artırmaya devam etmektedir.`,
         date: "20 Kasım 2024",
         category: "Duyuru",
-        image: "https://images.unsplash.com/photo-1511578314322-379afb476865?w=800&h=500&fit=crop",
+        image: "/images/news/usimp-organizasyon/03.jpg",
+        gallery: [
+            "/images/news/usimp-organizasyon/01.jpg",
+            "/images/news/usimp-organizasyon/02.jpg",
+            "/images/news/usimp-organizasyon/03.jpg",
+            "/images/news/usimp-organizasyon/04.jpg",
+            "/images/news/usimp-organizasyon/05.jpg"
+        ],
         featured: true
     },
     {
@@ -139,14 +164,28 @@ E-Ticaret Haftası, Türkiye'nin en büyük e-ticaret etkinliklerinden biri olup
 Etkinlik hakkında daha fazla bilgi için sosyal medya hesaplarımızı takip edebilirsiniz.`,
         date: "22 Kasım 2024",
         category: "Etkinlik",
-        image: "https://images.unsplash.com/photo-1556761175-b413da4baf72?w=800&h=500&fit=crop",
+        image: "/images/news/eticaret-haftasi/02.jpg",
+        gallery: [
+            "/images/news/eticaret-haftasi/01.jpg",
+            "/images/news/eticaret-haftasi/02.jpg"
+        ],
         featured: false
     }
 ];
 
 const categories = ["Tümü", "Etkinlik", "Program", "Duyuru"];
 
-type NewsItem = typeof news[0];
+interface NewsItem {
+    id: number;
+    title: string;
+    excerpt: string;
+    fullContent: string;
+    date: string;
+    category: string;
+    image: string;
+    featured: boolean;
+    gallery?: string[];
+}
 
 export default function HaberlerPage() {
     const [selectedCategory, setSelectedCategory] = useState("Tümü");
@@ -432,6 +471,25 @@ export default function HaberlerPage() {
                                 <div className="text-gray-300 leading-loose whitespace-pre-line text-base md:text-lg mb-8">
                                     {selectedNews.fullContent}
                                 </div>
+
+                                {/* Gallery Section */}
+                                {selectedNews.gallery && selectedNews.gallery.length > 0 && (
+                                    <div className="mb-8">
+                                        <h3 className="font-orbitron text-xl text-white mb-4">Etkinlik Galerisi</h3>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            {selectedNews.gallery.map((img, idx) => (
+                                                <div key={idx} className="relative aspect-video rounded-xl overflow-hidden group border border-white/10">
+                                                    <img
+                                                        src={img}
+                                                        alt={`${selectedNews.title} - Görsel ${idx + 1}`}
+                                                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                                                    />
+                                                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all" />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
 
                                 {/* RSVP Section for Etkinlik */}
                                 {selectedNews.category === 'Etkinlik' && (
