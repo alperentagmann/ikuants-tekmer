@@ -184,7 +184,7 @@ export const Hero = () => {
                     initial={{ opacity: 0, y: 50 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 1, delay: 0.8 }}
-                    className="mt-20 grid grid-cols-2 md:grid-cols-4 gap-4 w-full max-w-4xl"
+                    className="mt-20 grid grid-cols-2 md:grid-cols-4 gap-8 w-full max-w-4xl"
                 >
                     {hero.stats.map((stat, i) => (
                         <div

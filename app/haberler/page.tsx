@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Newspaper, Calendar, ArrowRight, Tag, ChevronRight, Sparkles, X } from "lucide-react";
 
@@ -21,7 +21,7 @@ Katılımcılar, hem ilham verici örnekler hem de pratik bakış açılarıyla 
 ANTSPARK MasterClass, üniversite odaklı girişimcilik ekosisteminin güçlenmesine katkı sunan, bilgi paylaşımı ve etkileşimi odağına alan nitelikli bir buluşma olarak başarıyla tamamlandı.
 
 İKÜANTS TEKMER olarak girişimcilik ekosisteminin geliştirilmesi ve güçlendirilmesi için bu tür etkinlikler düzenlemeye devam edeceğiz.`,
-        date: "15 Aralık 2024",
+        date: "15 Aralık 2025",
         category: "Etkinlik",
         image: "/images/news/antspark-masterclass/05.jpg",
         gallery: [
@@ -60,7 +60,7 @@ Programın beşinci haftasında girişimcileri yine dopdolu bir takvim bekliyor:
 ANTSPARK Ön Kuluçka Programı, önümüzdeki haftalarda da kapsamlı eğitim ve mentorluklarla girişimcilere destek olmayı sürdürecek.
 
 İKÜANTS TEKMER'i sosyal medya hesaplarından (@ikuantstekmer) takip ederek program hakkında duyurulara erişebilirsiniz.`,
-        date: "8 Aralık 2024",
+        date: "8 Aralık 2025",
         category: "Program",
         image: "/images/news/antspark-egitim-haftasi/04.jpg",
         gallery: [
@@ -94,7 +94,7 @@ Bu hafta ele alınan konular:
 ANTSPARK Ön Kuluçka Programı, girişimcilerin ihtiyaç duyduğu tüm yetkinlikleri kazandırmak için tasarlanmış kapsamlı bir programdır.
 
 Sosyal medya hesaplarımızdan (@ikuantstekmer) bizi takip ederek güncel gelişmelerden haberdar olabilirsiniz.`,
-        date: "1 Aralık 2024",
+        date: "1 Aralık 2025",
         category: "Program",
         image: "/images/news/antspark-verimli-hafta/01.jpg",
         gallery: [
@@ -125,7 +125,7 @@ Kongre kapsamında gerçekleştirilen faaliyetler:
 • Program kapsamında düzenlenen konferans ve sempozyum oturumlarına iştirak edilerek güncel gelişmeler ve politikalar takip edildi.
 
 İKÜANTS TEKMER; Türkiye'nin girişimcilik ve teknoloji geliştirme ekosistemine katkı sunmak amacıyla, üniversite–sanayi iş birliği ve girişimcilik süreçlerinde aktif rol almaya ve ulusal platformlarda görünürlüğünü artırmaya devam etmektedir.`,
-        date: "20 Kasım 2024",
+        date: "27-28 Kasım 2025",
         category: "Duyuru",
         image: "/images/news/usimp-organizasyon/03.jpg",
         gallery: [
@@ -162,7 +162,7 @@ E-Ticaret Haftası, Türkiye'nin en büyük e-ticaret etkinliklerinden biri olup
 İKÜANTS TEKMER olarak dijital girişimcilik alanındaki gelişmeleri yakından takip etmeye ve girişimcilerimize bu alanda destek sunmaya devam ediyoruz.
 
 Etkinlik hakkında daha fazla bilgi için sosyal medya hesaplarımızı takip edebilirsiniz.`,
-        date: "22 Kasım 2024",
+        date: "22 Kasım 2025",
         category: "Etkinlik",
         image: "/images/news/eticaret-haftasi/02.jpg",
         gallery: [
@@ -207,6 +207,30 @@ export default function HaberlerPage() {
         setRsvpSubmitted(false);
         setRsvpData({ name: "", email: "", phone: "" });
     };
+
+    const [selectedImage, setSelectedImage] = useState<string | null>(null);
+
+    // Keyboard navigation for image gallery
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (!selectedImage || !selectedNews?.gallery) return;
+
+            if (e.key === "ArrowLeft") {
+                const currentIndex = selectedNews.gallery.indexOf(selectedImage);
+                const prevIndex = currentIndex === 0 ? selectedNews.gallery.length - 1 : currentIndex - 1;
+                setSelectedImage(selectedNews.gallery[prevIndex]);
+            } else if (e.key === "ArrowRight") {
+                const currentIndex = selectedNews.gallery.indexOf(selectedImage);
+                const nextIndex = currentIndex === selectedNews.gallery.length - 1 ? 0 : currentIndex + 1;
+                setSelectedImage(selectedNews.gallery[nextIndex]);
+            } else if (e.key === "Escape") {
+                setSelectedImage(null);
+            }
+        };
+
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+    }, [selectedImage, selectedNews]);
 
     return (
         <div className="py-24 relative min-h-screen">
@@ -478,13 +502,21 @@ export default function HaberlerPage() {
                                         <h3 className="font-orbitron text-xl text-white mb-4">Etkinlik Galerisi</h3>
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                             {selectedNews.gallery.map((img, idx) => (
-                                                <div key={idx} className="relative aspect-video rounded-xl overflow-hidden group border border-white/10">
+                                                <div
+                                                    key={idx}
+                                                    className="relative aspect-video rounded-xl overflow-hidden group border border-white/10 cursor-pointer"
+                                                    onClick={() => setSelectedImage(img)}
+                                                >
                                                     <img
                                                         src={img}
                                                         alt={`${selectedNews.title} - Görsel ${idx + 1}`}
                                                         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                                                     />
-                                                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all" />
+                                                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all flex items-center justify-center">
+                                                        <span className="opacity-0 group-hover:opacity-100 transition-opacity bg-black/50 p-2 rounded-full">
+                                                            🔍
+                                                        </span>
+                                                    </div>
                                                 </div>
                                             ))}
                                         </div>
@@ -578,6 +610,74 @@ export default function HaberlerPage() {
                                 )}
                             </div>
                         </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Full Screen Image Modal */}
+            <AnimatePresence>
+                {selectedImage && selectedNews?.gallery && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 bg-black/95 z-[60] flex items-center justify-center p-4"
+                        onClick={() => setSelectedImage(null)}
+                    >
+                        {/* Close Button */}
+                        <motion.button
+                            initial={{ opacity: 0, scale: 0.5 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.5 }}
+                            className="absolute top-4 right-4 p-2 bg-white/10 rounded-full text-white hover:bg-white/20 transition-colors z-50"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedImage(null);
+                            }}
+                        >
+                            <X className="w-8 h-8" />
+                        </motion.button>
+
+                        {/* Navigation Buttons */}
+                        {selectedNews.gallery.length > 1 && (
+                            <>
+                                <button
+                                    className="absolute left-4 top-1/2 -translate-y-1/2 p-3 bg-white/10 hover:bg-white/20 rounded-full text-white transition-all z-50"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        const currentIndex = selectedNews.gallery!.indexOf(selectedImage);
+                                        const prevIndex = currentIndex === 0 ? selectedNews.gallery!.length - 1 : currentIndex - 1;
+                                        setSelectedImage(selectedNews.gallery![prevIndex]);
+                                    }}
+                                >
+                                    <ChevronRight className="w-8 h-8 rotate-180" />
+                                </button>
+                                <button
+                                    className="absolute right-4 top-1/2 -translate-y-1/2 p-3 bg-white/10 hover:bg-white/20 rounded-full text-white transition-all z-50"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        const currentIndex = selectedNews.gallery!.indexOf(selectedImage);
+                                        const nextIndex = currentIndex === selectedNews.gallery!.length - 1 ? 0 : currentIndex + 1;
+                                        setSelectedImage(selectedNews.gallery![nextIndex]);
+                                    }}
+                                >
+                                    <ChevronRight className="w-8 h-8" />
+                                </button>
+                            </>
+                        )}
+
+                        {/* Image */}
+                        <motion.img
+                            key={selectedImage} // Key helps Framer Motion detect changes for animation
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.9 }}
+                            transition={{ duration: 0.2 }}
+                            src={selectedImage}
+                            alt="Full screen view"
+                            className="max-w-full max-h-[90vh] object-contain rounded-lg"
+                            onClick={(e) => e.stopPropagation()}
+                        />
                     </motion.div>
                 )}
             </AnimatePresence>

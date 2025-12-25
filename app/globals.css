@@ -18,32 +18,41 @@
 }
 
 :root {
-  --background: #0a0a12;
-  --foreground: #e8e8ed;
+  --background: #020617;
+  /* Slate 950 - Professional Dark */
+  --foreground: #f8fafc;
+  /* Slate 50 */
 
-  /* Refined Color Palette - More Sophisticated */
-  --primary: #6c3ce0;
-  /* Softer Purple */
-  --secondary: #2dd4bf;
-  /* Teal instead of harsh cyan */
-  --accent: #f43f5e;
-  /* Rose */
+  /* Corporate Tech Palette */
+  --primary: #3b82f6;
+  /* Blue 500 - Trust & Tech */
+  --secondary: #94a3b8;
+  /* Slate 400 - Subtle details */
+  --accent: #ef4444;
+  /* Red 500 - Strong accents (IKU Redish) */
 
+  /* Re-mapped "Neon" variables to Professional Accents */
   --neon-blue: #0ea5e9;
-  --neon-purple: #a855f7;
-  --neon-green: #22c55e;
+  /* Sky 500 */
+  --neon-purple: #6366f1;
+  /* Indigo 500 - Replaces Purple with Deep Indigo */
+  --neon-green: #10b981;
+  /* Emerald 500 - Stable Green */
 
   --font-orbitron: 'Orbitron', sans-serif;
   --font-inter: 'Inter', sans-serif;
 }
 
 @keyframes logo-glow {
-  0%, 100% {
-    filter: drop-shadow(0 0 8px rgba(108, 60, 224, 0.6)) drop-shadow(0 0 20px rgba(108, 60, 224, 0.4));
+
+  0%,
+  100% {
+    filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.5)) drop-shadow(0 0 20px rgba(59, 130, 246, 0.3));
     opacity: 1;
   }
+
   50% {
-    filter: drop-shadow(0 0 15px rgba(108, 60, 224, 1)) drop-shadow(0 0 40px rgba(168, 85, 247, 0.8));
+    filter: drop-shadow(0 0 15px rgba(59, 130, 246, 0.8)) drop-shadow(0 0 40px rgba(37, 99, 235, 0.6));
     opacity: 0.9;
   }
 }
@@ -81,11 +90,10 @@ body {
   color: var(--foreground);
   font-family: var(--font-inter);
   overflow-x: hidden;
-  /* More organic gradient background */
+  /* Professional subtle gradient */
   background-image:
-    radial-gradient(ellipse 80% 50% at 20% 40%, rgba(108, 60, 224, 0.12) 0%, transparent 50%),
-    radial-gradient(ellipse 60% 40% at 80% 20%, rgba(45, 212, 191, 0.08) 0%, transparent 50%),
-    radial-gradient(ellipse 50% 60% at 60% 80%, rgba(108, 60, 224, 0.06) 0%, transparent 50%);
+    radial-gradient(circle at 15% 50%, rgba(59, 130, 246, 0.08) 0%, transparent 25%),
+    radial-gradient(circle at 85% 30%, rgba(239, 68, 68, 0.05) 0%, transparent 25%);
 }
 
 /* Subtle noise texture for organic feel */
@@ -104,15 +112,15 @@ body::before {
 
 /* Custom Utilities - Softened */
 .text-glow {
-  text-shadow: 0 0 20px rgba(108, 60, 224, 0.4);
+  text-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
 }
 
 .box-glow {
-  box-shadow: 0 4px 30px rgba(108, 60, 224, 0.15);
+  box-shadow: 0 4px 30px rgba(59, 130, 246, 0.1);
 }
 
 .border-glow {
-  box-shadow: 0 0 15px rgba(108, 60, 224, 0.2), inset 0 0 15px rgba(108, 60, 224, 0.1);
+  box-shadow: 0 0 15px rgba(59, 130, 246, 0.15), inset 0 0 15px rgba(59, 130, 246, 0.05);
 }
 
 /* Smooth scrolling */
@@ -122,12 +130,12 @@ html {
 
 /* Remove harsh outlines */
 *:focus {
-  outline: 2px solid rgba(108, 60, 224, 0.5);
+  outline: 2px solid rgba(59, 130, 246, 0.5);
   outline-offset: 2px;
 }
 
 /* Selection styling */
 ::selection {
-  background: rgba(108, 60, 224, 0.3);
+  background: rgba(59, 130, 246, 0.3);
   color: white;
 }
