@@ -1,0 +1,235 @@
+"use client";
+import React, { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { ChevronRight, ChevronLeft } from "lucide-react";
+import Link from "next/link";
+import { siteContent } from "@/data/content";
+
+const { techCategories } = siteContent;
+
+const sliderImages = [
+    {
+        src: "/images/hero-slide-1.jpg",
+        alt: "İKÜANTS TEKMER Ana Etkinlik"
+    },
+    {
+        src: "/images/hero-slide-2.jpg",
+        alt: "Ödül Töreni"
+    },
+    {
+        src: "/images/hero-slide-3.jpg",
+        alt: "Girişimci Topluluğu"
+    },
+    {
+        src: "/images/hero-slide-4.jpg",
+        alt: "Seminer Katılımcıları"
+    },
+    {
+        src: "/images/hero-slide-5.jpg",
+        alt: "Proje Sunumu"
+    },
+    {
+        src: "/images/hero-slide-6.jpg",
+        alt: "Mentörlük Seansı"
+    },
+    {
+        src: "/images/hero-slide-7.jpg",
+        alt: "Açılış Konuşması"
+    },
+    {
+        src: "/images/hero-slide-8.jpg",
+        alt: "Yatırımcı Buluşması"
+    },
+    {
+        src: "/images/hero-slide-9.jpg",
+        alt: "Eğitim Semineri"
+    },
+    {
+        src: "/images/hero-slide-10.jpg",
+        alt: "Networking Etkinliği"
+    },
+    {
+        src: "/images/hero-slide-11.jpg",
+        alt: "Hackathon Çalışması"
+    }
+];
+
+export const Hero = () => {
+    const { hero } = siteContent;
+    const [currentSlide, setCurrentSlide] = useState(0);
+    const [expandedCategory, setExpandedCategory] = useState<number | null>(null);
+
+    useEffect(() => {
+        const timer = setInterval(() => {
+            setCurrentSlide((prev) => (prev + 1) % sliderImages.length);
+        }, 5000);
+        return () => clearInterval(timer);
+    }, []);
+
+    const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % sliderImages.length);
+    const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + sliderImages.length) % sliderImages.length);
+
+    return (
+        <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden pt-16">
+            {/* Background Slider */}
+            <div className="absolute inset-0">
+                <AnimatePresence mode="wait">
+                    <motion.div
+                        key={currentSlide}
+                        initial={{ opacity: 0, scale: 1.1 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        transition={{ duration: 1.2, ease: "easeOut" }}
+                        className="absolute inset-0"
+                    >
+                        <img
+                            src={sliderImages[currentSlide].src}
+                            alt={sliderImages[currentSlide].alt}
+                            className="w-full h-full object-cover"
+                        />
+                        {/* Overlay gradients */}
+                        <div className="absolute inset-0 bg-gradient-to-r from-[#050510]/95 via-[#050510]/80 to-[#050510]/70" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-[#050510] via-transparent to-[#050510]/50" />
+                    </motion.div>
+                </AnimatePresence>
+            </div>
+
+            {/* Slider Navigation Arrows */}
+            <button
+                onClick={prevSlide}
+                className="absolute left-4 md:left-8 z-20 p-3 rounded-full bg-white/10 hover:bg-white/20 text-white border border-white/20 transition-all"
+            >
+                <ChevronLeft className="w-6 h-6" />
+            </button>
+            <button
+                onClick={nextSlide}
+                className="absolute right-4 md:right-8 z-20 p-3 rounded-full bg-white/10 hover:bg-white/20 text-white border border-white/20 transition-all"
+            >
+                <ChevronRight className="w-6 h-6" />
+            </button>
+
+            {/* Slider Dots - moved to top right corner */}
+            <div className="absolute top-24 right-8 z-20 flex flex-col gap-2">
+                {sliderImages.map((_, index) => (
+                    <button
+                        key={index}
+                        onClick={() => setCurrentSlide(index)}
+                        className={`w-2 h-2 rounded-full transition-all ${currentSlide === index
+                            ? 'bg-secondary h-6'
+                            : 'bg-white/40 hover:bg-white/60'
+                            }`}
+                    />
+                ))}
+            </div>
+
+            <div className="container relative z-10 mx-auto px-6 max-w-7xl flex flex-col items-center text-center">
+                <motion.div
+                    initial={{ opacity: 0, y: 50 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.8 }}
+                    className="mb-6 inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-secondary/40 bg-black/40 backdrop-blur-sm text-secondary text-sm font-medium tracking-wider"
+                >
+                    <span className="w-2 h-2 rounded-full bg-secondary animate-pulse" />
+                    {hero.status}
+                </motion.div>
+
+                <motion.h1
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.8, delay: 0.2 }}
+                    className="font-orbitron font-black text-5xl md:text-7xl lg:text-8xl mb-6 tracking-tight"
+                >
+                    <span className="block text-white drop-shadow-2xl">
+                        {hero.title.line1}
+                    </span>
+                    <span className="block text-transparent bg-clip-text bg-gradient-to-r from-primary via-purple-400 to-secondary">
+                        {hero.title.line2}
+                    </span>
+                </motion.h1>
+
+                <motion.p
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.8, delay: 0.4 }}
+                    className="text-gray-300 text-lg md:text-xl max-w-2xl mb-10 leading-relaxed"
+                >
+                    {hero.description}
+                </motion.p>
+
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.8, delay: 0.6 }}
+                    className="flex flex-col sm:flex-row gap-5"
+                >
+                    <Link
+                        href="/basvuru"
+                        className="group relative px-8 py-4 bg-gradient-to-r from-primary to-purple-600 text-white font-semibold tracking-wide overflow-hidden rounded-lg transition-all hover:scale-105 active:scale-95 shadow-xl shadow-primary/30"
+                    >
+                        <span className="relative z-10 flex items-center gap-2">
+                            {hero.buttons.primary} <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                        </span>
+                    </Link>
+
+                    <Link
+                        href="/destekler"
+                        className="px-8 py-4 bg-white/10 backdrop-blur-sm border border-white/30 text-white font-semibold tracking-wide hover:bg-white/20 hover:border-white/50 transition-all rounded-lg"
+                    >
+                        {hero.buttons.secondary}
+                    </Link>
+                </motion.div>
+
+                {/* Stats / Features Mini Grid with Expandable Details */}
+                <motion.div
+                    initial={{ opacity: 0, y: 50 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 1, delay: 0.8 }}
+                    className="mt-20 grid grid-cols-2 md:grid-cols-4 gap-4 w-full max-w-4xl"
+                >
+                    {hero.stats.map((stat, i) => (
+                        <div
+                            key={i}
+                            onClick={() => setExpandedCategory(expandedCategory === i ? null : i)}
+                            className={`p-4 border bg-black/30 backdrop-blur-sm rounded-xl transition-all group cursor-pointer relative ${expandedCategory === i ? 'border-secondary/60 bg-primary/10' : 'border-white/10 hover:border-secondary/40'}`}
+                        >
+                            <div className="text-sm md:text-base font-orbitron font-bold text-white mb-0.5 group-hover:text-secondary transition-colors whitespace-nowrap">{stat.title}</div>
+                            <div className="text-[10px] text-gray-400 uppercase tracking-wider">{stat.subtitle}</div>
+                            <div className="absolute top-2 right-2 text-gray-500 group-hover:text-secondary transition-colors">
+                                <ChevronRight className={`w-3 h-3 transition-transform ${expandedCategory === i ? 'rotate-90' : ''}`} />
+                            </div>
+                        </div>
+                    ))}
+                </motion.div>
+
+                {/* Expanded Category Details */}
+                <AnimatePresence>
+                    {expandedCategory !== null && (
+                        <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            exit={{ opacity: 0, height: 0 }}
+                            transition={{ duration: 0.3 }}
+                            className="mt-6 w-full max-w-4xl overflow-hidden"
+                        >
+                            <div className="p-6 bg-gradient-to-r from-primary/20 to-purple-600/20 border border-white/10 rounded-2xl backdrop-blur-sm">
+                                <h3 className="font-orbitron text-xl text-white mb-4 flex items-center gap-2">
+                                    <span className="text-secondary">{techCategories[expandedCategory]?.title}</span>
+                                </h3>
+                                <div className="flex flex-wrap gap-3">
+                                    {techCategories[expandedCategory]?.items.map((item: string, idx: number) => (
+                                        <span
+                                            key={idx}
+                                            className="px-4 py-2 bg-white/10 border border-white/20 rounded-full text-sm text-gray-200 hover:bg-primary/30 hover:border-primary/50 transition-all"
+                                        >
+                                            {item}
+                                        </span>
+                                    ))}
+                                </div>
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            </div>
+        </section>
+    );
+};
