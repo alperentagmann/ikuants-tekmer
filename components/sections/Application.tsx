@@ -22,6 +22,17 @@ export const Application = () => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
+    const validateForm = () => {
+        return formData.fullName &&
+            formData.email &&
+            formData.phone &&
+            formData.projectName &&
+            formData.teamSize &&
+            formData.projectSummary &&
+            formData.expectations;
+    };
+    const isFormValid = validateForm();
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsSubmitting(true);
@@ -267,8 +278,8 @@ export const Application = () => {
                         {/* Submit Button */}
                         <button
                             type="submit"
-                            disabled={isSubmitting}
-                            className={`w-full py-5 bg-gradient-to-r from-primary to-purple-600 text-white font-orbitron font-bold tracking-widest rounded-lg flex items-center justify-center gap-3 group transition-all ${isSubmitting ? 'opacity-70 cursor-not-allowed' : 'hover:from-primary/90 hover:to-purple-600/90 shadow-[0_0_30px_rgba(112,0,255,0.3)] hover:shadow-[0_0_50px_rgba(112,0,255,0.5)]'}`}
+                            disabled={!isFormValid || isSubmitting}
+                            className={`w-full py-5 bg-gradient-to-r from-primary to-purple-600 text-white font-orbitron font-bold tracking-widest rounded-lg flex items-center justify-center gap-3 group transition-all ${!isFormValid || isSubmitting ? 'opacity-70 cursor-not-allowed' : 'hover:from-primary/90 hover:to-purple-600/90 shadow-[0_0_30px_rgba(112,0,255,0.3)] hover:shadow-[0_0_50px_rgba(112,0,255,0.5)]'}`}
                         >
                             {isSubmitting ? (
                                 <>

@@ -76,6 +76,21 @@ export default function GlowUpBasvuruPage() {
     const nextPage = () => setCurrentPage(prev => Math.min(prev + 1, totalPages));
     const prevPage = () => setCurrentPage(prev => Math.max(prev - 1, 1));
 
+    const validatePage = (page: number) => {
+        switch (page) {
+            case 1:
+                return formData.teamName && formData.teamSize && formData.leaderName && formData.leaderEmail && formData.leaderPhone && formData.leaderUniversity && formData.leaderDepartment;
+            case 2:
+                return formData.projectName && formData.theme.length > 0 && formData.projectSummary && formData.problemDescription && formData.solutionDescription && formData.targetAudience;
+            case 3:
+                return formData.kvkkConsent && formData.photoConsent;
+            default:
+                return false;
+        }
+    };
+
+    const isCurrentPageValid = validatePage(currentPage);
+
     const handleSubmit = async () => {
         setIsSubmitting(true);
         try {
@@ -410,7 +425,11 @@ export default function GlowUpBasvuruPage() {
                             <button
                                 type="button"
                                 onClick={nextPage}
-                                className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-lg hover:opacity-90 transition-all font-semibold"
+                                disabled={!isCurrentPageValid}
+                                className={`flex items-center gap-2 px-6 py-3 rounded-lg font-semibold transition-all ${isCurrentPageValid
+                                    ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white hover:opacity-90'
+                                    : 'bg-white/10 text-gray-500 cursor-not-allowed'
+                                    }`}
                             >
                                 Sonraki
                                 <ChevronRight className="w-5 h-5" />
@@ -419,8 +438,8 @@ export default function GlowUpBasvuruPage() {
                             <button
                                 type="button"
                                 onClick={handleSubmit}
-                                disabled={!formData.kvkkConsent || !formData.photoConsent || isSubmitting}
-                                className={`flex items-center gap-2 px-8 py-3 rounded-lg font-semibold transition-all ${formData.kvkkConsent && formData.photoConsent && !isSubmitting
+                                disabled={!isCurrentPageValid || isSubmitting}
+                                className={`flex items-center gap-2 px-8 py-3 rounded-lg font-semibold transition-all ${isCurrentPageValid && !isSubmitting
                                     ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white hover:opacity-90'
                                     : 'bg-gray-700 text-gray-400 cursor-not-allowed'
                                     }`}

@@ -125,6 +125,23 @@ export const AntsApplication = () => {
 
     const [isSubmitting, setIsSubmitting] = useState(false);
 
+    const validatePage = (page: number) => {
+        switch (page) {
+            case 1:
+                return formData.projectName && formData.fullName && formData.projectRole && formData.phone && formData.email;
+            case 2:
+                return formData.sectors && formData.projectSummary && formData.problemToSolve && formData.projectStage && formData.solutionDescription;
+            case 3:
+                return formData.founders;
+            case 4:
+                return formData.privacyConsent && formData.dataProcessingConsent;
+            default:
+                return false;
+        }
+    };
+
+    const isCurrentPageValid = validatePage(currentPage);
+
     const handleSubmit = async () => {
         setIsSubmitting(true);
         try {
@@ -255,11 +272,11 @@ export const AntsApplication = () => {
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div>
                                         <label className={labelClass}>Girişiminizin Adı <span className="text-red-500">*</span></label>
-                                        <input type="text" name="projectName" value={formData.projectName} onChange={handleChange} className={inputClass} placeholder="Örn: iyilink" required />
+                                        <input type="text" name="projectName" value={formData.projectName} onChange={handleChange} className={inputClass} placeholder="Örn: Girişim Adı" required />
                                     </div>
                                     <div>
                                         <label className={labelClass}>Adınız Soyadınız <span className="text-red-500">*</span></label>
-                                        <input type="text" name="fullName" value={formData.fullName} onChange={handleChange} className={inputClass} placeholder="Örn: Efe Tenha" required />
+                                        <input type="text" name="fullName" value={formData.fullName} onChange={handleChange} className={inputClass} placeholder="Örn: Ahmet Yılmaz" required />
                                     </div>
                                 </div>
 
@@ -488,8 +505,8 @@ export const AntsApplication = () => {
                                         rows={4}
                                         className={inputClass}
                                         placeholder="Örn:
-Efe Tenha - Kurucu Ortak - efetenha@gmail.com
-Faruk Zengin - CTO - faruk@email.com"
+Ahmet Yılmaz - Kurucu Ortak - ahmet@email.com
+Mehmet Demir - CTO - mehmet@email.com"
                                     />
                                 </div>
 
@@ -620,7 +637,11 @@ Faruk Zengin - CTO - faruk@email.com"
                             <button
                                 type="button"
                                 onClick={nextPage}
-                                className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg font-orbitron text-sm hover:opacity-90 transition-all"
+                                disabled={!isCurrentPageValid}
+                                className={`flex items-center gap-2 px-6 py-3 rounded-lg font-orbitron text-sm transition-all ${isCurrentPageValid
+                                    ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:opacity-90'
+                                    : 'bg-white/10 text-gray-500 cursor-not-allowed'
+                                    }`}
                             >
                                 Sonraki
                                 <ChevronRight className="w-5 h-5" />
@@ -629,8 +650,8 @@ Faruk Zengin - CTO - faruk@email.com"
                             <button
                                 type="button"
                                 onClick={handleSubmit}
-                                disabled={!formData.privacyConsent || !formData.dataProcessingConsent || isSubmitting}
-                                className={`flex items-center gap-2 px-8 py-3 rounded-lg font-orbitron text-sm transition-all ${formData.privacyConsent && formData.dataProcessingConsent && !isSubmitting
+                                disabled={!isCurrentPageValid || isSubmitting}
+                                className={`flex items-center gap-2 px-8 py-3 rounded-lg font-orbitron text-sm transition-all ${isCurrentPageValid && !isSubmitting
                                     ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white hover:opacity-90 shadow-[0_0_20px_rgba(34,197,94,0.3)]'
                                     : 'bg-gray-700 text-gray-400 cursor-not-allowed'
                                     }`}

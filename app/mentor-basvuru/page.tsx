@@ -131,6 +131,32 @@ export default function MentorBasvuruPage() {
         }));
     };
 
+    const validateForm = () => {
+        const { fullName, email, phone, city, educationLevel, university, experienceYears, currentPosition, careerSummary,
+            expertise, expertiseDescription, hasMentorExperience, mentorAreas, hasCertificate, mentorMeaning,
+            motivation, idealMentor, availability, hasFinancialExpectation, kvkkConsent } = formData;
+
+        if (!fullName || !email || !phone || !city) return false;
+        if (!educationLevel || !university || !experienceYears || !currentPosition || !careerSummary) return false;
+        if (expertise.length === 0 || !expertiseDescription) return false;
+
+        if (!hasMentorExperience) return false;
+        if (hasMentorExperience === "Evet" && !mentorAreas) return false;
+
+        if (!hasCertificate) return false;
+
+        if (!mentorMeaning || !motivation || !availability) return false;
+        if (idealMentor.length === 0) return false;
+
+        if (!hasFinancialExpectation) return false;
+
+        if (!kvkkConsent) return false;
+
+        return true;
+    };
+
+    const isFormValid = validateForm();
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsSubmitting(true);
@@ -469,8 +495,8 @@ export default function MentorBasvuruPage() {
                         {/* Submit */}
                         <button
                             type="submit"
-                            disabled={!formData.kvkkConsent || formData.expertise.length === 0 || isSubmitting}
-                            className={`w-full py-5 rounded-lg font-orbitron font-bold tracking-widest flex items-center justify-center gap-3 transition-all ${formData.kvkkConsent && formData.expertise.length > 0 && !isSubmitting
+                            disabled={!isFormValid || isSubmitting}
+                            className={`w-full py-5 rounded-lg font-orbitron font-bold tracking-widest flex items-center justify-center gap-3 transition-all ${isFormValid && !isSubmitting
                                 ? 'bg-gradient-to-r from-primary to-purple-600 text-white hover:opacity-90 shadow-lg shadow-primary/30'
                                 : 'bg-gray-700 text-gray-400 cursor-not-allowed'
                                 }`}
