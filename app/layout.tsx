@@ -17,9 +17,6 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "İKÜANTS TEKMER",
   description: "İnovasyon ve teknoloji merkezimizde girişimcileri, kurumları ve yatırımcıları bir araya getiriyoruz.",
-  icons: {
-    icon: "/logo.png",
-  },
 };
 
 export default function RootLayout({

@@ -24,6 +24,7 @@ export const Navbar = () => {
             subItems: [
                 { name: "Ekibimiz", href: "/ekibimiz" },
                 { name: "Kurullarımız", href: "/kurullar" },
+                { name: "İşbirliklerimiz", href: "/isbirliklerimiz" },
                 { name: "Kullanım Alanları", href: "/kullanim-alanlari" },
                 { name: "Hizmetlerimiz", href: "/hizmetlerimiz" },
                 { name: "Mevzuat", href: "/mevzuat" },

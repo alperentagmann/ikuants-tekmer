@@ -240,7 +240,6 @@ export default function KurullarPage() {
                         </motion.div>
                     )
                 ))}
-
                 {/* Info Section */}
                 <motion.div
                     initial={{ opacity: 0, y: 30 }}
