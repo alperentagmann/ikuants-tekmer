@@ -26,7 +26,7 @@ const mentors = [
     { name: "Doç. Dr. Meri Taksi Deveciyan", company: "İstanbul Kültür Üniversitesi", title: "İktisadi ve İdari Bilimler Fakültesi", image: "/images/meri-taksi.jpg", linkedin: "https://www.linkedin.com/in/meritaksideveciyan/" },
     { name: "Doğukan Gözalp", company: "Startup Centrum", title: "Business Developer & Start-up Mentor", image: "/images/dogukan-gozalp.jpg", linkedin: "https://www.linkedin.com/in/dogukanozalp/" },
     { name: "Tuncay Işıkçı", company: "Malogra Danışmanlık", title: "Finansal Yönetim Ekip Lideri", image: "/images/tuncay-isikci.jpg", linkedin: "https://www.linkedin.com/in/tuncay-i%C5%9F%C4%B1k%C3%A7%C4%B1-20b978222/" },
-    { name: "Yusuf Yılmaz", company: "AtakDx", title: "Founder", image: "/images/yusuf-yilmaz-mentor.jpg", linkedin: "https://www.linkedin.com/in/yusuf-kelpetin-a016533a/" }
+    { name: "Yusuf Kelpetin", company: "AtakDx", title: "Founder", image: "/images/yusuf-yilmaz-mentor.jpg", linkedin: "https://www.linkedin.com/in/yusuf-kelpetin-a016533a/" }
 ];
 
 const getInitials = (name: string) => {
