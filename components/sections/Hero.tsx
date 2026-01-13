@@ -190,27 +190,27 @@ export const Hero = () => {
                     initial={{ opacity: 0, y: 50 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 1, delay: 0.8 }}
-                    className="grid grid-cols-2 md:grid-cols-4 gap-6 w-full max-w-5xl"
+                    className="grid grid-cols-2 md:grid-cols-4 gap-3 w-full max-w-4xl"
                 >
                     {hero.stats.map((stat, i) => (
                         <div
                             key={i}
                             onClick={() => setExpandedCategory(expandedCategory === i ? null : i)}
-                            className={`group p-4 border bg-white/90 dark:bg-black/30 backdrop-blur-xl dark:backdrop-blur-sm rounded-xl transition-all cursor-pointer hover:scale-105 ${expandedCategory === i
+                            className={`group p-3 border bg-white/90 dark:bg-black/30 backdrop-blur-xl dark:backdrop-blur-sm rounded-lg transition-all cursor-pointer hover:scale-105 relative ${expandedCategory === i
                                 ? 'border-primary dark:border-secondary/60 bg-primary/10 dark:bg-primary/10 shadow-xl shadow-primary/30'
-                                : 'border-gray-200 dark:border-white/10 hover:border-primary/50 dark:hover:border-secondary/40 shadow-lg dark:shadow-none'
+                                : 'border-gray-200 dark:border-white/10 hover:border-primary/50 dark:hover:border-secondary/40 shadow-md dark:shadow-none'
                                 }`}
                         >
-                            <stat.icon className={`w-8 h-8 mb-2 ${expandedCategory === i ? 'text-primary' : 'text-black dark:text-gray-300'} group-hover:text-primary transition-colors`} />
-                            <div className="text-sm font-orbitron font-bold text-black dark:text-white mb-0.5 group-hover:text-primary transition-colors">
-                                {stat.title}
+                            <div className="flex items-center gap-2 mb-1">
+                                <stat.icon className={`w-5 h-5 ${expandedCategory === i ? 'text-primary' : 'text-black dark:text-gray-300'} group-hover:text-primary transition-colors flex-shrink-0`} />
+                                <div className="text-xs font-orbitron font-bold text-black dark:text-white group-hover:text-primary transition-colors truncate">
+                                    {stat.title}
+                                </div>
                             </div>
-                            <div className="text-[10px] text-black/70 dark:text-gray-400 uppercase tracking-wider">
+                            <div className="text-[9px] text-black/60 dark:text-gray-500 uppercase tracking-wider pl-7">
                                 {stat.subtitle}
                             </div>
-                            <div className="absolute top-2 right-2 text-gray-500 group-hover:text-secondary transition-colors">
-                                <ChevronRight className={`w-3 h-3 transition-transform ${expandedCategory === i ? 'rotate-90' : ''}`} />
-                            </div>
+                            <ChevronRight className={`absolute top-2 right-2 w-3 h-3 text-gray-400 group-hover:text-secondary transition-all ${expandedCategory === i ? 'rotate-90' : ''}`} />
                         </div>
                     ))}
                 </motion.div>
