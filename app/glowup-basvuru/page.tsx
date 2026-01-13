@@ -113,23 +113,23 @@ export default function GlowUpBasvuruPage() {
         }
     };
 
-    const inputClass = "w-full bg-white/5 border border-white/10 rounded-lg focus:border-cyan-500 focus:bg-white/10 p-4 text-white outline-none transition-all";
-    const labelClass = "flex items-center gap-2 text-sm uppercase tracking-wider text-gray-400 font-bold mb-2";
+    const inputClass = "w-full bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-lg focus:border-cyan-500 focus:bg-white dark:focus:bg-white/10 p-4 text-black dark:text-white outline-none transition-all";
+    const labelClass = "flex items-center gap-2 text-sm uppercase tracking-wider text-black/70 dark:text-gray-400 font-bold mb-2";
 
     if (isSubmitted) {
         return (
-            <div className="py-24 min-h-screen">
+            <div className="py-24 min-h-screen bg-gray-50 dark:bg-[#050510] transition-colors duration-300">
                 <div className="container mx-auto px-6 max-w-4xl">
                     <motion.div
                         initial={{ scale: 0.8, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
-                        className="bg-[#0a0a0a] border border-green-500/30 p-12 rounded-2xl text-center"
+                        className="bg-white dark:bg-[#0a0a0a] border border-gray-200 dark:border-green-500/30 p-12 rounded-2xl text-center shadow-lg dark:shadow-none"
                     >
                         <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-green-500/20 flex items-center justify-center">
                             <Check className="w-10 h-10 text-green-500" />
                         </div>
-                        <h2 className="font-orbitron font-bold text-3xl text-white mb-4">Başvurunuz Alındı!</h2>
-                        <p className="text-gray-400 mb-6">
+                        <h2 className="font-orbitron font-bold text-3xl text-black dark:text-white mb-4">Başvurunuz Alındı!</h2>
+                        <p className="text-black/70 dark:text-gray-400 mb-6">
                             GLOW UP Ideathon başvurunuz başarıyla gönderildi. Takımınıza en kısa sürede dönüş yapılacaktır.
                         </p>
                         <button
@@ -145,7 +145,7 @@ export default function GlowUpBasvuruPage() {
     }
 
     return (
-        <div className="py-24 relative min-h-screen">
+        <div className="py-24 relative min-h-screen bg-gray-50 dark:bg-[#050510] transition-colors duration-300">
             <div className="absolute inset-0 bg-gradient-to-b from-cyan-500/5 to-transparent pointer-events-none" />
 
             <div className="container mx-auto px-6 max-w-4xl relative z-10">
@@ -164,7 +164,7 @@ export default function GlowUpBasvuruPage() {
                             GLOW UP
                         </span>
                     </h1>
-                    <p className="text-gray-400 max-w-2xl mx-auto">
+                    <p className="text-black/70 dark:text-gray-400 max-w-2xl mx-auto">
                         2 günde fikrini iş modeline dönüştür! Takımınızla birlikte başvurun.
                     </p>
                 </motion.div>
@@ -174,30 +174,30 @@ export default function GlowUpBasvuruPage() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.1 }}
-                    className="mb-12 p-8 rounded-2xl bg-gradient-to-r from-cyan-500/10 via-blue-500/5 to-purple-500/10 border border-white/10"
+                    className="mb-12 p-8 rounded-2xl bg-white dark:bg-gradient-to-r dark:from-cyan-500/10 dark:via-blue-500/5 dark:to-purple-500/10 border border-gray-200 dark:border-white/10 shadow-lg dark:shadow-none"
                 >
-                    <h2 className="font-orbitron text-xl text-white mb-6 text-center">GLOW UP Nedir?</h2>
-                    <p className="text-gray-300 text-center mb-8 max-w-3xl mx-auto">
+                    <h2 className="font-orbitron text-xl text-black dark:text-white mb-6 text-center">GLOW UP Nedir?</h2>
+                    <p className="text-black/80 dark:text-gray-300 text-center mb-8 max-w-3xl mx-auto">
                         GLOW UP, İKÜANTS TEKMER tarafından düzenlenen 2 günlük yoğun bir ideathon programıdır.
                         Teknoloji odaklı fikirlerinizi deneyimli mentörler eşliğinde geliştirin, iş modeline dönüştürün
                         ve jüri önünde sunarak ödül kazanma şansı yakalayın!
                     </p>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                        <div className="p-5 rounded-xl bg-white/5 border border-white/10 text-center">
+                        <div className="p-5 rounded-xl bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-center">
                             <div className="text-3xl mb-2">🚀</div>
-                            <h3 className="text-white font-semibold mb-2">2 Gün Yoğun Program</h3>
-                            <p className="text-gray-400 text-sm">Fikir geliştirmeden sunuma kadar tüm süreçler</p>
+                            <h3 className="text-black dark:text-white font-semibold mb-2">2 Gün Yoğun Program</h3>
+                            <p className="text-black/70 dark:text-gray-400 text-sm">Fikir geliştirmeden sunuma kadar tüm süreçler</p>
                         </div>
                         <div className="p-5 rounded-xl bg-white/5 border border-white/10 text-center">
                             <div className="text-3xl mb-2">👨‍🏫</div>
-                            <h3 className="text-white font-semibold mb-2">Uzman Mentörlük</h3>
-                            <p className="text-gray-400 text-sm">Alanında uzman mentörlerden birebir destek</p>
+                            <h3 className="text-black dark:text-white font-semibold mb-2">Uzman Mentörlük</h3>
+                            <p className="text-black/70 dark:text-gray-400 text-sm">Alanında uzman mentörlerden birebir destek</p>
                         </div>
                         <div className="p-5 rounded-xl bg-white/5 border border-white/10 text-center">
                             <div className="text-3xl mb-2">🏆</div>
-                            <h3 className="text-white font-semibold mb-2">Ödüller & Fırsatlar</h3>
-                            <p className="text-gray-400 text-sm">Para ödülü ve ANTSPARK'a doğrudan katılım hakkı</p>
+                            <h3 className="text-black dark:text-white font-semibold mb-2">Ödüller & Fırsatlar</h3>
+                            <p className="text-black/70 dark:text-gray-400 text-sm">Para ödülü ve ANTSPARK'a doğrudan katılım hakkı</p>
                         </div>
                     </div>
 
@@ -245,7 +245,7 @@ export default function GlowUpBasvuruPage() {
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="bg-[#0a0a0a] border border-white/10 p-8 md:p-12 rounded-2xl"
+                    className="bg-white dark:bg-[#0a0a0a] border border-gray-200 dark:border-white/10 p-8 md:p-12 rounded-2xl shadow-lg dark:shadow-none"
                 >
                     <div className="h-1 w-full bg-gradient-to-r from-cyan-500 to-blue-500 absolute top-0 left-0 rounded-t-2xl" />
 

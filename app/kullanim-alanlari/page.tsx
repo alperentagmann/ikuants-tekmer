@@ -54,7 +54,7 @@ const features = [
 
 export default function KullanimAlanlariPage() {
     return (
-        <div className="py-24 relative min-h-screen">
+        <div className="py-24 relative min-h-screen bg-gray-50 dark:bg-[#050510] transition-colors duration-300">
             <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent pointer-events-none" />
 
             <div className="container mx-auto px-6 max-w-6xl relative z-10">
@@ -68,10 +68,10 @@ export default function KullanimAlanlariPage() {
                         <Building2 className="w-4 h-4 text-primary" />
                         <span className="text-sm text-primary font-mono">TESİSLERİMİZ</span>
                     </div>
-                    <h1 className="font-orbitron font-bold text-4xl md:text-5xl text-white mb-4">
+                    <h1 className="font-orbitron font-bold text-4xl md:text-5xl text-black dark:text-white mb-4">
                         Kullanım Alanları
                     </h1>
-                    <p className="text-gray-400 max-w-3xl mx-auto leading-relaxed">
+                    <p className="text-gray-600 dark:text-gray-400 max-w-3xl mx-auto leading-relaxed">
                         İKÜANTS TEKMER, girişimcilere ve profesyonellere birlikte üretim ve öğrenme süreçlerini
                         gerçekleştirebilecekleri modern bir çalışma ortamı sunmaktadır. Yeni iş birliklerinin
                         oluşturulması, fikir alışverişi yapılması ve ortak projelerin hayata geçirilmesi için
@@ -87,9 +87,9 @@ export default function KullanimAlanlariPage() {
                     className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-16"
                 >
                     {features.map((feature, index) => (
-                        <div key={index} className="flex items-center gap-3 p-4 rounded-xl bg-white/5 border border-white/10">
+                        <div key={index} className="flex items-center gap-3 p-4 rounded-xl bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 shadow-md dark:shadow-none">
                             <feature.icon className="w-5 h-5 text-secondary" />
-                            <span className="text-gray-300 text-sm">{feature.text}</span>
+                            <span className="text-gray-700 dark:text-gray-300 text-sm">{feature.text}</span>
                         </div>
                     ))}
                 </motion.div>
@@ -101,7 +101,7 @@ export default function KullanimAlanlariPage() {
                     transition={{ delay: 0.3 }}
                     className="mb-16"
                 >
-                    <h2 className="font-orbitron text-2xl text-white mb-8 flex items-center gap-3">
+                    <h2 className="font-orbitron text-2xl text-black dark:text-white mb-8 flex items-center gap-3">
                         <span className="w-8 h-[2px] bg-secondary" />
                         Stüdyolar
                     </h2>
@@ -112,16 +112,16 @@ export default function KullanimAlanlariPage() {
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: 0.4 + index * 0.1 }}
-                                className="group p-6 rounded-2xl bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/10 hover:border-primary/40 transition-all"
+                                className="group p-6 rounded-2xl bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 hover:border-primary/40 transition-all shadow-md dark:shadow-none"
                             >
                                 <div className="w-14 h-14 rounded-xl bg-primary/20 flex items-center justify-center mb-4 group-hover:bg-primary/30 transition-colors">
                                     <studio.icon className="w-7 h-7 text-primary" />
                                 </div>
-                                <h3 className="font-semibold text-white text-lg mb-2">{studio.title}</h3>
-                                <p className="text-gray-400 text-sm mb-4 leading-relaxed">{studio.description}</p>
+                                <h3 className="font-semibold text-black dark:text-white text-lg mb-2">{studio.title}</h3>
+                                <p className="text-gray-700 dark:text-gray-400 text-sm mb-4 leading-relaxed">{studio.description}</p>
                                 <ul className="space-y-2">
                                     {studio.features.map((feature, fi) => (
-                                        <li key={fi} className="flex items-center gap-2 text-xs text-gray-500">
+                                        <li key={fi} className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-500">
                                             <span className="w-1.5 h-1.5 rounded-full bg-secondary" />
                                             {feature}
                                         </li>
@@ -139,7 +139,7 @@ export default function KullanimAlanlariPage() {
                     transition={{ delay: 0.5 }}
                     className="mb-16"
                 >
-                    <h2 className="font-orbitron text-2xl text-white mb-8 flex items-center gap-3">
+                    <h2 className="font-orbitron text-2xl text-black dark:text-white mb-8 flex items-center gap-3">
                         <span className="w-8 h-[2px] bg-secondary" />
                         Çalışma Alanları
                     </h2>
@@ -150,13 +150,13 @@ export default function KullanimAlanlariPage() {
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: 0.6 + index * 0.1 }}
-                                className="group p-6 rounded-2xl bg-white/5 border border-white/10 hover:border-secondary/40 transition-all"
+                                className="group p-6 rounded-2xl bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 hover:border-secondary/40 transition-all shadow-md dark:shadow-none"
                             >
                                 <div className="w-12 h-12 rounded-lg bg-secondary/20 flex items-center justify-center mb-4 group-hover:bg-secondary/30 transition-colors">
                                     <area.icon className="w-6 h-6 text-secondary" />
                                 </div>
-                                <h3 className="font-semibold text-white text-lg mb-2">{area.title}</h3>
-                                <p className="text-gray-400 text-sm leading-relaxed">{area.description}</p>
+                                <h3 className="font-semibold text-black dark:text-white text-lg mb-2">{area.title}</h3>
+                                <p className="text-gray-700 dark:text-gray-400 text-sm leading-relaxed">{area.description}</p>
                             </motion.div>
                         ))}
                     </div>
@@ -167,10 +167,10 @@ export default function KullanimAlanlariPage() {
                     initial={{ opacity: 0, y: 30 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.7 }}
-                    className="text-center p-8 rounded-2xl bg-gradient-to-r from-primary/10 to-secondary/10 border border-white/10"
+                    className="text-center p-8 rounded-2xl bg-gradient-to-r from-primary/10 to-secondary/10 border border-gray-200 dark:border-white/10 shadow-lg"
                 >
-                    <h3 className="font-orbitron text-xl text-white mb-3">Alanlarımızı Kullanmak İster Misiniz?</h3>
-                    <p className="text-gray-400 mb-6 max-w-xl mx-auto">
+                    <h3 className="font-orbitron text-xl text-black dark:text-white mb-3">Alanlarımızı Kullanmak İster Misiniz?</h3>
+                    <p className="text-gray-600 dark:text-gray-400 mb-6 max-w-xl mx-auto">
                         Tüm alanlar rezervasyon yöntemiyle kullanıma sunulmaktadır. Başvuru yaparak TEKMER ekosisteminin bir parçası olabilirsiniz.
                     </p>
                     <a

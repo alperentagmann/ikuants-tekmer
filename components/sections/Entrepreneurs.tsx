@@ -7,8 +7,8 @@ export const Entrepreneurs = () => {
     const { entrepreneurs } = siteContent;
 
     return (
-        <section id="entrepreneurs" className="py-24 relative overflow-hidden">
-            <div className="absolute inset-0 bg-[#070712] -z-10" />
+        <section id="entrepreneurs" className="py-24 relative overflow-hidden bg-gray-50 dark:bg-[#050510] transition-colors duration-300">
+
 
             <div className="container mx-auto px-6 max-w-7xl">
                 <div className="text-center mb-16">
@@ -16,7 +16,7 @@ export const Entrepreneurs = () => {
                         initial={{ opacity: 0, y: 20 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
-                        className="font-orbitron font-bold text-4xl md:text-5xl mb-4"
+                        className="font-orbitron font-bold text-4xl md:text-5xl mb-4 text-black dark:text-white"
                     >
                         {entrepreneurs.header}
                     </motion.h2>

@@ -233,7 +233,7 @@ export default function HaberlerPage() {
     }, [selectedImage, selectedNews]);
 
     return (
-        <div className="py-24 relative min-h-screen">
+        <div className="py-24 relative min-h-screen bg-gray-50 dark:bg-[#050510] transition-colors duration-300">
             {/* Background Effects */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
                 <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-[120px]" />
@@ -251,10 +251,10 @@ export default function HaberlerPage() {
                         <Newspaper className="w-4 h-4 text-primary" />
                         <span className="text-sm text-primary font-mono">GÜNCEL</span>
                     </div>
-                    <h1 className="font-orbitron font-bold text-4xl md:text-5xl text-white mb-4">
+                    <h1 className="font-orbitron font-bold text-4xl md:text-5xl text-black dark:text-white mb-4">
                         Haber & Duyurular
                     </h1>
-                    <p className="text-gray-400 max-w-2xl mx-auto">
+                    <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
                         İKÜANTS TEKMER'den en güncel haberler, etkinlikler ve duyurular
                     </p>
                 </motion.div>
@@ -272,7 +272,7 @@ export default function HaberlerPage() {
                             onClick={() => setSelectedCategory(category)}
                             className={`px-6 py-2.5 rounded-full font-medium text-sm transition-all ${selectedCategory === category
                                 ? 'bg-gradient-to-r from-primary to-purple-600 text-white shadow-lg shadow-primary/30'
-                                : 'bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white border border-white/10'
+                                : 'bg-gray-200 dark:bg-white/5 text-gray-600 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-white/10 hover:text-black dark:hover:text-white border border-gray-300 dark:border-white/10'
                                 }`}
                         >
                             {category}
@@ -289,7 +289,7 @@ export default function HaberlerPage() {
                         transition={{ delay: 0.2 }}
                         className="group block mb-12 cursor-pointer"
                     >
-                        <div className="relative rounded-3xl overflow-hidden bg-gradient-to-br from-white/10 to-white/5 border border-white/10 hover:border-primary/40 transition-all">
+                        <div className="relative rounded-3xl overflow-hidden border border-gray-200 dark:border-white/10 hover:border-primary/40 transition-all shadow-lg dark:shadow-none bg-white dark:bg-white/5">
                             <div className="grid grid-cols-1 lg:grid-cols-2">
                                 {/* Image */}
                                 <div className="relative h-64 lg:h-96 overflow-hidden">
@@ -319,10 +319,10 @@ export default function HaberlerPage() {
                                             {featuredNews.date}
                                         </span>
                                     </div>
-                                    <h2 className="font-orbitron text-2xl lg:text-3xl text-white font-bold mb-4 group-hover:text-primary transition-colors leading-tight">
+                                    <h2 className="font-orbitron text-2xl lg:text-3xl text-black dark:text-white font-bold mb-4 group-hover:text-primary transition-colors leading-tight">
                                         {featuredNews.title}
                                     </h2>
-                                    <p className="text-gray-400 mb-6 line-clamp-3">
+                                    <p className="text-gray-600 dark:text-gray-400 mb-6 line-clamp-3">
                                         {featuredNews.excerpt}
                                     </p>
                                     <div className="inline-flex items-center gap-2 text-primary font-semibold group-hover:gap-4 transition-all">
@@ -346,7 +346,7 @@ export default function HaberlerPage() {
                             transition={{ delay: 0.1 + index * 0.1 }}
                             className="group cursor-pointer"
                         >
-                            <div className="relative h-full rounded-2xl overflow-hidden bg-gradient-to-br from-white/10 to-white/[0.02] border border-white/10 hover:border-primary/40 transition-all hover:shadow-xl hover:shadow-primary/10">
+                            <div className="relative h-full rounded-2xl overflow-hidden bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 hover:border-primary/40 transition-all hover:shadow-xl dark:hover:shadow-xl hover:shadow-primary/10 shadow-md dark:shadow-none">
                                 {/* Image */}
                                 <div className="relative h-52 overflow-hidden">
                                     <img
@@ -371,7 +371,7 @@ export default function HaberlerPage() {
                                         <Calendar className="w-4 h-4" />
                                         {item.date}
                                     </div>
-                                    <h3 className="text-lg font-semibold text-white mb-3 group-hover:text-primary transition-colors line-clamp-2 leading-snug">
+                                    <h3 className="text-lg font-semibold text-black dark:text-white mb-3 group-hover:text-primary transition-colors line-clamp-2 leading-snug">
                                         {item.title}
                                     </h3>
                                     <p className="text-gray-500 text-sm line-clamp-2 mb-4">
@@ -404,12 +404,12 @@ export default function HaberlerPage() {
                     initial={{ opacity: 0, y: 30 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.5 }}
-                    className="mt-16 p-8 md:p-12 rounded-3xl bg-gradient-to-r from-primary/20 via-purple-600/10 to-secondary/20 border border-white/10 text-center"
+                    className="mt-16 p-8 md:p-12 rounded-3xl bg-gradient-to-r from-primary/20 via-purple-600/10 to-secondary/20 border border-gray-200 dark:border-white/10 text-center shadow-lg"
                 >
-                    <h3 className="font-orbitron text-2xl text-white mb-3">
+                    <h3 className="font-orbitron text-2xl text-black dark:text-white mb-3">
                         Güncel Haberlerden Haberdar Olun
                     </h3>
-                    <p className="text-gray-400 mb-6 max-w-lg mx-auto">
+                    <p className="text-gray-600 dark:text-gray-400 mb-6 max-w-lg mx-auto">
                         İKÜANTS TEKMER'in etkinlikleri, programları ve fırsatları hakkında bilgi almak için bizi takip edin.
                     </p>
                     <div className="flex flex-wrap justify-center gap-4">
@@ -456,7 +456,7 @@ export default function HaberlerPage() {
                             initial={{ scale: 0.9, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0.9, opacity: 0 }}
-                            className="bg-[#0a0a0a] border border-white/10 rounded-2xl max-w-4xl w-full h-[95vh] md:h-[90vh] flex flex-col"
+                            className="bg-white dark:bg-[#0a0a0a] border border-gray-200 dark:border-white/10 rounded-2xl max-w-4xl w-full h-[95vh] md:h-[90vh] flex flex-col shadow-2xl dark:shadow-none"
                             onClick={(e) => e.stopPropagation()}
                         >
                             {/* Modal Image */}
@@ -466,7 +466,7 @@ export default function HaberlerPage() {
                                     alt={selectedNews.title}
                                     className="w-full h-full object-cover"
                                 />
-                                <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] to-transparent" />
+                                <div className="absolute inset-0 bg-gradient-to-t from-white dark:from-[#0a0a0a] to-transparent" />
                                 <button
                                     onClick={closeModal}
                                     className="absolute top-4 right-4 p-2 bg-black/50 rounded-full hover:bg-black/70 transition-colors"
@@ -489,22 +489,22 @@ export default function HaberlerPage() {
                                     <Calendar className="w-4 h-4" />
                                     {selectedNews.date}
                                 </div>
-                                <h2 className="font-orbitron text-2xl md:text-3xl text-white font-bold mb-6">
+                                <h2 className="font-orbitron text-2xl md:text-3xl text-black dark:text-white font-bold mb-6">
                                     {selectedNews.title}
                                 </h2>
-                                <div className="text-gray-300 leading-loose whitespace-pre-line text-base md:text-lg mb-8">
+                                <div className="text-black/80 dark:text-gray-300 leading-loose whitespace-pre-line text-base md:text-lg mb-8">
                                     {selectedNews.fullContent}
                                 </div>
 
                                 {/* Gallery Section */}
                                 {selectedNews.gallery && selectedNews.gallery.length > 0 && (
                                     <div className="mb-8">
-                                        <h3 className="font-orbitron text-xl text-white mb-4">Etkinlik Galerisi</h3>
+                                        <h3 className="font-orbitron text-xl text-black dark:text-white mb-4">Etkinlik Galerisi</h3>
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                             {selectedNews.gallery.map((img, idx) => (
                                                 <div
                                                     key={idx}
-                                                    className="relative aspect-video rounded-xl overflow-hidden group border border-white/10 cursor-pointer"
+                                                    className="relative aspect-video rounded-xl overflow-hidden group border border-gray-200 dark:border-white/10 cursor-pointer"
                                                     onClick={() => setSelectedImage(img)}
                                                 >
                                                     <img
@@ -525,10 +525,10 @@ export default function HaberlerPage() {
 
                                 {/* RSVP Section for Etkinlik */}
                                 {selectedNews.category === 'Etkinlik' && (
-                                    <div className="mt-8 pt-8 border-t border-white/10">
+                                    <div className="mt-8 pt-8 border-t border-gray-200 dark:border-white/10">
                                         {!showRsvpForm && !rsvpSubmitted && (
                                             <div className="text-center">
-                                                <p className="text-gray-400 mb-4">Bu etkinliğe katılmak ister misiniz?</p>
+                                                <p className="text-black/70 dark:text-gray-400 mb-4">Bu etkinliğe katılmak ister misiniz?</p>
                                                 <button
                                                     onClick={() => setShowRsvpForm(true)}
                                                     className="px-8 py-4 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl font-bold text-lg hover:opacity-90 transition-all shadow-lg shadow-purple-500/30"
@@ -539,44 +539,44 @@ export default function HaberlerPage() {
                                         )}
 
                                         {showRsvpForm && !rsvpSubmitted && (
-                                            <div className="bg-white/5 rounded-2xl p-6 border border-white/10">
-                                                <h3 className="font-orbitron text-xl text-white mb-4">Etkinlik Kaydı</h3>
-                                                <p className="text-gray-400 text-sm mb-6">Bilgilerinizi girerek etkinliğe katılım kaydınızı oluşturun.</p>
+                                            <div className="bg-gray-100 dark:bg-white/5 rounded-2xl p-6 border border-gray-200 dark:border-white/10">
+                                                <h3 className="font-orbitron text-xl text-black dark:text-white mb-4">Etkinlik Kaydı</h3>
+                                                <p className="text-black/70 dark:text-gray-400 text-sm mb-6">Bilgilerinizi girerek etkinliğe katılım kaydınızı oluşturun.</p>
                                                 <div className="space-y-4">
                                                     <div>
-                                                        <label className="block text-sm text-gray-400 mb-2">Ad Soyad *</label>
+                                                        <label className="block text-sm text-black/70 dark:text-gray-400 mb-2">Ad Soyad *</label>
                                                         <input
                                                             type="text"
                                                             value={rsvpData.name}
                                                             onChange={(e) => setRsvpData({ ...rsvpData, name: e.target.value })}
-                                                            className="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-lg text-white focus:border-primary focus:outline-none"
+                                                            className="w-full px-4 py-3 bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/20 rounded-lg text-black dark:text-white focus:border-primary focus:outline-none"
                                                             placeholder="Adınız ve soyadınız"
                                                         />
                                                     </div>
                                                     <div>
-                                                        <label className="block text-sm text-gray-400 mb-2">E-posta *</label>
+                                                        <label className="block text-sm text-black/70 dark:text-gray-400 mb-2">E-posta *</label>
                                                         <input
                                                             type="email"
                                                             value={rsvpData.email}
                                                             onChange={(e) => setRsvpData({ ...rsvpData, email: e.target.value })}
-                                                            className="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-lg text-white focus:border-primary focus:outline-none"
+                                                            className="w-full px-4 py-3 bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/20 rounded-lg text-black dark:text-white focus:border-primary focus:outline-none"
                                                             placeholder="ornek@email.com"
                                                         />
                                                     </div>
                                                     <div>
-                                                        <label className="block text-sm text-gray-400 mb-2">Telefon *</label>
+                                                        <label className="block text-sm text-black/70 dark:text-gray-400 mb-2">Telefon *</label>
                                                         <input
                                                             type="tel"
                                                             value={rsvpData.phone}
                                                             onChange={(e) => setRsvpData({ ...rsvpData, phone: e.target.value })}
-                                                            className="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-lg text-white focus:border-primary focus:outline-none"
+                                                            className="w-full px-4 py-3 bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/20 rounded-lg text-black dark:text-white focus:border-primary focus:outline-none"
                                                             placeholder="0555 123 4567"
                                                         />
                                                     </div>
                                                     <div className="flex gap-3 pt-4">
                                                         <button
                                                             onClick={() => setShowRsvpForm(false)}
-                                                            className="px-6 py-3 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-all"
+                                                            className="px-6 py-3 bg-gray-200 dark:bg-white/10 text-black dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-white/20 transition-all"
                                                         >
                                                             İptal
                                                         </button>

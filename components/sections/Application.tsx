@@ -58,18 +58,18 @@ export const Application = () => {
 
     if (isSubmitted) {
         return (
-            <section id="application" className="py-24 relative">
+            <section id="application" className="py-24 relative bg-gray-50 dark:bg-[#050510] transition-colors duration-300">
                 <div className="container mx-auto px-6 max-w-4xl">
                     <motion.div
                         initial={{ scale: 0.8, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
-                        className="bg-[#0a0a0a] border border-green-500/30 p-12 rounded-2xl text-center"
+                        className="bg-white dark:bg-[#0a0a0a] border border-gray-200 dark:border-green-500/30 p-12 rounded-2xl text-center shadow-lg dark:shadow-none"
                     >
                         <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-green-500/20 flex items-center justify-center">
                             <Check className="w-10 h-10 text-green-500" />
                         </div>
-                        <h2 className="font-orbitron font-bold text-3xl text-white mb-4">Başvurunuz Alındı!</h2>
-                        <p className="text-gray-400 mb-6">
+                        <h2 className="font-orbitron font-bold text-3xl text-black dark:text-white mb-4">Başvurunuz Alındı!</h2>
+                        <p className="text-black/70 dark:text-gray-400 mb-6">
                             İKÜANTS TEKMER başvurunuz başarıyla gönderildi. En kısa sürede sizinle iletişime geçeceğiz.
                         </p>
                         <button
@@ -85,7 +85,7 @@ export const Application = () => {
     }
 
     return (
-        <section id="application" className="py-24 relative bg-[#050510]">
+        <section id="application" className="py-24 relative bg-gray-50 dark:bg-[#050510] transition-colors duration-300">
             <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent pointer-events-none" />
 
             <div className="container mx-auto px-6 max-w-4xl relative z-10">
@@ -98,7 +98,7 @@ export const Application = () => {
                     <h2 className="font-orbitron font-bold text-4xl md:text-5xl mb-4">
                         <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary">BAŞVURU FORMU</span>
                     </h2>
-                    <p className="text-gray-400 max-w-2xl mx-auto">
+                    <p className="text-black/70 dark:text-gray-400 max-w-2xl mx-auto">
                         İKÜANTS TEKMER ailesine katılmak için aşağıdaki formu doldurun. Size en kısa sürede dönüş yapacağız.
                     </p>
                 </motion.div>
@@ -108,7 +108,7 @@ export const Application = () => {
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
                     onSubmit={handleSubmit}
-                    className="bg-[#0a0a0a] border border-white/10 p-8 md:p-12 rounded-2xl relative overflow-hidden"
+                    className="bg-white dark:bg-[#0a0a0a] border border-gray-200 dark:border-white/10 p-8 md:p-12 rounded-2xl relative overflow-hidden shadow-lg dark:shadow-none"
                 >
                     <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-secondary via-primary to-secondary" />
 
@@ -116,7 +116,7 @@ export const Application = () => {
                         {/* Row 1: Name & Email */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="space-y-2">
-                                <label className="flex items-center gap-2 text-sm uppercase tracking-wider text-gray-400 font-bold">
+                                <label className="flex items-center gap-2 text-sm uppercase tracking-wider text-black/70 dark:text-gray-400 font-bold">
                                     <User className="w-4 h-4 text-primary" />
                                     Adınız Soyadınız <span className="text-red-500">*</span>
                                 </label>
@@ -126,12 +126,12 @@ export const Application = () => {
                                     required
                                     value={formData.fullName}
                                     onChange={handleChange}
-                                    className="w-full bg-white/5 border border-white/10 rounded-lg focus:border-secondary focus:bg-white/10 p-4 text-white outline-none transition-all"
+                                    className="w-full bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-lg focus:border-secondary focus:bg-white dark:focus:bg-white/10 p-4 text-black dark:text-white outline-none transition-all"
                                     placeholder="Örn: Ahmet Yılmaz"
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label className="flex items-center gap-2 text-sm uppercase tracking-wider text-gray-400 font-bold">
+                                <label className="flex items-center gap-2 text-sm uppercase tracking-wider text-black/70 dark:text-gray-400 font-bold">
                                     <Mail className="w-4 h-4 text-primary" />
                                     E-posta Adresiniz <span className="text-red-500">*</span>
                                 </label>
@@ -141,7 +141,7 @@ export const Application = () => {
                                     required
                                     value={formData.email}
                                     onChange={handleChange}
-                                    className="w-full bg-white/5 border border-white/10 rounded-lg focus:border-secondary focus:bg-white/10 p-4 text-white outline-none transition-all"
+                                    className="w-full bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-lg focus:border-secondary focus:bg-white dark:focus:bg-white/10 p-4 text-black dark:text-white outline-none transition-all"
                                     placeholder="ornek@email.com"
                                 />
                             </div>
@@ -150,7 +150,7 @@ export const Application = () => {
                         {/* Row 2: Phone & Company */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="space-y-2">
-                                <label className="flex items-center gap-2 text-sm uppercase tracking-wider text-gray-400 font-bold">
+                                <label className="flex items-center gap-2 text-sm uppercase tracking-wider text-black/70 dark:text-gray-400 font-bold">
                                     <Phone className="w-4 h-4 text-primary" />
                                     Telefon Numaranız <span className="text-red-500">*</span>
                                 </label>
@@ -160,12 +160,12 @@ export const Application = () => {
                                     required
                                     value={formData.phone}
                                     onChange={handleChange}
-                                    className="w-full bg-white/5 border border-white/10 rounded-lg focus:border-secondary focus:bg-white/10 p-4 text-white outline-none transition-all"
+                                    className="w-full bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-lg focus:border-secondary focus:bg-white dark:focus:bg-white/10 p-4 text-black dark:text-white outline-none transition-all"
                                     placeholder="+90 501 234 56 78"
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label className="flex items-center gap-2 text-sm uppercase tracking-wider text-gray-400 font-bold">
+                                <label className="flex items-center gap-2 text-sm uppercase tracking-wider text-black/70 dark:text-gray-400 font-bold">
                                     <Building2 className="w-4 h-4 text-primary" />
                                     Firma Adı (Varsa)
                                 </label>
@@ -174,7 +174,7 @@ export const Application = () => {
                                     name="companyName"
                                     value={formData.companyName}
                                     onChange={handleChange}
-                                    className="w-full bg-white/5 border border-white/10 rounded-lg focus:border-secondary focus:bg-white/10 p-4 text-white outline-none transition-all"
+                                    className="w-full bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-lg focus:border-secondary focus:bg-white dark:focus:bg-white/10 p-4 text-black dark:text-white outline-none transition-all"
                                     placeholder="Şirket veya marka adı"
                                 />
                             </div>
@@ -183,7 +183,7 @@ export const Application = () => {
                         {/* Row 3: University & Project Name */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="space-y-2">
-                                <label className="flex items-center gap-2 text-sm uppercase tracking-wider text-gray-400 font-bold">
+                                <label className="flex items-center gap-2 text-sm uppercase tracking-wider text-black/70 dark:text-gray-400 font-bold">
                                     <GraduationCap className="w-4 h-4 text-primary" />
                                     Üniversite / Bölüm (Varsa)
                                 </label>
@@ -192,12 +192,12 @@ export const Application = () => {
                                     name="university"
                                     value={formData.university}
                                     onChange={handleChange}
-                                    className="w-full bg-white/5 border border-white/10 rounded-lg focus:border-secondary focus:bg-white/10 p-4 text-white outline-none transition-all"
+                                    className="w-full bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-lg focus:border-secondary focus:bg-white dark:focus:bg-white/10 p-4 text-black dark:text-white outline-none transition-all"
                                     placeholder="Örn: İstanbul Kültür Üniversitesi / Bilgisayar Müh."
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label className="flex items-center gap-2 text-sm uppercase tracking-wider text-gray-400 font-bold">
+                                <label className="flex items-center gap-2 text-sm uppercase tracking-wider text-black/70 dark:text-gray-400 font-bold">
                                     <FileText className="w-4 h-4 text-primary" />
                                     Proje Adı <span className="text-red-500">*</span>
                                 </label>
@@ -207,7 +207,7 @@ export const Application = () => {
                                     required
                                     value={formData.projectName}
                                     onChange={handleChange}
-                                    className="w-full bg-white/5 border border-white/10 rounded-lg focus:border-secondary focus:bg-white/10 p-4 text-white outline-none transition-all"
+                                    className="w-full bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-lg focus:border-secondary focus:bg-white dark:focus:bg-white/10 p-4 text-black dark:text-white outline-none transition-all"
                                     placeholder="Projenizin adı"
                                 />
                             </div>
@@ -224,14 +224,14 @@ export const Application = () => {
                                 required
                                 value={formData.teamSize}
                                 onChange={handleChange}
-                                className="w-full bg-white/5 border border-white/10 rounded-lg focus:border-secondary focus:bg-white/10 p-4 text-white outline-none transition-all cursor-pointer"
+                                className="w-full bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-lg focus:border-secondary focus:bg-white dark:focus:bg-white/10 p-4 text-black dark:text-white outline-none transition-all cursor-pointer"
                             >
-                                <option value="" className="bg-[#0a0a0a]">Seçiniz...</option>
-                                <option value="1" className="bg-[#0a0a0a]">1 Kişi (Solo)</option>
-                                <option value="2" className="bg-[#0a0a0a]">2 Kişi</option>
-                                <option value="3" className="bg-[#0a0a0a]">3 Kişi</option>
-                                <option value="4" className="bg-[#0a0a0a]">4 Kişi</option>
-                                <option value="5+" className="bg-[#0a0a0a]">5+ Kişi</option>
+                                <option value="" className="bg-white dark:bg-[#0a0a0a] text-black dark:text-white">Seçiniz...</option>
+                                <option value="1" className="bg-white dark:bg-[#0a0a0a] text-black dark:text-white">1 Kişi (Solo)</option>
+                                <option value="2" className="bg-white dark:bg-[#0a0a0a] text-black dark:text-white">2 Kişi</option>
+                                <option value="3" className="bg-white dark:bg-[#0a0a0a] text-black dark:text-white">3 Kişi</option>
+                                <option value="4" className="bg-white dark:bg-[#0a0a0a] text-black dark:text-white">4 Kişi</option>
+                                <option value="5+" className="bg-white dark:bg-[#0a0a0a] text-black dark:text-white">5+ Kişi</option>
                             </select>
                         </div>
 
@@ -241,7 +241,7 @@ export const Application = () => {
                                 <ClipboardList className="w-4 h-4 text-primary" />
                                 Proje Özeti <span className="text-red-500">*</span>
                             </label>
-                            <p className="text-xs text-gray-500 mb-2">
+                            <p className="text-xs text-black/50 dark:text-gray-500 mb-2">
                                 Şirket profili, takım bilgisi, problem tanımı ve çözüm önerisi, pazar bilgisi ve finansal beklentilerden bahsedilmelidir.
                             </p>
                             <textarea
@@ -250,7 +250,7 @@ export const Application = () => {
                                 rows={5}
                                 value={formData.projectSummary}
                                 onChange={handleChange}
-                                className="w-full bg-white/5 border border-white/10 rounded-lg focus:border-secondary focus:bg-white/10 p-4 text-white outline-none transition-all resize-none"
+                                className="w-full bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-lg focus:border-secondary focus:bg-white dark:focus:bg-white/10 p-4 text-black dark:text-white outline-none transition-all resize-none"
                                 placeholder="Projenizi detaylı bir şekilde açıklayın..."
                             />
                         </div>
@@ -261,7 +261,7 @@ export const Application = () => {
                                 <Target className="w-4 h-4 text-primary" />
                                 Beklentileriniz Nelerdir? <span className="text-red-500">*</span>
                             </label>
-                            <p className="text-xs text-gray-500 mb-2">
+                            <p className="text-xs text-black/50 dark:text-gray-500 mb-2">
                                 Neden İKÜANTS TEKMER bünyesinde olmak istediğinizi anlatın.
                             </p>
                             <textarea
@@ -270,7 +270,7 @@ export const Application = () => {
                                 rows={4}
                                 value={formData.expectations}
                                 onChange={handleChange}
-                                className="w-full bg-white/5 border border-white/10 rounded-lg focus:border-secondary focus:bg-white/10 p-4 text-white outline-none transition-all resize-none"
+                                className="w-full bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-lg focus:border-secondary focus:bg-white dark:focus:bg-white/10 p-4 text-black dark:text-white outline-none transition-all resize-none"
                                 placeholder="TEKMER'den beklentileriniz ve hedefleriniz..."
                             />
                         </div>

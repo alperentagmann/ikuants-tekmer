@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@variant dark (&:where(.dark, .dark *));
 
 @theme inline {
   --color-background: var(--background);
@@ -17,30 +18,40 @@
   --animate-float: float 6s ease-in-out infinite;
 }
 
-:root {
-  --background: #020617;
-  /* Slate 950 - Professional Dark */
-  --foreground: #f8fafc;
-  /* Slate 50 */
+@layer base {
+  :root {
+    /* Light Mode Defaults */
+    --background: #ffffff;
+    --foreground: #020617;
 
-  /* Corporate Tech Palette */
-  --primary: #3b82f6;
-  /* Blue 500 - Trust & Tech */
-  --secondary: #94a3b8;
-  /* Slate 400 - Subtle details */
-  --accent: #ef4444;
-  /* Red 500 - Strong accents (IKU Redish) */
+    --primary: #2563eb;
+    /* Blue 600 */
+    --secondary: #64748b;
+    /* Slate 500 */
+    --accent: #dc2626;
+    /* Red 600 */
 
-  /* Re-mapped "Neon" variables to Professional Accents */
-  --neon-blue: #0ea5e9;
-  /* Sky 500 */
-  --neon-purple: #6366f1;
-  /* Indigo 500 - Replaces Purple with Deep Indigo */
-  --neon-green: #10b981;
-  /* Emerald 500 - Stable Green */
+    --neon-blue: #0284c7;
+    --neon-purple: #4f46e5;
+    --neon-green: #059669;
 
-  --font-orbitron: 'Orbitron', sans-serif;
-  --font-inter: 'Inter', sans-serif;
+    --font-orbitron: 'Orbitron', sans-serif;
+    --font-inter: 'Inter', sans-serif;
+  }
+
+  .dark {
+    /* Dark Mode Overrides */
+    --background: #020617;
+    --foreground: #f8fafc;
+
+    --primary: #3b82f6;
+    --secondary: #94a3b8;
+    --accent: #ef4444;
+
+    --neon-blue: #0ea5e9;
+    --neon-purple: #6366f1;
+    --neon-green: #10b981;
+  }
 }
 
 @keyframes logo-glow {
@@ -90,10 +101,7 @@ body {
   color: var(--foreground);
   font-family: var(--font-inter);
   overflow-x: hidden;
-  /* Professional subtle gradient */
-  background-image:
-    radial-gradient(circle at 15% 50%, rgba(59, 130, 246, 0.08) 0%, transparent 25%),
-    radial-gradient(circle at 85% 30%, rgba(239, 68, 68, 0.05) 0%, transparent 25%);
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 /* Subtle noise texture for organic feel */

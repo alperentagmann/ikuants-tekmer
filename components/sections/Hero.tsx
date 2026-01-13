@@ -70,16 +70,16 @@ export const Hero = () => {
     const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + sliderImages.length) % sliderImages.length);
 
     return (
-        <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden pt-16">
+        <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden pt-16 bg-gray-50 dark:bg-[#050510] transition-colors duration-300">
             {/* Background Slider */}
             <div className="absolute inset-0">
                 <AnimatePresence mode="wait">
                     <motion.div
                         key={currentSlide}
-                        initial={{ opacity: 0, scale: 1.1 }}
+                        initial={{ opacity: 0, scale: 1.05 }}
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.95 }}
-                        transition={{ duration: 1.2, ease: "easeOut" }}
+                        transition={{ duration: 1.5, ease: "easeInOut" }}
                         className="absolute inset-0"
                     >
                         <img
@@ -87,9 +87,10 @@ export const Hero = () => {
                             alt={sliderImages[currentSlide].alt}
                             className="w-full h-full object-cover"
                         />
-                        {/* Overlay gradients */}
-                        <div className="absolute inset-0 bg-gradient-to-r from-[#050510]/95 via-[#050510]/80 to-[#050510]/70" />
-                        <div className="absolute inset-0 bg-gradient-to-t from-[#050510] via-transparent to-[#050510]/50" />
+                        {/* Modern Gradient Overlay - lighter for images to show */}
+                        <div className="absolute inset-0 bg-gradient-to-br from-white/80 via-gray-50/70 to-white/60 dark:from-[#050510]/90 dark:via-[#0a0a1a]/85 dark:to-[#050510]/80 transition-colors duration-300" />
+                        {/* Accent gradient */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-primary/10 via-transparent to-transparent" />
                     </motion.div>
                 </AnimatePresence>
             </div>
@@ -97,61 +98,64 @@ export const Hero = () => {
             {/* Slider Navigation Arrows */}
             <button
                 onClick={prevSlide}
-                className="absolute left-4 md:left-8 z-20 p-3 rounded-full bg-white/10 hover:bg-white/20 text-white border border-white/20 transition-all"
+                className="absolute left-4 md:left-8 z-20 p-3 rounded-full bg-white/20 dark:bg-white/10 hover:bg-white/30 dark:hover:bg-white/20 text-gray-900 dark:text-white border border-gray-300 dark:border-white/20 backdrop-blur-md transition-all shadow-lg"
             >
                 <ChevronLeft className="w-6 h-6" />
             </button>
             <button
                 onClick={nextSlide}
-                className="absolute right-4 md:right-8 z-20 p-3 rounded-full bg-white/10 hover:bg-white/20 text-white border border-white/20 transition-all"
+                className="absolute right-4 md:right-8 z-20 p-3 rounded-full bg-white/20 dark:bg-white/10 hover:bg-white/30 dark:hover:bg-white/20 text-gray-900 dark:text-white border border-gray-300 dark:border-white/20 backdrop-blur-md transition-all shadow-lg"
             >
                 <ChevronRight className="w-6 h-6" />
             </button>
 
-            {/* Slider Dots - moved to top right corner */}
+            {/* Slider Dots */}
             <div className="absolute top-24 right-8 z-20 flex flex-col gap-2">
                 {sliderImages.map((_, index) => (
                     <button
                         key={index}
                         onClick={() => setCurrentSlide(index)}
                         className={`w-2 h-2 rounded-full transition-all ${currentSlide === index
-                            ? 'bg-secondary h-6'
-                            : 'bg-white/40 hover:bg-white/60'
+                            ? 'bg-primary h-6 shadow-lg'
+                            : 'bg-gray-400 dark:bg-white/40 hover:bg-gray-600 dark:hover:bg-white/60'
                             }`}
                     />
                 ))}
             </div>
 
             <div className="container relative z-10 mx-auto px-6 max-w-7xl flex flex-col items-center text-center">
+                {/* Badge */}
                 <motion.div
                     initial={{ opacity: 0, y: 50 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.8 }}
-                    className="mb-6 inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-secondary/40 bg-black/40 backdrop-blur-sm text-secondary text-sm font-medium tracking-wider"
+                    className="mb-8 inline-flex items-center gap-2 px-6 py-3 rounded-full border-2 border-primary/50 bg-white/80 dark:bg-black/60 backdrop-blur-xl text-primary dark:text-secondary text-sm font-bold tracking-wider shadow-xl dark:shadow-none dark:border-secondary/40"
                 >
-                    <span className="w-2 h-2 rounded-full bg-secondary animate-pulse" />
+                    <span className="w-2 h-2 rounded-full bg-primary animate-pulse shadow-lg shadow-primary/50" />
                     {hero.status}
                 </motion.div>
 
+                {/* Title */}
                 <motion.h1
-                    initial={{ opacity: 0, scale: 0.9 }}
+                    initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ duration: 0.8, delay: 0.2 }}
-                    className="font-orbitron font-black text-5xl md:text-7xl lg:text-8xl mb-6 tracking-tight"
+                    className="font-orbitron font-black tracking-tight leading-[1.05] mb-8"
                 >
-                    <span className="block text-white drop-shadow-2xl">
+                    <span className="block text-5xl md:text-6xl lg:text-7xl xl:text-8xl mb-3 text-black dark:text-white drop-shadow-2xl">
                         {hero.title.line1}
                     </span>
-                    <span className="block text-transparent bg-clip-text bg-gradient-to-r from-primary via-purple-400 to-secondary">
+                    <span className="block text-5xl md:text-6xl lg:text-7xl xl:text-8xl bg-gradient-to-r from-primary via-purple-600 to-secondary bg-clip-text text-transparent drop-shadow-lg">
                         {hero.title.line2}
                     </span>
                 </motion.h1>
 
+                {/* Description */}
                 <motion.p
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.8, delay: 0.4 }}
-                    className="text-gray-300 text-lg md:text-xl max-w-2xl mb-10 leading-relaxed"
+                    className="text-lg md:text-xl lg:text-2xl text-black dark:text-gray-300 max-w-4xl mx-auto mb-12 leading-relaxed bg-white/60 dark:bg-transparent backdrop-blur-md dark:backdrop-blur-none px-8 py-4 rounded-2xl border border-gray-200 dark:border-transparent shadow-xl dark:shadow-none"
                 >
                     {hero.description}
                 </motion.p>
@@ -160,40 +164,50 @@ export const Hero = () => {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.8, delay: 0.6 }}
-                    className="flex flex-col sm:flex-row gap-5"
+                    className="flex flex-col sm:flex-row gap-6 mb-16"
                 >
                     <Link
                         href="/basvuru"
-                        className="group relative px-8 py-4 bg-gradient-to-r from-primary to-purple-600 text-white font-semibold tracking-wide overflow-hidden rounded-lg transition-all hover:scale-105 active:scale-95 shadow-xl shadow-primary/30"
+                        className="group relative px-10 py-5 bg-gradient-to-r from-primary via-purple-600 to-primary text-white font-bold text-lg tracking-wide overflow-hidden rounded-2xl transition-all hover:scale-105 hover:shadow-2xl hover:shadow-primary/40 active:scale-95 shadow-xl"
                     >
-                        <span className="relative z-10 flex items-center gap-2">
-                            {hero.buttons.primary} <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                        <span className="relative z-10 flex items-center justify-center gap-2">
+                            {hero.buttons.primary}
+                            <ChevronRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
                         </span>
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
                     </Link>
 
                     <Link
                         href="/destekler"
-                        className="px-8 py-4 bg-white/10 backdrop-blur-sm border border-white/30 text-white font-semibold tracking-wide hover:bg-white/20 hover:border-white/50 transition-all rounded-lg"
+                        className="px-10 py-5 bg-white/90 dark:bg-white/10 backdrop-blur-md border-2 border-gray-300 dark:border-white/30 text-gray-900 dark:text-white font-bold text-lg tracking-wide hover:bg-white dark:hover:bg-white/20 hover:border-primary dark:hover:border-primary transition-all rounded-2xl shadow-lg"
                     >
                         {hero.buttons.secondary}
                     </Link>
                 </motion.div>
 
-                {/* Stats / Features Mini Grid with Expandable Details */}
+                {/* Stats / Features Mini Grid */}
                 <motion.div
                     initial={{ opacity: 0, y: 50 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 1, delay: 0.8 }}
-                    className="mt-20 grid grid-cols-2 md:grid-cols-4 gap-8 w-full max-w-4xl"
+                    className="grid grid-cols-2 md:grid-cols-4 gap-6 w-full max-w-5xl"
                 >
                     {hero.stats.map((stat, i) => (
                         <div
                             key={i}
                             onClick={() => setExpandedCategory(expandedCategory === i ? null : i)}
-                            className={`p-4 border bg-black/30 backdrop-blur-sm rounded-xl transition-all group cursor-pointer relative ${expandedCategory === i ? 'border-secondary/60 bg-primary/10' : 'border-white/10 hover:border-secondary/40'}`}
+                            className={`group p-4 border bg-white/90 dark:bg-black/30 backdrop-blur-xl dark:backdrop-blur-sm rounded-xl transition-all cursor-pointer hover:scale-105 ${expandedCategory === i
+                                ? 'border-primary dark:border-secondary/60 bg-primary/10 dark:bg-primary/10 shadow-xl shadow-primary/30'
+                                : 'border-gray-200 dark:border-white/10 hover:border-primary/50 dark:hover:border-secondary/40 shadow-lg dark:shadow-none'
+                                }`}
                         >
-                            <div className="text-sm md:text-base font-orbitron font-bold text-white mb-0.5 group-hover:text-secondary transition-colors whitespace-nowrap">{stat.title}</div>
-                            <div className="text-[10px] text-gray-400 uppercase tracking-wider">{stat.subtitle}</div>
+                            <stat.icon className={`w-8 h-8 mb-2 ${expandedCategory === i ? 'text-primary' : 'text-black dark:text-gray-300'} group-hover:text-primary transition-colors`} />
+                            <div className="text-sm font-orbitron font-bold text-black dark:text-white mb-0.5 group-hover:text-primary transition-colors">
+                                {stat.title}
+                            </div>
+                            <div className="text-[10px] text-black/70 dark:text-gray-400 uppercase tracking-wider">
+                                {stat.subtitle}
+                            </div>
                             <div className="absolute top-2 right-2 text-gray-500 group-hover:text-secondary transition-colors">
                                 <ChevronRight className={`w-3 h-3 transition-transform ${expandedCategory === i ? 'rotate-90' : ''}`} />
                             </div>

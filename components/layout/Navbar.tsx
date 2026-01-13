@@ -4,6 +4,7 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 
 type NavItem = {
     name: string;
@@ -38,6 +39,7 @@ export const Navbar = () => {
             href: "/programlar",
             subItems: [
                 { name: "Tüm Programlar", href: "/programlar" },
+                { name: "ANTSFire Kuluçka", href: "/antsfire" },
                 { name: "ANTSPARK Ön Kuluçka", href: "/antspark" },
                 { name: "Glow Up Ideathon", href: "/glowup-basvuru" },
             ]
@@ -50,15 +52,22 @@ export const Navbar = () => {
     return (
         <nav className="fixed top-0 w-full z-50 px-6 py-4">
             {/* Glassmorphism Background */}
-            <div className="absolute inset-0 bg-black/70 backdrop-blur-xl border-b border-white/10"></div>
+            <div className="absolute inset-0 bg-white/70 dark:bg-black/70 backdrop-blur-xl border-b border-gray-200 dark:border-white/10 transition-colors duration-300"></div>
 
             <div className="relative container mx-auto flex items-center justify-between max-w-7xl">
                 {/* Logo */}
-                <Link href="/" className="flex items-center gap-3 group">
+                <Link href="/" className="flex items-center gap-3 group relative">
+                    {/* Dark Mode Logo */}
                     <img
                         src="/logo-navbar.png"
                         alt="İKÜANTS TEKMER"
-                        className="h-14 w-auto animate-logo-glow"
+                        className="h-14 w-auto animate-logo-glow hidden dark:block"
+                    />
+                    {/* Light Mode Logo */}
+                    <img
+                        src="/logo-main.png"
+                        alt="İKÜANTS TEKMER"
+                        className="h-14 w-auto block dark:hidden"
                     />
                 </Link>
 
@@ -72,7 +81,7 @@ export const Navbar = () => {
                             onMouseLeave={() => setOpenDropdown(null)}
                         >
                             {link.subItems ? (
-                                <button className="flex items-center gap-1 text-sm font-medium text-gray-300 hover:text-white transition-colors py-2">
+                                <button className="flex items-center gap-1 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-black dark:hover:text-white transition-colors py-2">
                                     {link.name}
                                     <ChevronDown className={cn(
                                         "w-4 h-4 transition-transform",
@@ -82,7 +91,7 @@ export const Navbar = () => {
                             ) : (
                                 <Link
                                     href={link.href}
-                                    className="relative text-sm font-medium text-gray-300 hover:text-white transition-colors group py-2"
+                                    className="relative text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-black dark:hover:text-white transition-colors group py-2"
                                 >
                                     {link.name}
                                     <span className="absolute bottom-0 left-0 w-0 h-[2px] bg-secondary group-hover:w-full transition-all duration-300" />
@@ -115,12 +124,15 @@ export const Navbar = () => {
                             </AnimatePresence>
                         </div>
                     ))}
-                    <Link
-                        href="/basvuru"
-                        className="px-6 py-2.5 bg-gradient-to-r from-primary to-purple-600 text-white hover:opacity-90 transition-all duration-300 rounded-lg font-semibold text-sm tracking-wide shadow-lg shadow-primary/25"
-                    >
-                        HEMEN BAŞVUR
-                    </Link>
+                    <div className="hidden lg:flex items-center gap-4">
+                        <ThemeToggle />
+                        <Link
+                            href="/basvuru"
+                            className="px-6 py-2.5 bg-gradient-to-r from-primary to-purple-600 text-white hover:opacity-90 transition-all duration-300 rounded-lg font-semibold text-sm tracking-wide shadow-lg shadow-primary/25"
+                        >
+                            HEMEN BAŞVUR
+                        </Link>
+                    </div>
                 </div>
 
                 {/* Mobile Menu Button */}

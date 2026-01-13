@@ -51,7 +51,7 @@ export default function MentorlerPage() {
     const displayedMentors = showAll ? mentors : mentors.slice(0, 12);
 
     return (
-        <div className="py-24 relative min-h-screen">
+        <div className="py-24 relative min-h-screen bg-gray-50 dark:bg-[#050510] transition-colors duration-300">
             <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent pointer-events-none" />
 
             <div className="container mx-auto px-6 max-w-7xl relative z-10">
@@ -65,10 +65,10 @@ export default function MentorlerPage() {
                         <Users className="w-4 h-4 text-primary" />
                         <span className="text-sm text-primary font-mono">MENTÖRLER</span>
                     </div>
-                    <h1 className="font-orbitron font-bold text-4xl md:text-5xl text-white mb-4">
+                    <h1 className="font-orbitron font-bold text-4xl md:text-5xl text-black dark:text-white mb-4">
                         Mentörlerimiz
                     </h1>
-                    <p className="text-gray-400 max-w-2xl mx-auto">
+                    <p className="text-gray-700 dark:text-gray-400 max-w-2xl mx-auto">
                         Alanında uzman mentörlerimiz, girişimcilik yolculuğunuzda size rehberlik etmek için hazır.
                     </p>
                 </motion.div>
@@ -81,7 +81,7 @@ export default function MentorlerPage() {
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: index * 0.05 }}
-                            className="group p-6 rounded-2xl bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/10 hover:border-primary/40 transition-all"
+                            className="group p-6 rounded-2xl bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 hover:border-primary/40 transition-all shadow-md dark:shadow-none"
                         >
                             {mentor.image ? (
                                 <img
@@ -94,7 +94,7 @@ export default function MentorlerPage() {
                                     {getInitials(mentor.name)}
                                 </div>
                             )}
-                            <h3 className="font-semibold text-white text-lg mb-1 leading-tight">
+                            <h3 className="font-semibold text-black dark:text-white text-lg mb-1 leading-tight">
                                 {mentor.name}
                             </h3>
                             <p className="text-primary text-sm font-medium mb-1">
@@ -123,7 +123,7 @@ export default function MentorlerPage() {
                     <div className="text-center mb-16">
                         <button
                             onClick={() => setShowAll(true)}
-                            className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-white/5 border border-white/10 text-gray-300 hover:text-white hover:border-primary/50 transition-all"
+                            className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-white hover:border-primary/50 transition-all shadow-sm"
                         >
                             Tümünü Göster ({mentors.length - 12} daha)
                             <ChevronDown className="w-4 h-4" />
@@ -136,13 +136,13 @@ export default function MentorlerPage() {
                     initial={{ opacity: 0, y: 30 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.5 }}
-                    className="text-center p-8 md:p-12 rounded-2xl bg-gradient-to-r from-primary/10 to-secondary/10 border border-white/10"
+                    className="text-center p-8 md:p-12 rounded-2xl bg-gradient-to-r from-primary/10 to-secondary/10 border border-gray-200 dark:border-white/10 shadow-lg"
                 >
                     <Award className="w-14 h-14 text-primary mx-auto mb-4" />
-                    <h2 className="font-orbitron text-2xl md:text-3xl text-white mb-4">
+                    <h2 className="font-orbitron text-2xl md:text-3xl text-gray-900 dark:text-white mb-4">
                         Mentör Olmak İster Misiniz?
                     </h2>
-                    <p className="text-gray-400 mb-8 max-w-xl mx-auto">
+                    <p className="text-gray-600 dark:text-gray-400 mb-8 max-w-xl mx-auto">
                         Deneyimlerinizi paylaşarak girişimcilik ekosistemine katkıda bulunun.
                         Genç girişimcilere rehberlik edin ve geleceği birlikte şekillendirin.
                     </p>

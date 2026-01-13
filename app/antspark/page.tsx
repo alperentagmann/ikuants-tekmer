@@ -68,7 +68,7 @@ export default function AntsparkProgramPage() {
     };
 
     return (
-        <div className="py-24 relative min-h-screen">
+        <div className="py-24 relative min-h-screen bg-gray-50 dark:bg-[#050510] text-gray-900 dark:text-white transition-colors duration-300">
             {/* Background Effects */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
                 <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-orange-500/10 rounded-full blur-[120px]" />
@@ -83,13 +83,13 @@ export default function AntsparkProgramPage() {
                     className="text-center mb-12"
                 >
                     <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-orange-500/10 border border-orange-500/30 mb-6">
-                        <Rocket className="w-4 h-4 text-orange-400" />
-                        <span className="text-sm text-orange-400 font-mono">ÖN KULUÇKA PROGRAMI</span>
+                        <Rocket className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+                        <span className="text-sm text-orange-600 dark:text-orange-400 font-mono">ÖN KULUÇKA PROGRAMI</span>
                     </div>
-                    <h1 className="font-orbitron font-bold text-4xl md:text-5xl text-white mb-4">
+                    <h1 className="font-orbitron font-bold text-4xl md:text-5xl text-gray-900 dark:text-white mb-4">
                         ANTSPARK
                     </h1>
-                    <p className="text-gray-400 max-w-2xl mx-auto mb-8">
+                    <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto mb-8">
                         Fikrini büyüt, işine dönüştür, geleceğe imzanı at!
                     </p>
 
@@ -110,21 +110,21 @@ export default function AntsparkProgramPage() {
                     transition={{ delay: 0.1 }}
                     className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12"
                 >
-                    <div className="p-6 rounded-2xl bg-white/5 border border-white/10 text-center">
-                        <div className="text-3xl font-orbitron font-bold text-orange-400 mb-1">{completedTrainings.length}</div>
-                        <div className="text-sm text-gray-400">Tamamlanan Eğitim</div>
+                    <div className="p-6 rounded-2xl bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-center shadow-md dark:shadow-none">
+                        <div className="text-3xl font-orbitron font-bold text-orange-600 dark:text-orange-400 mb-1">{completedTrainings.length}</div>
+                        <div className="text-sm text-gray-600 dark:text-gray-400">Tamamlanan Eğitim</div>
                     </div>
-                    <div className="p-6 rounded-2xl bg-white/5 border border-white/10 text-center">
-                        <div className="text-3xl font-orbitron font-bold text-yellow-400 mb-1">{upcomingTrainings.length}</div>
-                        <div className="text-sm text-gray-400">Yaklaşan Eğitim</div>
+                    <div className="p-6 rounded-2xl bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-center shadow-md dark:shadow-none">
+                        <div className="text-3xl font-orbitron font-bold text-yellow-600 dark:text-yellow-400 mb-1">{upcomingTrainings.length}</div>
+                        <div className="text-sm text-gray-600 dark:text-gray-400">Yaklaşan Eğitim</div>
                     </div>
-                    <div className="p-6 rounded-2xl bg-white/5 border border-white/10 text-center">
-                        <div className="text-3xl font-orbitron font-bold text-green-400 mb-1">12+</div>
-                        <div className="text-sm text-gray-400">Mentör</div>
+                    <div className="p-6 rounded-2xl bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-center shadow-md dark:shadow-none">
+                        <div className="text-3xl font-orbitron font-bold text-green-600 dark:text-green-400 mb-1">12+</div>
+                        <div className="text-sm text-gray-600 dark:text-gray-400">Mentör</div>
                     </div>
-                    <div className="p-6 rounded-2xl bg-white/5 border border-white/10 text-center">
-                        <div className="text-3xl font-orbitron font-bold text-purple-400 mb-1">3 Ay</div>
-                        <div className="text-sm text-gray-400">Program Süresi</div>
+                    <div className="p-6 rounded-2xl bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-center shadow-md dark:shadow-none">
+                        <div className="text-3xl font-orbitron font-bold text-purple-600 dark:text-purple-400 mb-1">3 Ay</div>
+                        <div className="text-sm text-gray-600 dark:text-gray-400">Program Süresi</div>
                     </div>
                 </motion.div>
 
@@ -140,11 +140,11 @@ export default function AntsparkProgramPage() {
                         className="w-full flex items-center justify-between p-6 rounded-2xl bg-green-500/10 border border-green-500/30 mb-4 hover:bg-green-500/15 transition-all"
                     >
                         <div className="flex items-center gap-3">
-                            <CheckCircle className="w-6 h-6 text-green-400" />
-                            <span className="font-orbitron text-xl text-white">Tamamlanan Eğitimler</span>
-                            <span className="px-3 py-1 bg-green-500/20 rounded-full text-green-400 text-sm">{completedTrainings.length}</span>
+                            <CheckCircle className="w-6 h-6 text-green-600 dark:text-green-400" />
+                            <span className="font-orbitron text-xl text-gray-900 dark:text-white">Tamamlanan Eğitimler</span>
+                            <span className="px-3 py-1 bg-green-500/20 rounded-full text-green-700 dark:text-green-400 text-sm">{completedTrainings.length}</span>
                         </div>
-                        {showCompleted ? <ChevronUp className="w-5 h-5 text-gray-400" /> : <ChevronDown className="w-5 h-5 text-gray-400" />}
+                        {showCompleted ? <ChevronUp className="w-5 h-5 text-gray-500 dark:text-gray-400" /> : <ChevronDown className="w-5 h-5 text-gray-500 dark:text-gray-400" />}
                     </button>
 
                     {showCompleted && (
@@ -155,33 +155,33 @@ export default function AntsparkProgramPage() {
                                     initial={{ opacity: 0, x: -20 }}
                                     animate={{ opacity: 1, x: 0 }}
                                     transition={{ delay: index * 0.02 }}
-                                    className="p-4 rounded-xl bg-white/5 border border-white/10 hover:border-green-500/30 transition-all"
+                                    className="p-4 rounded-xl bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 hover:border-green-500/30 transition-all shadow-sm dark:shadow-none"
                                 >
                                     <div className="flex flex-col md:flex-row md:items-center gap-4">
                                         <div className="flex items-center gap-3 md:w-48">
-                                            <Calendar className="w-4 h-4 text-green-400" />
-                                            <span className="text-white font-medium">{training.date}</span>
+                                            <Calendar className="w-4 h-4 text-green-600 dark:text-green-400" />
+                                            <span className="text-gray-900 dark:text-white font-medium">{training.date}</span>
                                             <span className="text-gray-500 text-sm">{training.day}</span>
                                         </div>
                                         <div className="flex items-center gap-2 md:w-28">
                                             <Clock className="w-4 h-4 text-gray-500" />
-                                            <span className="text-gray-400 text-sm">{training.time}</span>
+                                            <span className="text-gray-600 dark:text-gray-400 text-sm">{training.time}</span>
                                         </div>
                                         <div className="flex-1">
                                             <div className="flex items-center gap-2">
                                                 {training.topic === "Mentörlük" ? (
-                                                    <MessageCircle className="w-4 h-4 text-purple-400" />
+                                                    <MessageCircle className="w-4 h-4 text-purple-600 dark:text-purple-400" />
                                                 ) : (
-                                                    <BookOpen className="w-4 h-4 text-orange-400" />
+                                                    <BookOpen className="w-4 h-4 text-orange-600 dark:text-orange-400" />
                                                 )}
-                                                <span className={`font-medium ${training.topic === "Mentörlük" ? "text-purple-300" : "text-white"}`}>{training.topic}</span>
+                                                <span className={`font-medium ${training.topic === "Mentörlük" ? "text-purple-700 dark:text-purple-300" : "text-gray-900 dark:text-white"}`}>{training.topic}</span>
                                             </div>
                                             <p className="text-gray-500 text-sm mt-1">{training.description}</p>
                                         </div>
                                         {training.trainer && (
                                             <div className="flex items-start gap-2 md:w-56">
-                                                <User className="w-4 h-4 text-purple-400 mt-0.5" />
-                                                <span className="text-purple-300 text-sm whitespace-pre-wrap">{training.trainer}</span>
+                                                <User className="w-4 h-4 text-purple-600 dark:text-purple-400 mt-0.5" />
+                                                <span className="text-purple-700 dark:text-purple-300 text-sm whitespace-pre-wrap">{training.trainer}</span>
                                             </div>
                                         )}
                                     </div>
@@ -203,11 +203,11 @@ export default function AntsparkProgramPage() {
                         className="w-full flex items-center justify-between p-6 rounded-2xl bg-yellow-500/10 border border-yellow-500/30 mb-4 hover:bg-yellow-500/15 transition-all"
                     >
                         <div className="flex items-center gap-3">
-                            <Clock className="w-6 h-6 text-yellow-400" />
-                            <span className="font-orbitron text-xl text-white">Yaklaşan Eğitimler</span>
-                            <span className="px-3 py-1 bg-yellow-500/20 rounded-full text-yellow-400 text-sm">{upcomingTrainings.length}</span>
+                            <Clock className="w-6 h-6 text-yellow-600 dark:text-yellow-400" />
+                            <span className="font-orbitron text-xl text-gray-900 dark:text-white">Yaklaşan Eğitimler</span>
+                            <span className="px-3 py-1 bg-yellow-500/20 rounded-full text-yellow-700 dark:text-yellow-400 text-sm">{upcomingTrainings.length}</span>
                         </div>
-                        {showUpcoming ? <ChevronUp className="w-5 h-5 text-gray-400" /> : <ChevronDown className="w-5 h-5 text-gray-400" />}
+                        {showUpcoming ? <ChevronUp className="w-5 h-5 text-gray-500 dark:text-gray-400" /> : <ChevronDown className="w-5 h-5 text-gray-500 dark:text-gray-400" />}
                     </button>
 
                     {showUpcoming && (
@@ -218,46 +218,46 @@ export default function AntsparkProgramPage() {
                                     initial={{ opacity: 0, x: -20 }}
                                     animate={{ opacity: 1, x: 0 }}
                                     transition={{ delay: index * 0.02 }}
-                                    className="p-4 rounded-xl bg-white/5 border border-white/10 hover:border-yellow-500/30 transition-all"
+                                    className="p-4 rounded-xl bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 hover:border-yellow-500/30 transition-all shadow-sm dark:shadow-none"
                                 >
                                     <div className="flex flex-col md:flex-row md:items-center gap-4">
                                         <div className="flex items-center gap-3 md:w-48">
-                                            <Calendar className="w-4 h-4 text-yellow-400" />
-                                            <span className="text-white font-medium">{training.date}</span>
+                                            <Calendar className="w-4 h-4 text-yellow-600 dark:text-yellow-400" />
+                                            <span className="text-gray-900 dark:text-white font-medium">{training.date}</span>
                                             <span className="text-gray-500 text-sm">{training.day}</span>
                                         </div>
                                         <div className="flex items-center gap-2 md:w-28">
                                             <Clock className="w-4 h-4 text-gray-500" />
-                                            <span className="text-gray-400 text-sm">{training.time}</span>
+                                            <span className="text-gray-600 dark:text-gray-400 text-sm">{training.time}</span>
                                         </div>
                                         <div className="flex-1">
                                             <div className="flex items-center gap-2">
                                                 {training.topic === "Mentörlük" ? (
-                                                    <MessageCircle className="w-4 h-4 text-purple-400" />
+                                                    <MessageCircle className="w-4 h-4 text-purple-600 dark:text-purple-400" />
                                                 ) : (
-                                                    <BookOpen className="w-4 h-4 text-orange-400" />
+                                                    <BookOpen className="w-4 h-4 text-orange-600 dark:text-orange-400" />
                                                 )}
-                                                <span className={`font-medium ${training.topic === "Mentörlük" ? "text-purple-300" : "text-white"}`}>{training.topic}</span>
+                                                <span className={`font-medium ${training.topic === "Mentörlük" ? "text-purple-700 dark:text-purple-300" : "text-gray-900 dark:text-white"}`}>{training.topic}</span>
                                             </div>
                                             <p className="text-gray-500 text-sm mt-1">{training.description}</p>
                                         </div>
                                         {training.trainer && (
                                             <div className="flex items-start gap-2 md:w-56">
-                                                <User className="w-4 h-4 text-purple-400 mt-0.5" />
-                                                <span className="text-purple-300 text-sm whitespace-pre-wrap">{training.trainer}</span>
+                                                <User className="w-4 h-4 text-purple-600 dark:text-purple-400 mt-0.5" />
+                                                <span className="text-purple-700 dark:text-purple-300 text-sm whitespace-pre-wrap">{training.trainer}</span>
                                             </div>
                                         )}
                                         {/* Register Button */}
                                         <div className="md:w-32">
                                             {registered.includes(training.date + training.topic) ? (
-                                                <span className="inline-flex items-center gap-1 px-3 py-1.5 bg-green-500/20 text-green-400 rounded-lg text-sm">
+                                                <span className="inline-flex items-center gap-1 px-3 py-1.5 bg-green-500/20 text-green-600 dark:text-green-400 rounded-lg text-sm">
                                                     <CheckCircle className="w-4 h-4" />
                                                     Kayıtlı
                                                 </span>
                                             ) : (
                                                 <button
                                                     onClick={() => setRegisteringFor(training.date + training.topic)}
-                                                    className="inline-flex items-center gap-1 px-3 py-1.5 bg-yellow-500/20 text-yellow-400 rounded-lg text-sm hover:bg-yellow-500/30 transition-all"
+                                                    className="inline-flex items-center gap-1 px-3 py-1.5 bg-yellow-500/20 text-yellow-700 dark:text-yellow-400 rounded-lg text-sm hover:bg-yellow-500/30 transition-all"
                                                 >
                                                     <UserPlus className="w-4 h-4" />
                                                     Kayıt Ol
@@ -268,28 +268,28 @@ export default function AntsparkProgramPage() {
 
                                     {/* Registration Form */}
                                     {registeringFor === training.date + training.topic && (
-                                        <div className="mt-4 pt-4 border-t border-white/10">
+                                        <div className="mt-4 pt-4 border-t border-gray-200 dark:border-white/10">
                                             <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                                                 <input
                                                     type="text"
                                                     placeholder="Ad Soyad"
                                                     value={registerData.name}
                                                     onChange={(e) => setRegisterData({ ...registerData, name: e.target.value })}
-                                                    className="px-3 py-2 bg-white/5 border border-white/20 rounded-lg text-white text-sm focus:border-yellow-500 outline-none"
+                                                    className="px-3 py-2 bg-gray-50 dark:bg-white/5 border border-gray-300 dark:border-white/20 rounded-lg text-gray-900 dark:text-white text-sm focus:border-yellow-500 outline-none placeholder:text-gray-400 dark:placeholder:text-gray-500"
                                                 />
                                                 <input
                                                     type="email"
                                                     placeholder="E-posta"
                                                     value={registerData.email}
                                                     onChange={(e) => setRegisterData({ ...registerData, email: e.target.value })}
-                                                    className="px-3 py-2 bg-white/5 border border-white/20 rounded-lg text-white text-sm focus:border-yellow-500 outline-none"
+                                                    className="px-3 py-2 bg-gray-50 dark:bg-white/5 border border-gray-300 dark:border-white/20 rounded-lg text-gray-900 dark:text-white text-sm focus:border-yellow-500 outline-none placeholder:text-gray-400 dark:placeholder:text-gray-500"
                                                 />
                                                 <input
                                                     type="tel"
                                                     placeholder="Telefon"
                                                     value={registerData.phone}
                                                     onChange={(e) => setRegisterData({ ...registerData, phone: e.target.value })}
-                                                    className="px-3 py-2 bg-white/5 border border-white/20 rounded-lg text-white text-sm focus:border-yellow-500 outline-none"
+                                                    className="px-3 py-2 bg-gray-50 dark:bg-white/5 border border-gray-300 dark:border-white/20 rounded-lg text-gray-900 dark:text-white text-sm focus:border-yellow-500 outline-none placeholder:text-gray-400 dark:placeholder:text-gray-500"
                                                 />
                                                 <div className="flex gap-2">
                                                     <button
@@ -300,7 +300,7 @@ export default function AntsparkProgramPage() {
                                                     </button>
                                                     <button
                                                         onClick={() => setRegisteringFor(null)}
-                                                        className="px-3 py-2 bg-white/10 text-white rounded-lg text-sm hover:bg-white/20 transition-all"
+                                                        className="px-3 py-2 bg-gray-200 dark:bg-white/10 text-gray-700 dark:text-white rounded-lg text-sm hover:bg-gray-300 dark:hover:bg-white/20 transition-all"
                                                     >
                                                         İptal
                                                     </button>
@@ -319,12 +319,12 @@ export default function AntsparkProgramPage() {
                     initial={{ opacity: 0, y: 30 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.4 }}
-                    className="p-8 rounded-2xl bg-gradient-to-r from-orange-500/10 via-red-500/5 to-purple-500/10 border border-white/10"
+                    className="p-8 rounded-2xl bg-gradient-to-r from-orange-500/10 via-red-500/5 to-purple-500/10 border border-gray-200 dark:border-white/10 shadow-lg dark:shadow-none"
                 >
-                    <h3 className="font-orbitron text-xl text-white mb-4">Program Hakkında</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm text-gray-400">
+                    <h3 className="font-orbitron text-xl text-gray-900 dark:text-white mb-4">Program Hakkında</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm text-gray-600 dark:text-gray-400">
                         <div>
-                            <h4 className="text-white font-semibold mb-2">Eğitim Konuları</h4>
+                            <h4 className="text-gray-900 dark:text-white font-semibold mb-2">Eğitim Konuları</h4>
                             <ul className="space-y-1">
                                 <li>• Girişimcilik Temelleri</li>
                                 <li>• İş Modeli Geliştirme</li>
@@ -334,7 +334,7 @@ export default function AntsparkProgramPage() {
                             </ul>
                         </div>
                         <div>
-                            <h4 className="text-white font-semibold mb-2">Program Avantajları</h4>
+                            <h4 className="text-gray-900 dark:text-white font-semibold mb-2">Program Avantajları</h4>
                             <ul className="space-y-1">
                                 <li>• 12+ Haftalık Yoğun Eğitim</li>
                                 <li>• Birebir Mentörlük Desteği</li>

@@ -56,7 +56,7 @@ const supports = [
 
 export default function DesteklerPage() {
     return (
-        <div className="py-24 relative min-h-screen">
+        <div className="py-24 relative min-h-screen bg-gray-50 dark:bg-[#050510] transition-colors duration-300">
             <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent pointer-events-none" />
 
             <div className="container mx-auto px-6 max-w-7xl relative z-10">
@@ -70,10 +70,10 @@ export default function DesteklerPage() {
                         <Building2 className="w-4 h-4 text-primary" />
                         <span className="text-sm text-primary font-mono">AVANTAJLAR & TEŞVİKLER</span>
                     </div>
-                    <h1 className="font-orbitron font-bold text-4xl md:text-5xl text-white mb-4">
+                    <h1 className="font-orbitron font-bold text-4xl md:text-5xl text-black dark:text-white mb-4">
                         TEKMER Avantajları ve Destekler
                     </h1>
-                    <p className="text-gray-400 max-w-3xl mx-auto">
+                    <p className="text-gray-600 dark:text-gray-400 max-w-3xl mx-auto">
                         İKÜANTS TEKMER bünyesinde yer alan firmalar, 5746 sayılı Kanun kapsamında sağlanan
                         birçok vergi avantajı ve devlet desteğinden yararlanma imkanına sahiptir.
                     </p>
@@ -92,7 +92,7 @@ export default function DesteklerPage() {
                             transition={{ delay: index * 0.1 }}
                             className="group h-full"
                         >
-                            <div className="bg-white/5 border border-white/10 rounded-2xl p-8 hover:border-white/20 transition-all h-full flex flex-col relative overflow-hidden">
+                            <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl p-8 hover:border-primary/40 transition-all h-full flex flex-col relative overflow-hidden shadow-md dark:shadow-none">
                                 {/* Background Gradient Hover Effect */}
                                 <div className={`absolute inset-0 bg-gradient-to-br ${item.color} opacity-0 group-hover:opacity-5 transition-opacity duration-500`} />
 
@@ -101,20 +101,20 @@ export default function DesteklerPage() {
                                         <item.icon className="w-7 h-7 text-white" />
                                     </div>
                                     <div>
-                                        <h3 className="font-orbitron text-xl text-white font-bold mb-3 group-hover:text-primary transition-colors">
+                                        <h3 className="font-orbitron text-xl text-black dark:text-white font-bold mb-3 group-hover:text-primary transition-colors">
                                             {item.title}
                                         </h3>
-                                        <p className="text-gray-300 leading-relaxed mb-6 text-sm">
+                                        <p className="text-gray-700 dark:text-gray-300 leading-relaxed mb-6 text-sm">
                                             {item.description}
                                         </p>
 
                                         {/* Example Box */}
-                                        <div className="bg-black/20 rounded-lg p-4 border-l-2 border-primary/50">
+                                        <div className="bg-gray-100 dark:bg-black/20 rounded-lg p-4 border-l-2 border-primary/50">
                                             <div className="flex items-center gap-2 mb-2">
                                                 <span className="text-xs font-bold text-primary uppercase tracking-wider">Örnek Senaryo</span>
                                                 <div className="h-px bg-primary/20 flex-1" />
                                             </div>
-                                            <p className="text-gray-400 text-xs italic">
+                                            <p className="text-gray-600 dark:text-gray-400 text-xs italic">
                                                 "{item.example}"
                                             </p>
                                         </div>
@@ -130,14 +130,14 @@ export default function DesteklerPage() {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.8 }}
-                    className="text-center p-12 rounded-3xl bg-gradient-to-r from-primary/10 to-secondary/10 border border-white/10 relative overflow-hidden"
+                    className="text-center p-12 rounded-3xl bg-gradient-to-r from-primary/10 to-secondary/10 border border-gray-200 dark:border-white/10 relative overflow-hidden shadow-lg"
                 >
                     <div className="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-10" />
                     <div className="relative z-10">
-                        <h3 className="font-orbitron text-2xl text-white mb-4">
+                        <h3 className="font-orbitron text-2xl text-black dark:text-white mb-4">
                             Bu Avantajlardan Yararlanmak İçin Hemen Başvurun
                         </h3>
-                        <p className="text-gray-400 mb-8 max-w-2xl mx-auto text-lg">
+                        <p className="text-gray-600 dark:text-gray-400 mb-8 max-w-2xl mx-auto text-lg">
                             Projenizi hayata geçirirken İKÜANTS TEKMER'in sunduğu finansal ve operasyonel desteklerden faydalanın.
                         </p>
                         <a

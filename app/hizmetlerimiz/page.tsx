@@ -105,7 +105,7 @@ const benefits = [
 
 export default function HizmetlerimizPage() {
     return (
-        <div className="py-24 relative min-h-screen">
+        <div className="py-24 relative min-h-screen bg-gray-50 dark:bg-[#050510] transition-colors duration-300">
             <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent pointer-events-none" />
 
             <div className="container mx-auto px-6 max-w-7xl relative z-10">
@@ -119,10 +119,10 @@ export default function HizmetlerimizPage() {
                         <Building2 className="w-4 h-4 text-primary" />
                         <span className="text-sm text-primary font-mono">HİZMETLERİMİZ</span>
                     </div>
-                    <h1 className="font-orbitron font-bold text-4xl md:text-5xl text-white mb-4">
+                    <h1 className="font-orbitron font-bold text-4xl md:text-5xl text-black dark:text-white mb-4">
                         TEKMER'in Girişimcilere Sunduğu Hizmetler
                     </h1>
-                    <p className="text-gray-400 max-w-3xl mx-auto">
+                    <p className="text-black/70 dark:text-gray-400 max-w-3xl mx-auto">
                         İKÜANTS TEKMER olarak girişimcilerimize kapsamlı destekler sunarak
                         onların büyümelerine ve başarılı olmalarına yardımcı oluyoruz.
                     </p>
@@ -138,17 +138,17 @@ export default function HizmetlerimizPage() {
                             transition={{ delay: index * 0.1 }}
                             className="group"
                         >
-                            <div className="bg-white/5 border border-white/10 rounded-2xl p-8 hover:border-white/20 transition-all">
+                            <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl p-8 hover:border-primary/30 dark:hover:border-white/20 transition-all shadow-md dark:shadow-none">
                                 <div className="flex flex-col lg:flex-row gap-8">
                                     {/* Left Side - Icon & Title */}
                                     <div className="lg:w-1/3">
                                         <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${service.color} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
                                             <service.icon className="w-8 h-8 text-white" />
                                         </div>
-                                        <h3 className="font-orbitron text-xl text-white font-bold mb-2">
+                                        <h3 className="font-orbitron text-xl text-black dark:text-white font-bold mb-2">
                                             {service.title}
                                         </h3>
-                                        <p className="text-gray-400 text-sm mb-4">
+                                        <p className="text-black/70 dark:text-gray-400 text-sm mb-4">
                                             {service.description}
                                         </p>
                                         <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r ${service.color} bg-opacity-10 border border-white/10`}>
@@ -160,14 +160,14 @@ export default function HizmetlerimizPage() {
                                     <div className="lg:w-2/3">
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                             {service.details.map((detail, i) => (
-                                                <div key={i} className="flex items-center gap-3 p-3 rounded-lg bg-white/5">
+                                                <div key={i} className="flex items-center gap-3 p-3 rounded-lg bg-gray-100 dark:bg-white/5">
                                                     <ArrowRight className={`w-4 h-4 shrink-0 ${service.color.includes('purple') ? 'text-purple-400' :
                                                         service.color.includes('cyan') ? 'text-cyan-400' :
                                                             service.color.includes('green') ? 'text-green-400' :
                                                                 service.color.includes('orange') ? 'text-orange-400' :
                                                                     'text-indigo-400'
                                                         }`} />
-                                                    <span className="text-gray-300 text-sm">{detail}</span>
+                                                    <span className="text-black/80 dark:text-gray-300 text-sm">{detail}</span>
                                                 </div>
                                             ))}
                                         </div>
@@ -185,7 +185,7 @@ export default function HizmetlerimizPage() {
                     transition={{ delay: 0.5 }}
                     className="mb-16"
                 >
-                    <h2 className="font-orbitron text-2xl text-white text-center mb-8">
+                    <h2 className="font-orbitron text-2xl text-black dark:text-white text-center mb-8">
                         TEKMER'in Sağladığı Başlıca Faydalar
                     </h2>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -195,13 +195,13 @@ export default function HizmetlerimizPage() {
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: 0.6 + index * 0.1 }}
-                                className="p-6 rounded-xl bg-gradient-to-br from-primary/10 to-transparent border border-primary/20 text-center"
+                                className="p-6 rounded-xl bg-white dark:bg-gradient-to-br dark:from-primary/10 dark:to-transparent border border-gray-200 dark:border-primary/20 text-center shadow-md dark:shadow-none"
                             >
                                 <div className="w-14 h-14 rounded-xl bg-primary/20 flex items-center justify-center mx-auto mb-4">
                                     <benefit.icon className="w-7 h-7 text-primary" />
                                 </div>
-                                <h3 className="text-white font-semibold mb-2">{benefit.title}</h3>
-                                <p className="text-gray-400 text-sm">{benefit.description}</p>
+                                <h3 className="text-black dark:text-white font-semibold mb-2">{benefit.title}</h3>
+                                <p className="text-black/70 dark:text-gray-400 text-sm">{benefit.description}</p>
                             </motion.div>
                         ))}
                     </div>
@@ -212,12 +212,12 @@ export default function HizmetlerimizPage() {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.8 }}
-                    className="text-center p-8 rounded-2xl bg-gradient-to-r from-primary/10 to-secondary/10 border border-white/10"
+                    className="text-center p-8 rounded-2xl bg-white dark:bg-gradient-to-r dark:from-primary/10 dark:to-secondary/10 border border-gray-200 dark:border-white/10 shadow-lg dark:shadow-none"
                 >
-                    <h3 className="font-orbitron text-xl text-white mb-4">
+                    <h3 className="font-orbitron text-xl text-black dark:text-white mb-4">
                         Girişimcilik Yolculuğunuza Başlayın
                     </h3>
-                    <p className="text-gray-400 mb-6 max-w-xl mx-auto">
+                    <p className="text-black/70 dark:text-gray-400 mb-6 max-w-xl mx-auto">
                         İKÜANTS TEKMER'in sunduğu tüm hizmetlerden yararlanmak için hemen başvurun.
                     </p>
                     <a

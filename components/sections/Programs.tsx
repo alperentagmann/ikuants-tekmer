@@ -1,10 +1,35 @@
 "use client";
 import React from "react";
 import { motion } from "framer-motion";
-import { Rocket, Lightbulb, Calendar, Users, MapPin, Trophy, CheckCircle, ArrowRight, Sparkles, Zap } from "lucide-react";
+import { Rocket, Lightbulb, Calendar, Users, MapPin, Trophy, CheckCircle, ArrowRight, Sparkles, Zap, Flame } from "lucide-react";
 import Link from "next/link";
 
 const programs = [
+    {
+        id: "antsfire",
+        title: "ANTSFire",
+        subtitle: "Kuluçka Programı",
+        tagline: "Kıvılcımı ateşe dönüştür, şirketini ölçekle!",
+        description: "ANTSPARK mezunu veya Ar-Ge odaklı şirketleşmiş girişimler için kişiselleştirilmiş 8 aylık ileri seviye kuluçka programı.",
+        icon: Flame,
+        color: "from-orange-500 to-red-600",
+        glowColor: "rgba(234, 88, 12, 0.4)",
+        stats: [
+            { label: "Süre", value: "8 Ay" },
+            { label: "Kontenjan", value: "10 Girişim" },
+            { label: "Mentorluk", value: "Uygulamalı" },
+        ],
+        features: [
+            "Kişiselleştirilmiş Eğitim Modülleri",
+            "KPI Bazlı Performans Takibi",
+            "Satış & Pilot Odaklı Mentorluk",
+            "Yatırım & Data Room Hazırlığı",
+            "Ofis & Altyapı Desteği",
+            "Hukuk & Finans Danışmanlığı"
+        ],
+        cta: "Programa Göz At",
+        link: "/antsfire"
+    },
     {
         id: "antspark",
         title: "ANTSPARK",
@@ -27,8 +52,8 @@ const programs = [
             "TÜBİTAK & KOSGEB Hazırlık",
             "DEMODAY Final Sunumu"
         ],
-        cta: "Programa Başvur",
-        link: "/antspark-basvuru"
+        cta: "Programa Göz At",
+        link: "/antspark"
     },
     {
         id: "glowup",
@@ -59,7 +84,7 @@ const programs = [
 
 export const Programs = () => {
     return (
-        <section id="programs" className="py-24 relative bg-gradient-to-b from-[#050510] to-[#0a0a1a]">
+        <section id="programs" className="py-24 relative bg-gray-50 dark:bg-[#050510] transition-colors duration-300">
             {/* Background Effects */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
                 <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-[100px]" />
@@ -74,16 +99,16 @@ export const Programs = () => {
                     viewport={{ once: true }}
                     className="text-center mb-16"
                 >
-                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 mb-6">
-                        <Sparkles className="w-4 h-4 text-secondary" />
-                        <span className="text-sm text-gray-400 font-mono">// PROGRAMLARIMIZ</span>
+                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-gray-200 dark:bg-white/5 dark:border-white/10 mb-6 shadow-sm dark:shadow-none">
+                        <Sparkles className="w-4 h-4 text-purple-600 dark:text-secondary" />
+                        <span className="text-sm text-gray-600 dark:text-gray-400 font-mono">// PROGRAMLARIMIZ</span>
                     </div>
                     <h2 className="font-orbitron font-bold text-4xl md:text-5xl mb-4">
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-purple-200 to-cyan-200">
+                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-gray-900 via-purple-800 to-gray-900 dark:from-white dark:via-purple-200 dark:to-cyan-200">
                             GELİŞİM PROGRAMLARI
                         </span>
                     </h2>
-                    <p className="text-gray-400 max-w-2xl mx-auto">
+                    <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
                         Fikirden ürüne, girişimden başarıya uzanan yolculuğunda yanındayız.
                         Sana en uygun programı seç ve ekosisteme katıl.
                     </p>
@@ -107,7 +132,7 @@ export const Programs = () => {
                             />
 
                             {/* Card */}
-                            <div className="relative bg-[#0a0a0a]/80 backdrop-blur-sm border border-white/10 rounded-2xl overflow-hidden group-hover:border-white/20 transition-all duration-300">
+                            <div className="relative bg-white dark:bg-[#0a0a0a]/80 backdrop-blur-sm border border-gray-200 dark:border-white/10 rounded-2xl overflow-hidden group-hover:border-purple-300 dark:group-hover:border-white/20 transition-all duration-300 shadow-xl dark:shadow-none">
                                 {/* Gradient Top Bar */}
                                 <div className={`h-1 w-full bg-gradient-to-r ${program.color}`} />
 
@@ -120,10 +145,10 @@ export const Programs = () => {
                                                     <program.icon className="w-6 h-6 text-white" />
                                                 </div>
                                                 <div>
-                                                    <h3 className="font-orbitron font-bold text-2xl text-white">
+                                                    <h3 className="font-orbitron font-bold text-2xl text-gray-900 dark:text-white">
                                                         {program.title}
                                                     </h3>
-                                                    <p className="text-sm text-gray-400">{program.subtitle}</p>
+                                                    <p className="text-sm text-gray-500 dark:text-gray-400">{program.subtitle}</p>
                                                 </div>
                                             </div>
                                         </div>
@@ -135,15 +160,15 @@ export const Programs = () => {
                                     </p>
 
                                     {/* Description */}
-                                    <p className="text-gray-400 text-sm mb-6 leading-relaxed">
+                                    <p className="text-gray-600 dark:text-gray-400 text-sm mb-6 leading-relaxed">
                                         {program.description}
                                     </p>
 
                                     {/* Stats */}
                                     <div className="grid grid-cols-3 gap-4 mb-6">
                                         {program.stats.map((stat) => (
-                                            <div key={stat.label} className="text-center p-3 rounded-lg bg-white/5 border border-white/5">
-                                                <div className="text-white font-bold font-orbitron">{stat.value}</div>
+                                            <div key={stat.label} className="text-center p-3 rounded-lg bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5">
+                                                <div className="text-gray-900 dark:text-white font-bold font-orbitron">{stat.value}</div>
                                                 <div className="text-xs text-gray-500">{stat.label}</div>
                                             </div>
                                         ))}
@@ -153,8 +178,8 @@ export const Programs = () => {
                                     <div className="grid grid-cols-2 gap-2 mb-8">
                                         {program.features.map((feature) => (
                                             <div key={feature} className="flex items-center gap-2 text-sm">
-                                                <CheckCircle className="w-4 h-4 text-green-400 shrink-0" />
-                                                <span className="text-gray-300">{feature}</span>
+                                                <CheckCircle className="w-4 h-4 text-green-500 dark:text-green-400 shrink-0" />
+                                                <span className="text-gray-600 dark:text-gray-300">{feature}</span>
                                             </div>
                                         ))}
                                     </div>
@@ -163,7 +188,7 @@ export const Programs = () => {
                                     {program.link.startsWith('/') ? (
                                         <Link
                                             href={program.link}
-                                            className={`w-full py-4 rounded-xl bg-gradient-to-r ${program.color} text-white font-orbitron font-bold tracking-wide flex items-center justify-center gap-2 group/btn hover:opacity-90 transition-opacity`}
+                                            className={`w-full py-4 rounded-xl bg-gradient-to-r ${program.color} text-white font-orbitron font-bold tracking-wide flex items-center justify-center gap-2 group/btn hover:opacity-90 transition-opacity shadow-lg shadow-purple-500/20 dark:shadow-none`}
                                         >
                                             {program.cta}
                                             <ArrowRight className="w-5 h-5 group-hover/btn:translate-x-1 transition-transform" />
@@ -173,7 +198,7 @@ export const Programs = () => {
                                             href={program.link}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className={`w-full py-4 rounded-xl bg-gradient-to-r ${program.color} text-white font-orbitron font-bold tracking-wide flex items-center justify-center gap-2 group/btn hover:opacity-90 transition-opacity`}
+                                            className={`w-full py-4 rounded-xl bg-gradient-to-r ${program.color} text-white font-orbitron font-bold tracking-wide flex items-center justify-center gap-2 group/btn hover:opacity-90 transition-opacity shadow-lg shadow-purple-500/20 dark:shadow-none`}
                                         >
                                             {program.cta}
                                             <ArrowRight className="w-5 h-5 group-hover/btn:translate-x-1 transition-transform" />
@@ -192,10 +217,10 @@ export const Programs = () => {
                     viewport={{ once: true }}
                     className="mt-12 text-center"
                 >
-                    <div className="inline-flex items-center gap-3 px-6 py-3 rounded-full bg-white/5 border border-white/10">
+                    <div className="inline-flex items-center gap-3 px-6 py-3 rounded-full bg-white border border-gray-200 dark:bg-white/5 dark:border-white/10 shadow-sm dark:shadow-none">
                         <MapPin className="w-5 h-5 text-primary" />
-                        <span className="text-gray-400 text-sm">
-                            Tüm programlar <span className="text-white font-semibold">İstanbul Kültür Üniversitesi, İKÜANTS TEKMER</span>'de gerçekleştirilmektedir.
+                        <span className="text-gray-600 dark:text-gray-400 text-sm">
+                            Tüm programlar <span className="text-gray-900 dark:text-white font-semibold">İstanbul Kültür Üniversitesi, İKÜANTS TEKMER</span>'de gerçekleştirilmektedir.
                         </span>
                     </div>
                 </motion.div>

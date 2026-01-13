@@ -6,32 +6,77 @@ export async function POST(request: NextRequest) {
         const formData = await request.json();
 
         // Log to console for debugging
-        console.log('YENİ BAŞVURU:', formData.projectName);
+        console.log('YENİ BAŞVURU:', formData.programName || "ANTSPARK", formData.projectName);
 
-        // Prepare email content
-        // We select key fields to show in the email table to avoid an overly long email
-        // but we can include everything if needed. For now, let's include key info.
-        const emailData = {
-            'Proje Adı': formData.projectName,
-            'Ad Soyad': formData.fullName,
-            'E-Posta': formData.email,
-            'Telefon': formData.phone,
-            'Görev': formData.projectRole,
-            'Sektör': formData.sectors,
-            'Proje Özeti': formData.projectSummary,
-            'Aşama': formData.projectStage,
-            'MVP Durumu': formData.hasMVP,
-            'Ekip Büyüklüğü': formData.teamSize
-        };
+        const programName = formData.programName || "ANTSPARK";
+        let emailData = {};
 
-        const html = generateEmailTemplate('🚀 Yeni ANTSPARK Başvurusu', emailData);
+        if (programName === "ANTSFire") {
+            emailData = {
+                'Program': programName,
+                // Şirket
+                'Şirket Adı': formData.companyName,
+                'Vergi No': formData.taxNumber,
+                'Kuruluş Yılı': formData.foundationYear,
+                'Sektör': formData.sector,
+                'Kümeler': formData.tekmerClusters?.join(", "),
+                'Çalışan Sayısı': formData.employeeCount,
+                'Web Sitesi': formData.website,
+                // Kurucu
+                'Kurucu': formData.founderName,
+                'İletişim': formData.founderContact,
+                'Rol': formData.founderRole,
+                'Haftalık Zaman': formData.weeklyHours,
+                // Ürün
+                'Ürün Tanımı': formData.productShortDesc,
+                'Problem': formData.problemDefinition,
+                'Farklılık': formData.solutionDifference,
+                'TRL': formData.trlLevel,
+                'Demo Linki': formData.demoLink,
+                'Ar-Ge Özeti': formData.randdProjectSummary,
+                // Pazar
+                'Hedef Müşteri': formData.targetCustomer,
+                'Pazar Büyüklüğü': formData.marketSize,
+                'Rakipler': formData.competitors,
+                'GTM Planı': formData.gtmPlan,
+                // Finans
+                'Pilot/LOI': formData.hasPilot,
+                'Gelir': formData.revenueStatus,
+                'Runway': formData.runway,
+                'Yatırım Geçmişi': formData.investmentHistory,
+                'Finansal Özet': formData.financialSummary,
+                // Dosyalar
+                'Pitch Deck': formData.pitchDeckLink,
+                'CVler': formData.founderCvLink,
+                // İhtiyaç
+                'Darboğazlar': formData.bottlenecks,
+                'Hedefler': formData.goals,
+                'Modüller': formData.selectedModules?.join(", ")
+            };
+        } else {
+            // Default ANTSPARK fields
+            emailData = {
+                'Program': "ANTSPARK",
+                'Proje Adı': formData.projectName,
+                'Ad Soyad': formData.fullName,
+                'E-Posta': formData.email,
+                'Telefon': formData.phone,
+                'Görev': formData.projectRole,
+                'Sektör': formData.sectors,
+                'Proje Özeti': formData.projectSummary,
+                'Aşama': formData.projectStage,
+                'Ekip Büyüklüğü': formData.teamSize
+            };
+        }
+
+        const html = generateEmailTemplate(`🚀 Yeni ${programName} Başvurusu`, emailData);
 
         // Send email
         const result = await sendMail({
             to: 'bilgi@ikuantstekmer.com',
-            subject: `ANTSPARK Başvurusu: ${formData.projectName}`,
+            subject: `${programName} Başvurusu: ${formData.companyName || formData.projectName}`,
             html: html,
-            replyTo: formData.email
+            replyTo: formData.email || formData.founderContact
         });
 
         if (result.success) {
@@ -40,11 +85,7 @@ export async function POST(request: NextRequest) {
                 message: 'Başvurunuz başarıyla alındı ve e-posta gönderildi!'
             });
         } else {
-            // If email fails, we log it but still might return false to warn the user
             console.error('Application email failed:', result.error);
-
-            // In a real production app, we should save to DB first, so email failure isn't critical.
-            // Since we don't have a DB here, we must rely on email.
             return NextResponse.json({
                 success: false,
                 message: 'Başvuru alındı ancak e-posta gönderilemedi. Lütfen iletişime geçin.'

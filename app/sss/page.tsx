@@ -42,7 +42,7 @@ export default function SSSPage() {
     const [openIndex, setOpenIndex] = useState<number | null>(0);
 
     return (
-        <div className="py-24 relative min-h-screen">
+        <div className="py-24 relative min-h-screen bg-gray-50 dark:bg-[#050510] transition-colors duration-300">
             <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent pointer-events-none" />
 
             <div className="container mx-auto px-6 max-w-4xl relative z-10">
@@ -55,10 +55,10 @@ export default function SSSPage() {
                         <HelpCircle className="w-4 h-4 text-secondary" />
                         <span className="text-sm text-secondary font-mono">YARDIM MERKEZİ</span>
                     </div>
-                    <h1 className="font-orbitron font-bold text-4xl md:text-5xl text-white mb-4">
+                    <h1 className="font-orbitron font-bold text-4xl md:text-5xl text-black dark:text-white mb-4">
                         Sıkça Sorulan Sorular
                     </h1>
-                    <p className="text-gray-400 max-w-2xl mx-auto">
+                    <p className="text-black/70 dark:text-gray-400 max-w-2xl mx-auto">
                         İKÜANTS TEKMER hakkında merak edilenleri sizler için derledik.
                     </p>
                 </motion.div>
@@ -70,13 +70,13 @@ export default function SSSPage() {
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: index * 0.1 }}
-                            className="border border-white/10 rounded-xl overflow-hidden bg-white/5 backdrop-blur-sm"
+                            className="border border-gray-200 dark:border-white/10 rounded-xl overflow-hidden bg-white dark:bg-white/5 backdrop-blur-sm shadow-md dark:shadow-none"
                         >
                             <button
                                 onClick={() => setOpenIndex(openIndex === index ? null : index)}
-                                className="w-full flex items-center justify-between p-6 text-left hover:bg-white/5 transition-colors"
+                                className="w-full flex items-center justify-between p-6 text-left hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
                             >
-                                <span className="font-medium text-white pr-4">{faq.question}</span>
+                                <span className="font-medium text-black dark:text-white pr-4">{faq.question}</span>
                                 <ChevronDown
                                     className={`w-5 h-5 text-secondary transition-transform flex-shrink-0 ${openIndex === index ? 'rotate-180' : ''
                                         }`}
@@ -91,7 +91,7 @@ export default function SSSPage() {
                                         transition={{ duration: 0.2 }}
                                         className="overflow-hidden"
                                     >
-                                        <div className="px-6 pb-6 text-gray-400 border-t border-white/10 pt-4">
+                                        <div className="px-6 pb-6 text-black/70 dark:text-gray-400 border-t border-gray-200 dark:border-white/10 pt-4">
                                             {faq.answer}
                                         </div>
                                     </motion.div>
