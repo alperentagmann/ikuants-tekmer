@@ -5,6 +5,77 @@ import { Newspaper, Calendar, ArrowRight, Tag, ChevronRight, Sparkles, X } from 
 
 const news = [
     {
+        id: -1,
+        title: "TÜBİTAK Proje Destekleri Eğitimi",
+        excerpt: "İKÜANTS TEKMER koordinasyonunda; ATLAS TEKMER, İstanbul Ticaret Üniversitesi TTO, BTM TEKMER ve Maribor Mühendislik paydaşlığında, TÜBİTAK TEYDEB tarafından yürütülen 1501, 1507 ve 1707 Ar-Ge Destek Programları hakkında bilgilendirme amacıyla çevrim içi eğitim düzenlenecek.",
+        fullContent: `İKÜANTS TEKMER koordinasyonunda; ATLAS TEKMER, İstanbul Ticaret Üniversitesi TTO, BTM TEKMER ve Maribor Mühendislik paydaşlığında, TÜBİTAK TEYDEB tarafından yürütülen 1501, 1507 ve 1707 Ar-Ge Destek Programları hakkında bilgilendirme amacıyla çevrim içi eğitim düzenlenecek.
+
+Eğitim kapsamında; katılımcıların TÜBİTAK Ar-Ge destek mekanizmalarını doğru şekilde tanıması, proje fikirlerinin uygunluk değerlendirmesinin yapılması, proje kurgusu, iş paketleri, bütçe kalemleri ve hakem değerlendirme süreçlerine ilişkin temel yaklaşımlar ele alınacak.
+
+Eğitim Bilgileri:
+
+• Eğitmen: Mustafa Ercan ve Serhat Topaloğlu (Maribor Mühendislik)
+• Tarih: 27 Ocak 2026
+• Saat: 10.00 – 12.00
+• Yer: MS Teams (Çevrim İçi)
+
+Kayıt Linki: https://forms.gle/rCGsZPwatVXRCbqM7`,
+        date: "27 Ocak 2026",
+        category: "Duyuru",
+        image: "/images/news/tubitak-egitim/01.png",
+        gallery: [
+            "/images/news/tubitak-egitim/01.png"
+        ],
+        featured: true
+    },
+    {
+        id: 0,
+        title: "ANTSPARK Ön Kuluçka Programı'nda Verimli Bir Haftayı Geride Bıraktık",
+        excerpt: "İKÜANTS TEKMER tarafından yürütülen ANTSPARK Ön Kuluçka Programı, girişimcilerin fikir aşamasından ticarileşmeye uzanan yolculuklarında ihtiyaç duydukları bilgi, beceri ve yetkinlikleri kazandırmaya devam ediyor.",
+        fullContent: `İKÜANTS TEKMER tarafından yürütülen ANTSPARK Ön Kuluçka Programı, girişimcilerin fikir aşamasından ticarileşmeye uzanan yolculuklarında ihtiyaç duydukları bilgi, beceri ve yetkinlikleri kazandırmaya devam ediyor. Program kapsamında geçtiğimiz hafta, hem mentörlük hem de tematik eğitimlerle dolu verimli bir süreç başarıyla tamamlandı.
+
+07 Ocak 2026 Çarşamba günü gerçekleştirilen Mentörlük Oturumu – 4 kapsamında girişimcilerimiz, projelerini mentörleriyle birlikte değerlendirme ve birebir geri bildirim alma imkânı buldu.
+
+08 Ocak 2026 Perşembe günü düzenlenen "Girişimciler için Sürdürülebilirlik Eğitimi", İstanbul Kültür Üniversitesi'nden Nazife Merve Hamzaoğlu tarafından gerçekleştirildi. Eğitimde; çevresel etki analizi, sürdürülebilir iş modelleri ve yeşil girişim yaklaşımları ele alınarak, girişimcilerin fikirlerini sürdürülebilirlik perspektifiyle yeniden kurgulamaları hedeflendi.
+
+Haftaya ANTSPARK'ta Neler Var?
+
+ANTSPARK Ön Kuluçka Programı kapsamında 12–15 Ocak 2026 haftasında girişimcileri dijital pazarlama ve psikolojik dayanıklılık odağında yoğun bir eğitim ve mentörlük takvimi bekliyor:
+
+Pazartesi | 12.01.2026 | 15.00–18.00
+Dijital Pazarlama: Sosyal Medya
+Platform seçimi, içerik planlama ve sosyal medya stratejileri
+Eğitmen: Müge Bezgin – Startup Centrum 
+
+Salı | 13.01.2026 | 15.00–18.00
+Dijital Pazarlama: SEO ve Görünürlük
+Arama motoru optimizasyonu ve web sitesi görünürlüğü
+Eğitmen: Haydar Özkömürcü – Cremicro Digital Marketing Agency 
+
+Çarşamba | 14.01.2026 | 14.00–17.00
+Girişimcilikte Psikolojik Dayanıklılık: Grup Mentörlüğü
+Mentörler:
+Dr. Öğr. Üyesi Meryem Demir Güdül – İstanbul Kültür Üniversitesi
+Dr. İlker Çitli – İstanbul Medipol Üniversitesi
+
+Perşembe | 15.01.2026 | 15.00–18.00
+Dijital Pazarlama: Online Reklam
+Reklam kampanyası planlama, hedefleme ve ölçümleme
+Eğitmen: Haydar Özkömürcü – Cremicro Digital Marketing Agency 
+
+İKÜANTS TEKMER, girişimcilere yalnızca teknik bilgi kazandırmayı değil; aynı zamanda pazar odaklı düşünme, dijital yetkinlikler ve psikolojik dayanıklılık gibi güçlü bir girişimcilik yolculuğu için kritik öneme sahip becerileri bütüncül bir yaklaşımla sunmayı amaçlamaktadır.
+
+ANTSPARK Ön Kuluçka Programı, önümüzdeki haftalarda da eğitim ve mentörlük faaliyetleriyle girişimcilere destek olmaya devam edecektir.`,
+        date: "08 Ocak 2026",
+        category: "Program",
+        image: "/images/news/antspark-verimli-hafta/01.jpg",
+        gallery: [
+            "/images/news/antspark-verimli-hafta/01.jpg",
+            "/images/news/antspark-verimli-hafta/02.jpg"
+        ],
+        featured: false
+    },
+    {
         id: 1,
         title: "ANTSPARK MasterClass'ta Girişimcilik Ekosistemi Masaya Yatırıldı",
         excerpt: "İKÜANTS TEKMER tarafından 15 Aralık Pazartesi günü düzenlenen ANTSPARK MasterClass, girişimcilik ve inovasyon ekosisteminin önemli paydaşlarını bir araya getirdi.",
@@ -31,7 +102,7 @@ ANTSPARK MasterClass, üniversite odaklı girişimcilik ekosisteminin güçlenme
             "/images/news/antspark-masterclass/04.jpg",
             "/images/news/antspark-masterclass/05.jpg"
         ],
-        featured: true
+        featured: false
     },
     {
         id: 2,
