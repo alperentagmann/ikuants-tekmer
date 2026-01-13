@@ -23,6 +23,7 @@ Kayıt Linki: https://forms.gle/rCGsZPwatVXRCbqM7`,
         date: "27 Ocak 2026",
         category: "Duyuru",
         image: "/images/news/tubitak-egitim/01.png",
+        registrationLink: "https://forms.gle/rCGsZPwatVXRCbqM7",
         gallery: [
             "/images/news/tubitak-egitim/01.png"
         ],
@@ -256,6 +257,7 @@ interface NewsItem {
     image: string;
     featured: boolean;
     gallery?: string[];
+    registrationLink?: string;
 }
 
 export default function HaberlerPage() {
@@ -600,12 +602,24 @@ export default function HaberlerPage() {
                                         {!showRsvpForm && !rsvpSubmitted && (
                                             <div className="text-center">
                                                 <p className="text-black/70 dark:text-gray-400 mb-4">Bu etkinliğe katılmak ister misiniz?</p>
-                                                <button
-                                                    onClick={() => setShowRsvpForm(true)}
-                                                    className="px-8 py-4 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl font-bold text-lg hover:opacity-90 transition-all shadow-lg shadow-purple-500/30"
-                                                >
-                                                    🎉 Sen de Katıl!
-                                                </button>
+                                                {selectedNews.registrationLink ? (
+                                                    <a
+                                                        href={selectedNews.registrationLink}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl font-bold text-lg hover:opacity-90 transition-all shadow-lg shadow-purple-500/30"
+                                                    >
+                                                        🎉 Kayıt Ol
+                                                        <ArrowRight className="w-5 h-5" />
+                                                    </a>
+                                                ) : (
+                                                    <button
+                                                        onClick={() => setShowRsvpForm(true)}
+                                                        className="px-8 py-4 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl font-bold text-lg hover:opacity-90 transition-all shadow-lg shadow-purple-500/30"
+                                                    >
+                                                        🎉 Sen de Katıl!
+                                                    </button>
+                                                )}
                                             </div>
                                         )}
 
