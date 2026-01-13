@@ -123,7 +123,7 @@ export const Hero = () => {
                 ))}
             </div>
 
-            <div className="container relative z-10 mx-auto px-6 max-w-7xl flex flex-col items-center text-center pt-16 pb-6">
+            <div className="container relative z-10 mx-auto px-6 max-w-7xl flex flex-col items-center text-center pt-10 pb-4">
                 {/* Badge */}
                 <motion.div
                     initial={{ opacity: 0, y: 50 }}
