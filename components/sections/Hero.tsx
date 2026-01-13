@@ -70,7 +70,7 @@ export const Hero = () => {
     const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + sliderImages.length) % sliderImages.length);
 
     return (
-        <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden pt-16 bg-gray-50 dark:bg-[#050510] transition-colors duration-300">
+        <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gray-50 dark:bg-[#050510] transition-colors duration-300">
             {/* Background Slider */}
             <div className="absolute inset-0">
                 <AnimatePresence mode="wait">
@@ -123,13 +123,13 @@ export const Hero = () => {
                 ))}
             </div>
 
-            <div className="container relative z-10 mx-auto px-6 max-w-7xl flex flex-col items-center text-center">
+            <div className="container relative z-10 mx-auto px-6 max-w-7xl flex flex-col items-center text-center pt-24 pb-8">
                 {/* Badge */}
                 <motion.div
                     initial={{ opacity: 0, y: 50 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.8 }}
-                    className="mb-8 inline-flex items-center gap-2 px-6 py-3 rounded-full border-2 border-primary/50 bg-white/80 dark:bg-black/60 backdrop-blur-xl text-primary dark:text-secondary text-sm font-bold tracking-wider shadow-xl dark:shadow-none dark:border-secondary/40"
+                    className="mb-6 inline-flex items-center gap-2 px-5 py-2.5 rounded-full border-2 border-primary/50 bg-white/80 dark:bg-black/60 backdrop-blur-xl text-primary dark:text-secondary text-sm font-bold tracking-wider shadow-xl dark:shadow-none dark:border-secondary/40"
                 >
                     <span className="w-2 h-2 rounded-full bg-primary animate-pulse shadow-lg shadow-primary/50" />
                     {hero.status}
@@ -140,12 +140,12 @@ export const Hero = () => {
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ duration: 0.8, delay: 0.2 }}
-                    className="font-orbitron font-black tracking-tight leading-[1.05] mb-8"
+                    className="font-orbitron font-black tracking-tight leading-[1.1] mb-6"
                 >
-                    <span className="block text-5xl md:text-6xl lg:text-7xl xl:text-8xl mb-3 text-black dark:text-white drop-shadow-2xl">
+                    <span className="block text-4xl md:text-5xl lg:text-6xl xl:text-7xl mb-2 text-black dark:text-white drop-shadow-2xl">
                         {hero.title.line1}
                     </span>
-                    <span className="block text-5xl md:text-6xl lg:text-7xl xl:text-8xl bg-gradient-to-r from-primary via-purple-600 to-secondary bg-clip-text text-transparent drop-shadow-lg">
+                    <span className="block text-4xl md:text-5xl lg:text-6xl xl:text-7xl bg-gradient-to-r from-primary via-purple-600 to-secondary bg-clip-text text-transparent drop-shadow-lg">
                         {hero.title.line2}
                     </span>
                 </motion.h1>
@@ -155,7 +155,7 @@ export const Hero = () => {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.8, delay: 0.4 }}
-                    className="text-lg md:text-xl lg:text-2xl text-black dark:text-gray-300 max-w-4xl mx-auto mb-12 leading-relaxed bg-white/60 dark:bg-transparent backdrop-blur-md dark:backdrop-blur-none px-8 py-4 rounded-2xl border border-gray-200 dark:border-transparent shadow-xl dark:shadow-none"
+                    className="text-base md:text-lg lg:text-xl text-black dark:text-gray-300 max-w-3xl mx-auto mb-8 leading-relaxed bg-white/60 dark:bg-transparent backdrop-blur-md dark:backdrop-blur-none px-6 py-3 rounded-xl border border-gray-200 dark:border-transparent shadow-lg dark:shadow-none"
                 >
                     {hero.description}
                 </motion.p>
@@ -164,22 +164,22 @@ export const Hero = () => {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.8, delay: 0.6 }}
-                    className="flex flex-col sm:flex-row gap-6 mb-16"
+                    className="flex flex-col sm:flex-row gap-4 mb-10"
                 >
                     <Link
                         href="/basvuru"
-                        className="group relative px-10 py-5 bg-gradient-to-r from-primary via-purple-600 to-primary text-white font-bold text-lg tracking-wide overflow-hidden rounded-2xl transition-all hover:scale-105 hover:shadow-2xl hover:shadow-primary/40 active:scale-95 shadow-xl"
+                        className="group relative px-8 py-4 bg-gradient-to-r from-primary via-purple-600 to-primary text-white font-bold text-base tracking-wide overflow-hidden rounded-xl transition-all hover:scale-105 hover:shadow-2xl hover:shadow-primary/40 active:scale-95 shadow-xl"
                     >
                         <span className="relative z-10 flex items-center justify-center gap-2">
                             {hero.buttons.primary}
-                            <ChevronRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
+                            <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                         </span>
                         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
                     </Link>
 
                     <Link
                         href="/destekler"
-                        className="px-10 py-5 bg-white/90 dark:bg-white/10 backdrop-blur-md border-2 border-gray-300 dark:border-white/30 text-gray-900 dark:text-white font-bold text-lg tracking-wide hover:bg-white dark:hover:bg-white/20 hover:border-primary dark:hover:border-primary transition-all rounded-2xl shadow-lg"
+                        className="px-8 py-4 bg-white/90 dark:bg-white/10 backdrop-blur-md border-2 border-gray-300 dark:border-white/30 text-gray-900 dark:text-white font-bold text-base tracking-wide hover:bg-white dark:hover:bg-white/20 hover:border-primary dark:hover:border-primary transition-all rounded-xl shadow-lg"
                     >
                         {hero.buttons.secondary}
                     </Link>
