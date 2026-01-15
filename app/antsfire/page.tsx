@@ -15,54 +15,54 @@ const phases = [
         title: "Faz 0: Kabul ve İhtiyaç Analizi",
         period: "1. Ay",
         description: "Kurucu görüşmeleri, ihtiyaç analizi, firma bazlı yol haritası, hedef ve KPI’ların belirlenmesi.",
-        details: ["Ortak oryantasyon", "Birebir ihtiyaç görüşmeleri", "Yol haritası belirleme"]
+        details: ["Kurucu Görüşmeleri", "İhtiyaç Analizi", "Yol Haritası & KPI"]
     },
     {
         id: 1,
-        title: "Faz 1: Kişiselleştirilmiş Eğitim",
-        period: "2-4. Ay",
-        description: "Yalnızca ihtiyaç duyulan modüllerde eğitim; eşleşen ihtiyaçlar için ortak oturum.",
-        details: ["İş modeli eğitimi", "Satış/Pazarlama modülleri", "Yatırım öncesi hazırlık"]
+        title: "Faz 1: Eğitim (Zorunlu Çekirdek)",
+        period: "1-3. Ay",
+        description: "Girişimcilik ve Dijital Pazarlama eğitimlerinin hibrit ve uygulamalı olarak tamamlanması.",
+        details: ["Girişimcilik Eğitimi", "Dijital Pazarlama", "Uygulamalı Atölyeler"]
     },
     {
         id: 2,
-        title: "Faz 2: Mentorluk ve Uygulama",
-        period: "3-7. Ay",
-        description: "Ana mentor + uzman mentorlarla uygulama; aylık performans toplantıları; yatırım hazırlığı.",
-        details: ["Uygulamalı mentorluk", "Aylık performans takibi", "Uzman mentor desteği"]
+        title: "Faz 2: Ana Mentorluk",
+        period: "4-6. Ay",
+        description: "Haftalık ana mentorluk görüşmeleri, aylık performans toplantıları ve aksiyon takibi.",
+        details: ["Birebir Ana Mentorluk", "Aylık Performans Takibi", "Çıktı Odaklı İlerleme"]
     },
     {
         id: 3,
-        title: "Faz 3: Çıktı ve Mezuniyet",
-        period: "8. Ay",
-        description: "Final raporları, demo/pitch günü, mezuniyet ve sonraki programlara yönlendirme.",
-        details: ["Demo Day", "Final raporu", "Mezuniyet"]
+        title: "Faz 3: İş Geliştirme & Teknik Mentorluk",
+        period: "7-12. Ay",
+        description: "İhtiyaca göre teknik mentorluk, yatırım hazırlığı, ölçeklenme ve mezuniyet.",
+        details: ["Teknik Mentorluk", "Yatırım Hazırlığı", "Demo Day & Mezuniyet"]
     }
 ];
 
 // Modules
 const modules = [
-    { code: "M01", title: "İş Modeli Tasarımı ve Strateji", desc: "Değer önerisi, fiyatlama mantığı" },
-    { code: "M02", title: "Müşteri Keşfi ve Doğrulama", desc: "Görüşme rehberi, İdeal Müşteri Profili" },
-    { code: "M03", title: "B2B Satış Sistemi", desc: "Satış hunisi, teklif/CRM, metrikler" },
+    { code: "M01", title: "İş Modeli Tasarımı ve Strateji", desc: "İş modeli güncelleme, değer önerisi, fiyatlama" },
+    { code: "M02", title: "Müşteri Keşfi ve Doğrulama", desc: "Görüşme rehberi, ICP, problem-çözüm uyumu" },
+    { code: "M03", title: "B2B Satış Sistemi", desc: "Satış hunisi, teklif/CRM, satış metrikleri" },
     { code: "M04", title: "Dijital Pazarlama ve Büyüme", desc: "Kanal seçimi, içerik planı, ölçümleme" },
-    { code: "M05", title: "Finans ve Nakit Akışı", desc: "Bütçe, runway, senaryolar" },
-    { code: "M06", title: "Hukuk, Sözleşmeler ve IP", desc: "NDA, sözleşme seti, IP stratejisi" },
-    { code: "M07", title: "Ürün ve Hedef Yol Haritası", desc: "Roadmap, OKR, önceliklendirme" },
-    { code: "M08", title: "Regülasyon ve Uygunluk", desc: "Sağlık, fintech alan uyumluluğu" },
-    { code: "M09", title: "Pitch Deck ve Yatırım", desc: "Deck kurgusu, hikaye, metrikler" },
-    { code: "M10", title: "Data Room ve Dokümantasyon", desc: "Veri odası, due diligence" },
-    { code: "M11", title: "Operasyonel Ölçekleme", desc: "Süreç, KPI, operasyon planı" },
+    { code: "M05", title: "Finans ve Nakit Akışı", desc: "Bütçe, birim ekonomi, runway, senaryolar" },
+    { code: "M06", title: "Hukuk, Sözleşmeler ve IP", desc: "NDA, sözleşmeler, IP stratejisi" },
+    { code: "M07", title: "Ürün Yol Haritası ve Hedefler", desc: "Roadmap, OKR, önceliklendirme" },
+    { code: "M08", title: "Regülasyon ve Uygunluk", desc: "Sektöre göre regülasyon, uyum gereklilikleri" },
+    { code: "M09", title: "Pitch Deck ve Yatırım Hazırlığı", desc: "Deck kurgusu, metrikler, hikaye" },
+    { code: "M10", title: "Data Room ve Dokümantasyon", desc: "Veri odası şablonları, due diligence" },
+    { code: "M11", title: "Operasyonel Ölçekleme", desc: "Süreç, KPI, hizmet/ürün operasyonu" },
     { code: "M12", title: "Liderlik ve Ekip Yönetimi", desc: "Rol tasarımı, kültür, performans" }
 ];
 
 // FAQ
 const faqs = [
     { q: "Program ücretli mi?", a: "Hayır, ANTSFire Kuluçka Programı ücretsizdir." },
-    { q: "Her girişim aynı eğitimi mi alacak?", a: "Hayır. İhtiyaç analizine göre yalnızca gerekli modüller açılır ve size özel bir program oluşturulur." },
+    { q: "Her girişim aynı eğitimi mi alacak?", a: "Çekirdek eğitimler (Girişimcilik ve Dijital Pazarlama) zorunludur; ek modüller ihtiyaç analizine göre açılır." },
     { q: "Mentorlar nasıl seçiliyor?", a: "Mentor havuzumuzdan ihtiyaçlarınıza en uygun uzmanlar, çıkar çelişkisi kontrolü yapılarak sizinle eşleştirilir." },
     { q: "Yatırım garantisi var mı?", a: "Yatırım garantisi verilmemektedir ancak yatırım hazırlığı ve yatırımcı ağlarına erişim konusunda yoğun destek sağlanır." },
-    { q: "Haftalık zaman yükü nedir?", a: "Ortalama 3-5 saat ayırmanız beklenir. Dönemsel olarak yoğunluk değişebilir." },
+    { q: "Haftalık zaman yükü nedir?", a: "Eğitim fazında (ilk 3 ay) azami 4 saat; ana mentorluk fazında (sonraki 3 ay) azami 1 saat; son 6 ay ise ihtiyaca göre planlanır." },
     { q: "Hangi aşamadaki girişimler başvurabilir?", a: "Şirketleşmiş, Ar-Ge odaklı ve tercihen ANTSPARK mezunu girişimler başvurabilir." }
 ];
 
@@ -101,7 +101,7 @@ export default function AntsFirePage() {
 
                     <p className="text-gray-600 dark:text-gray-400 max-w-3xl mx-auto mb-10 leading-relaxed">
                         ANTSPARK mezunu veya Ar-Ge odaklı şirketleşmiş girişimler için tasarlanmış,
-                        kişiselleştirilmiş 8 aylık gelişim ve ölçeklenme programı.
+                        kişiselleştirilmiş 12 aylık (1 yıllık) gelişim ve ölçeklenme programı.
                     </p>
 
                     <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -124,10 +124,10 @@ export default function AntsFirePage() {
                 {/* SUMMARY STATS */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-24">
                     {[
-                        { label: "Süre", value: "8 Ay", sub: "2 Dönem" },
-                        { label: "Kontenjan", value: "10 Girişim", sub: "Sınırlı Katılım" },
-                        { label: "Odak", value: "Ölçeklenme", sub: "Satış & Yatırım" },
-                        { label: "Destek", value: "Kişiselleştirilmiş", sub: "Eğitim & Mentorluk" }
+                        { label: "Süre", value: "12 Ay", sub: "1 Yıllık Döngü" },
+                        { label: "Kontenjan", value: "10 Girişim", sub: "1 Kohort" },
+                        { label: "Odak", value: "Ölçeklenme", sub: "Satış & Pilot" },
+                        { label: "Destek", value: "Eğitim & Mentorluk", sub: "Kişiselleştirilmiş" }
                     ].map((stat, i) => (
                         <motion.div
                             key={i}
@@ -179,7 +179,7 @@ export default function AntsFirePage() {
                             {/* Row 3 */}
                             <div className="p-4 flex items-center font-semibold text-gray-700 dark:text-gray-300 border-b border-gray-200 dark:border-white/10">Eğitim Modeli</div>
                             <div className="p-4 text-center text-gray-600 dark:text-gray-400 border-b border-gray-200 dark:border-white/10 bg-purple-50/50 dark:bg-purple-900/5">Standart temel modüller</div>
-                            <div className="p-4 text-center text-orange-600 dark:text-orange-400 font-bold border-b border-orange-200 dark:border-orange-500/20 bg-orange-50/50 dark:bg-orange-900/10 border-x border-orange-200 dark:border-orange-500/20">Kişiselleştirilmiş İhtiyaç Analizi</div>
+                            <div className="p-4 text-center text-orange-600 dark:text-orange-400 font-bold border-b border-orange-200 dark:border-orange-500/20 bg-orange-50/50 dark:bg-orange-900/10 border-x border-orange-200 dark:border-orange-500/20">Zorunlu Çekirdek + Seçmeli</div>
 
                             {/* Row 4 */}
                             <div className="p-4 flex items-center font-semibold text-gray-700 dark:text-gray-300 border-b border-gray-200 dark:border-white/10">Mentorluk</div>
@@ -200,7 +200,7 @@ export default function AntsFirePage() {
                 <section className="mb-24">
                     <div className="text-center mb-12">
                         <h2 className="text-3xl font-orbitron font-bold mb-4 text-gray-900 dark:text-white">Program Mimarisi</h2>
-                        <p className="text-gray-600 dark:text-gray-400">8 aylık yolculuğunuzun adım adım planı</p>
+                        <p className="text-gray-600 dark:text-gray-400">12 aylık yolculuğunuzun adım adım planı</p>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -270,16 +270,16 @@ export default function AntsFirePage() {
                         </p>
                         <div className="space-y-4">
                             <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-black/20 rounded-xl">
-                                <span className="text-gray-700 dark:text-gray-300">Ana Mentor Görüşmesi</span>
-                                <span className="text-orange-600 dark:text-orange-400 font-bold">Ayda 2 Kez</span>
+                                <span className="text-gray-700 dark:text-gray-300">Ana Mentor Görüşmesi (Faz 2)</span>
+                                <span className="text-orange-600 dark:text-orange-400 font-bold">Haftada 1</span>
                             </div>
                             <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-black/20 rounded-xl">
                                 <span className="text-gray-700 dark:text-gray-300">Aylık Performans Toplantısı</span>
-                                <span className="text-orange-600 dark:text-orange-400 font-bold">Her Ay</span>
+                                <span className="text-orange-600 dark:text-orange-400 font-bold">Ayda 1</span>
                             </div>
                             <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-black/20 rounded-xl">
-                                <span className="text-gray-700 dark:text-gray-300">Uzman Mentor Desteği</span>
-                                <span className="text-orange-600 dark:text-orange-400 font-bold">İhtiyaca Göre</span>
+                                <span className="text-gray-700 dark:text-gray-300">Teknik Mentorluk (Faz 3)</span>
+                                <span className="text-orange-600 dark:text-orange-400 font-bold">2 Haftada 1</span>
                             </div>
                         </div>
                     </div>

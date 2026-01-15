@@ -496,7 +496,7 @@ export const AntsFireApplication = () => {
                                     </div>
 
                                     <div>
-                                        <label className={labelClass}>8 Ay Sonunda 3 Ana Hedef *</label>
+                                        <label className={labelClass}>12 Ay Sonunda 3 Ana Hedef *</label>
                                         <textarea required name="goals" value={formData.goals} onChange={handleChange} rows={3} className={inputClass} placeholder="Ölçülebilir hedefler giriniz." />
                                     </div>
 
