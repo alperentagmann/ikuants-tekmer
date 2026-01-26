@@ -5,6 +5,17 @@ import { Users, Linkedin, Mail, Briefcase, Award, Phone } from "lucide-react";
 
 const teamMembers = [
     {
+        name: "Hatice Tuğsavul",
+        title: "TEKMER Müdürü",
+        description: "",
+        linkedin: "https://www.linkedin.com/in/hatice-tugsavul-76729616/",
+        email: "bilgi@ikuantstekmer.com",
+        phone: "0212 498 41 62",
+        initials: "HT",
+        image: "/images/hatice-tugsavul.jpg",
+        color: "from-primary to-purple-600"
+    },
+    {
         name: "Alperen Tağman",
         title: "Teknoloji Geliştirme Uzmanı",
         description: "RTTP (Registered Technology Transfer Professional). Girişimcilik ekosistemini güçlendirmek adına aktif çalışmalar yürütmektedir. Aynı zamanda TEKMER alanında bilgi birikimiyle akademik programlar, ön kuluçka ve kuluçka süreçleri kapsamında girişimcilere rehberlik ve organizasyonel yönetim desteği sağlamaktadır. Şirketlere danışmanlık sunmakta olup, teknoloji transferi ve inovasyon yönetimi alanında stratejik iş geliştirme ve proje süreçlerine liderlik etmektedir.",
@@ -13,17 +24,6 @@ const teamMembers = [
         phone: "0212 498 41 03",
         initials: "AT",
         image: "/images/alperen-tagman.jpg",
-        color: "from-primary to-purple-600"
-    },
-    {
-        name: "Mustafa Cem Okur",
-        title: "TEKMER Uzmanı",
-        description: "Ar-Ge ve Endüstriyel Tasarım alanlarındaki deneyimiyle İKÜANTS TEKMER bünyesinde Uzman olarak görev yapmaktadır. Merkezin operasyonel döngüsünün sürdürülmesi, girişimcilerin idari süreçlerinin takibi ve tesis imkanlarının etkin kullanımı konularında çalışmalar yürütmektedir. Girişimcilere sağlanan altyapı hizmetlerinin koordinasyonu ve idari iş akışlarının yürütülmesinde rol oynamaktadır.",
-        linkedin: "https://www.linkedin.com/in/cem-okur-600bb3159/",
-        email: "cem.okur@ikuantstekmer.com",
-        phone: "0212 498 41 62",
-        initials: "CO",
-        image: "/images/cem-okur.jpg",
         color: "from-secondary to-teal-600"
     }
 ];
