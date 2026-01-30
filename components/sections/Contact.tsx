@@ -277,7 +277,7 @@ export const Contact = () => {
                                                 <select className={inputClass} required
                                                     value={meetingForm.meetWith} onChange={(e) => setMeetingForm({ ...meetingForm, meetWith: e.target.value })}>
                                                     <option value="">Kişi Seçin</option>
-                                                    <option value="M. Cem Okur">M. Cem Okur</option>
+                                                    <option value="Hatice Tuğsavul">Hatice Tuğsavul</option>
                                                     <option value="Alperen Tağman">Alperen Tağman</option>
                                                     <option value="Tüm TEKMER Ekibi">Tüm TEKMER Ekibi</option>
                                                 </select>
@@ -390,7 +390,7 @@ export const Contact = () => {
                                                 <select className={inputClass} required
                                                     value={visitForm.visitWho} onChange={(e) => setVisitForm({ ...visitForm, visitWho: e.target.value })}>
                                                     <option value="">Kişi Seçin</option>
-                                                    <option value="M. Cem Okur">M. Cem Okur</option>
+                                                    <option value="Hatice Tuğsavul">Hatice Tuğsavul</option>
                                                     <option value="Alperen Tağman">Alperen Tağman</option>
                                                     <option value="Tüm TEKMER Ekibi">Tüm TEKMER Ekibi</option>
                                                 </select>
