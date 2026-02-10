@@ -57,11 +57,7 @@ const yonetimKurulu = [
         title: "Yönetim Kurulu Başkan Vekili",
         image: "/images/gulce-ogruc-ildiz.jpg"
     },
-    {
-        name: "Cüneyt Genç",
-        title: "Yönetim Kurulu Başkan Vekili",
-        image: "/images/cuneyt-genc.png"
-    },
+
     {
         name: "Yusuf Yılmaz",
         title: "Yönetim Kurulu Üyesi",
@@ -84,11 +80,7 @@ const yonetimKurulu = [
     }
 ];
 const degerlendirmeKurulu = [
-    {
-        name: "Cüneyt Genç",
-        title: "İKÜANTS TEKMER Yönetim Kurulu Başkan Vekili",
-        image: "/images/cuneyt-genc.png"
-    },
+
     {
         name: "Duygu Yücesoy Manyaslı",
         title: "KOSGEB İkitelli Müdürü",
