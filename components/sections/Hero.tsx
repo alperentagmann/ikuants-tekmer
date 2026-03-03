@@ -225,15 +225,15 @@ export const Hero = () => {
                             transition={{ duration: 0.3 }}
                             className="mt-6 w-full max-w-4xl overflow-hidden"
                         >
-                            <div className="p-6 bg-gradient-to-r from-primary/20 to-purple-600/20 border border-white/10 rounded-2xl backdrop-blur-sm">
-                                <h3 className="font-orbitron text-xl text-white mb-4 flex items-center gap-2">
-                                    <span className="text-secondary">{techCategories[expandedCategory]?.title}</span>
+                            <div className="p-6 bg-gradient-to-r from-primary/10 to-purple-600/10 dark:from-primary/20 dark:to-purple-600/20 border border-black/10 dark:border-white/10 rounded-2xl backdrop-blur-sm shadow-lg dark:shadow-none bg-white/40 dark:bg-transparent">
+                                <h3 className="font-orbitron text-xl text-black dark:text-white mb-4 flex items-center gap-2">
+                                    <span className="text-primary dark:text-secondary">{techCategories[expandedCategory]?.title}</span>
                                 </h3>
                                 <div className="flex flex-wrap gap-3">
                                     {techCategories[expandedCategory]?.items.map((item: string, idx: number) => (
                                         <span
                                             key={idx}
-                                            className="px-4 py-2 bg-white/10 border border-white/20 rounded-full text-sm text-gray-200 hover:bg-primary/30 hover:border-primary/50 transition-all"
+                                            className="px-4 py-2 bg-white/80 dark:bg-white/10 border border-black/10 dark:border-white/20 rounded-full text-sm text-gray-800 dark:text-gray-200 hover:bg-white hover:border-primary dark:hover:bg-primary/30 dark:hover:border-primary/50 transition-all font-medium shadow-sm dark:shadow-none"
                                         >
                                             {item}
                                         </span>

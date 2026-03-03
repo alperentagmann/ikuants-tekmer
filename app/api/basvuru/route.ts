@@ -54,18 +54,39 @@ export async function POST(request: NextRequest) {
                 'Modüller': formData.selectedModules?.join(", ")
             };
         } else {
-            // Default ANTSPARK fields
+            // Default ANTSPARK or General Application fields
             emailData = {
-                'Program': "ANTSPARK",
-                'Proje Adı': formData.projectName,
-                'Ad Soyad': formData.fullName,
+                'Program': formData.programName || "İKÜANTS TEKMER Başvuru",
+                // Kişisel / Şirket Bilgileri
+                'Şirket Var Mı?': formData.hasCompany,
+                'Ad Soyad / Firma İsmi': formData.fullName,
+                'Doğum Tarihi': formData.birthDate,
                 'E-Posta': formData.email,
                 'Telefon': formData.phone,
-                'Görev': formData.projectRole,
-                'Sektör': formData.sectors,
+                'Vergi Numarası': formData.taxNumber || 'Belirtilmedi',
+                'Nace Kodu': formData.naceCode || 'Belirtilmedi',
+                'TEKMER Dışı Adres': formData.companyAddress || 'Belirtilmedi',
+
+                // Proje Bilgileri
+                'Proje Adı': formData.projectName,
                 'Proje Özeti': formData.projectSummary,
-                'Aşama': formData.projectStage,
-                'Ekip Büyüklüğü': formData.teamSize
+                'Ekip / Kurucu Bilgisi': formData.teamInfo,
+                'Proje Teması': formData.projectTheme,
+                'Gelişmeye Katkı': formData.projectContribution,
+                'Mevcut Ürünlerden Farkı': formData.projectDifference,
+                'Çıktılar ve Kullanım Alanları': formData.projectOutputs,
+
+                // Pazar ve Finansal Bilgiler
+                'Hedef Müşteri ve Pazar': formData.targetMarket,
+                'Faaliyet/Zaman Planlaması': formData.projectTimeline,
+                'Ölçeklenebilirlik / Ticarileşme': formData.scalability,
+
+                // Beklenti ve İhtiyaçlar
+                'Beklentiler (Neden TEKMER?)': formData.expectations,
+                'Fiziksel Alan Talebi': formData.workspacePreference,
+                'Talep Edilen Süre': formData.requestedDuration,
+                'AR-GE Niteliği': formData.argeQuality,
+                'Sunum Dosyası': formData.presentationLink
             };
         }
 

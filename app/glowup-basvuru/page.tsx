@@ -174,7 +174,7 @@ export default function GlowUpBasvuruPage() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.1 }}
-                    className="mb-12 p-8 rounded-2xl bg-white dark:bg-gradient-to-r dark:from-cyan-500/10 dark:via-blue-500/5 dark:to-purple-500/10 border border-gray-200 dark:border-white/10 shadow-lg dark:shadow-none"
+                    className="mb-12 p-8 rounded-2xl bg-white dark:bg-[#0a0a0a] dark:bg-gradient-to-r dark:from-cyan-500/10 dark:via-blue-500/5 dark:to-purple-500/10 border border-gray-200 dark:border-white/10 shadow-lg dark:shadow-none"
                 >
                     <h2 className="font-orbitron text-xl text-black dark:text-white mb-6 text-center">GLOW UP Nedir?</h2>
                     <p className="text-black/80 dark:text-gray-300 text-center mb-8 max-w-3xl mx-auto">
@@ -189,12 +189,12 @@ export default function GlowUpBasvuruPage() {
                             <h3 className="text-black dark:text-white font-semibold mb-2">2 Gün Yoğun Program</h3>
                             <p className="text-black/70 dark:text-gray-400 text-sm">Fikir geliştirmeden sunuma kadar tüm süreçler</p>
                         </div>
-                        <div className="p-5 rounded-xl bg-white/5 border border-white/10 text-center">
+                        <div className="p-5 rounded-xl bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-center">
                             <div className="text-3xl mb-2">👨‍🏫</div>
                             <h3 className="text-black dark:text-white font-semibold mb-2">Uzman Mentörlük</h3>
                             <p className="text-black/70 dark:text-gray-400 text-sm">Alanında uzman mentörlerden birebir destek</p>
                         </div>
-                        <div className="p-5 rounded-xl bg-white/5 border border-white/10 text-center">
+                        <div className="p-5 rounded-xl bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-center">
                             <div className="text-3xl mb-2">🏆</div>
                             <h3 className="text-black dark:text-white font-semibold mb-2">Ödüller & Fırsatlar</h3>
                             <p className="text-black/70 dark:text-gray-400 text-sm">Para ödülü ve ANTSPARK'a doğrudan katılım hakkı</p>
@@ -202,18 +202,18 @@ export default function GlowUpBasvuruPage() {
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="p-5 rounded-xl bg-white/5 border border-white/10">
-                            <h3 className="text-cyan-400 font-semibold mb-3">📅 Program Akışı</h3>
-                            <ul className="space-y-2 text-sm text-gray-300">
+                        <div className="p-5 rounded-xl bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10">
+                            <h3 className="text-cyan-600 dark:text-cyan-400 font-semibold mb-3">📅 Program Akışı</h3>
+                            <ul className="space-y-2 text-sm text-black/70 dark:text-gray-300">
                                 <li>• <strong>1. Gün:</strong> Fikir sunumu, ekip eşleşmesi, problem tanımlama, çözüm tasarımı</li>
                                 <li>• <strong>1. Gün Akşam:</strong> Mentör seansları, prototip çalışması</li>
                                 <li>• <strong>2. Gün:</strong> İş modeli kanvası, sunum hazırlama, pitch pratiği</li>
                                 <li>• <strong>2. Gün Final:</strong> Jüri önünde sunum, değerlendirme ve ödül töreni</li>
                             </ul>
                         </div>
-                        <div className="p-5 rounded-xl bg-white/5 border border-white/10">
-                            <h3 className="text-cyan-400 font-semibold mb-3">🎁 Kazanımlar</h3>
-                            <ul className="space-y-2 text-sm text-gray-300">
+                        <div className="p-5 rounded-xl bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10">
+                            <h3 className="text-cyan-600 dark:text-cyan-400 font-semibold mb-3">🎁 Kazanımlar</h3>
+                            <ul className="space-y-2 text-sm text-black/70 dark:text-gray-300">
                                 <li>• İlk 3 takıma para ödülü</li>
                                 <li>• İlk 3 takıma ANTSPARK Ön Kuluçka Programı'na direkt kabul</li>
                                 <li>• Tüm katılımcılara katılım sertifikası</li>

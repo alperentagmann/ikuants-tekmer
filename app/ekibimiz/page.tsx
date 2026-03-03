@@ -7,7 +7,7 @@ const teamMembers = [
     {
         name: "Hatice Tuğsavul",
         title: "TEKMER Müdürü",
-        description: "",
+        description: "Girişimcilik ekosisteminde 20 yılı aşkın süredir ulusal ve uluslararası kuluçka merkezleri, Teknoloji Transfer Ofisleri, TEKMER'lerde görev yapmaktadır. Eğitim ve etkinlik düzenleme, danışmanlık, mentörlük, proje yürütücülüğü, girişimci-yatırımcı buluşturmaları, ağ kurma ve sürdürülebilirlik yetkin olduğu alanlardır.",
         linkedin: "https://www.linkedin.com/in/hatice-tugsavul-76729616/",
         email: "bilgi@ikuantstekmer.com",
         phone: "0212 498 41 62",
