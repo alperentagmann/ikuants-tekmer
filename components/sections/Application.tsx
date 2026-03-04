@@ -4,7 +4,8 @@ import { motion } from "framer-motion";
 import {
     Send, User, Mail, Phone, Building2, Calendar, FileText, Users,
     ClipboardList, Target, Check, ArrowRight, ArrowLeft, Link as LinkIcon,
-    Briefcase, Sparkles, Globe, MapPin, PenTool, TrendingUp, Clock, Monitor
+    Briefcase, Sparkles, Globe, MapPin, PenTool, TrendingUp, Clock, Monitor,
+    Milestone, Scaling, Timer
 } from "lucide-react";
 
 export const Application = () => {
