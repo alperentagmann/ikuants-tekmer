@@ -147,3 +147,15 @@ html {
   background: rgba(59, 130, 246, 0.3);
   color: white;
 }
+
+/* Select options styling for readability */
+option {
+  background-color: #ffffff;
+  color: #020617;
+}
+
+.dark option,
+.dark select option {
+  background-color: #020617;
+  color: #f8fafc;
+}
