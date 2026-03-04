@@ -11,17 +11,37 @@ import {
 
 type FormData = {
     // 1. Şirket
+    hasCompany: string;
     companyName: string;
+    companyTitle: string;
     foundationYear: string;
-    taxNumber: string;
+    mersisNo: string;
+    tradeRegistryNo: string;
+    partnersNames: string;
     website: string;
+    companyEmail: string;
+    companyPhone: string;
+    taxNumber: string;
+    taxOffice: string;
+    companyAddress: string;
+    naceCode: string;
+
+    tekmerAcceptanceDate: string;
+    rentContractDate: string;
+    deskOfficeNo: string;
+    rentAmount: string;
+
     sector: string;
     tekmerClusters: string[]; // AI, Cloud, Mobility etc. (Multi-select)
     employeeCount: string;
 
-    // 2. Kurucu
+    // 2. Kurucu / Yetkili Kişi
     founderName: string;
+    tcNo: string;
+    birthDate: string;
+    educationStatus: string;
     founderContact: string; // Email / Phone combined or separate. User asked for "E-posta / Telefon"
+    founderPhone: string;
     founderRole: string; // CEO/CTO/COO
     weeklyHours: string; // 10-20, 20-30, 30+
 
@@ -66,16 +86,36 @@ type FormData = {
 };
 
 const initialFormData: FormData = {
+    hasCompany: "",
     companyName: "",
+    companyTitle: "",
     foundationYear: "",
-    taxNumber: "",
+    mersisNo: "",
+    tradeRegistryNo: "",
+    partnersNames: "",
     website: "",
+    companyEmail: "",
+    companyPhone: "",
+    taxNumber: "",
+    taxOffice: "",
+    companyAddress: "",
+    naceCode: "",
+
+    tekmerAcceptanceDate: "",
+    rentContractDate: "",
+    deskOfficeNo: "",
+    rentAmount: "",
+
     sector: "",
     tekmerClusters: [],
     employeeCount: "",
 
     founderName: "",
+    tcNo: "",
+    birthDate: "",
+    educationStatus: "",
     founderContact: "",
+    founderPhone: "",
     founderRole: "",
     weeklyHours: "",
 
@@ -251,24 +291,78 @@ export const AntsFireApplication = () => {
                                 <motion.div key="p1" initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -20, opacity: 0 }}>
                                     <h3 className={sectionTitleClass}><Building2 className="text-orange-500" /> Şirket ve Kurucu Bilgileri</h3>
 
-                                    <div className="grid md:grid-cols-2 gap-4">
-                                        <div>
-                                            <label className={labelClass}>Şirket Ünvanı *</label>
-                                            <input required name="companyName" value={formData.companyName} onChange={handleChange} className={inputClass} placeholder="Resmi Ünvan" />
-                                        </div>
-                                        <div>
-                                            <label className={labelClass}>Vergi No *</label>
-                                            <input required name="taxNumber" value={formData.taxNumber} onChange={handleChange} className={inputClass} placeholder="10 Haneli" />
-                                        </div>
-                                        <div>
-                                            <label className={labelClass}>Kuruluş Yılı *</label>
-                                            <input required type="number" name="foundationYear" value={formData.foundationYear} onChange={handleChange} className={inputClass} placeholder="YYYY" />
-                                        </div>
-                                        <div>
-                                            <label className={labelClass}>Web Sitesi</label>
-                                            <input type="url" name="website" value={formData.website} onChange={handleChange} className={inputClass} placeholder="https://" />
+                                    <div className="space-y-4 p-6 bg-white/5 rounded-xl border border-white/10 mb-8">
+                                        <label className={labelClass}>Şirketiniz Var Mı? *</label>
+                                        <div className="flex gap-4">
+                                            <label className="flex-1 cursor-pointer">
+                                                <input type="radio" name="hasCompany" value="Evet" checked={formData.hasCompany === "Evet"} onChange={handleChange} className="sr-only peer" />
+                                                <div className="w-full p-3 text-center rounded-lg border border-white/10 text-gray-400 peer-checked:border-orange-500 peer-checked:bg-orange-500/10 peer-checked:text-orange-400 transition-all text-sm font-bold">Evet</div>
+                                            </label>
+                                            <label className="flex-1 cursor-pointer">
+                                                <input type="radio" name="hasCompany" value="Hayır" checked={formData.hasCompany === "Hayır"} onChange={handleChange} className="sr-only peer" />
+                                                <div className="w-full p-3 text-center rounded-lg border border-white/10 text-gray-400 peer-checked:border-orange-500 peer-checked:bg-orange-500/10 peer-checked:text-orange-400 transition-all text-sm font-bold">Hayır</div>
+                                            </label>
                                         </div>
                                     </div>
+
+                                    {formData.hasCompany === "Evet" && (
+                                        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="space-y-6 mb-8">
+                                            <div className="grid md:grid-cols-2 gap-4">
+                                                <div>
+                                                    <label className={labelClass}>Firma Adı/Girişim Adı *</label>
+                                                    <input required name="companyName" value={formData.companyName} onChange={handleChange} className={inputClass} placeholder="Resmi Ünvan" />
+                                                </div>
+                                                <div>
+                                                    <label className={labelClass}>Firma Ünvanı</label>
+                                                    <input name="companyTitle" value={formData.companyTitle} onChange={handleChange} className={inputClass} />
+                                                </div>
+                                                <div>
+                                                    <label className={labelClass}>Firma Kuruluş Tarihi *</label>
+                                                    <input required type="date" name="foundationYear" value={formData.foundationYear} onChange={handleChange} className={inputClass} />
+                                                </div>
+                                                <div>
+                                                    <label className={labelClass}>Firma Mersis NO</label>
+                                                    <input name="mersisNo" value={formData.mersisNo} onChange={handleChange} className={inputClass} />
+                                                </div>
+                                                <div>
+                                                    <label className={labelClass}>Ticaret Sicil No</label>
+                                                    <input name="tradeRegistryNo" value={formData.tradeRegistryNo} onChange={handleChange} className={inputClass} />
+                                                </div>
+                                                <div>
+                                                    <label className={labelClass}>Ortakların Adı</label>
+                                                    <input name="partnersNames" value={formData.partnersNames} onChange={handleChange} className={inputClass} placeholder="Ahmet Yılmaz, Ayşe Demir" />
+                                                </div>
+                                                <div>
+                                                    <label className={labelClass}>Firma Web Sitesi</label>
+                                                    <input type="url" name="website" value={formData.website} onChange={handleChange} className={inputClass} placeholder="https://" />
+                                                </div>
+                                                <div>
+                                                    <label className={labelClass}>Firma E-Mail</label>
+                                                    <input type="email" name="companyEmail" value={formData.companyEmail} onChange={handleChange} className={inputClass} />
+                                                </div>
+                                                <div>
+                                                    <label className={labelClass}>Firma Telefon</label>
+                                                    <input type="tel" name="companyPhone" value={formData.companyPhone} onChange={handleChange} className={inputClass} />
+                                                </div>
+                                                <div>
+                                                    <label className={labelClass}>Firma VKN. *</label>
+                                                    <input required name="taxNumber" value={formData.taxNumber} onChange={handleChange} className={inputClass} placeholder="10 Haneli" />
+                                                </div>
+                                                <div>
+                                                    <label className={labelClass}>Firma V.D. (Vergi Dairesi)</label>
+                                                    <input name="taxOffice" value={formData.taxOffice} onChange={handleChange} className={inputClass} />
+                                                </div>
+                                                <div>
+                                                    <label className={labelClass}>Nace Kodu</label>
+                                                    <input name="naceCode" value={formData.naceCode} onChange={handleChange} className={inputClass} />
+                                                </div>
+                                                <div className="md:col-span-2">
+                                                    <label className={labelClass}>Firma Adresi</label>
+                                                    <textarea name="companyAddress" rows={2} value={formData.companyAddress} onChange={handleChange} className={inputClass} />
+                                                </div>
+                                            </div>
+                                        </motion.div>
+                                    )}
 
                                     <div className="grid md:grid-cols-2 gap-4">
                                         <div>
@@ -309,15 +403,60 @@ export const AntsFireApplication = () => {
                                     </div>
 
                                     <div className="mt-8 pt-6 border-t border-white/10">
-                                        <h4 className="text-orange-400 font-bold mb-4 uppercase text-xs tracking-wider">Kurucu Bilgileri</h4>
+                                        <h4 className="text-orange-400 font-bold mb-4 uppercase text-xs tracking-wider">TEKMER Ofis / Sözleşme Bilgileri</h4>
                                         <div className="grid md:grid-cols-2 gap-4">
                                             <div>
-                                                <label className={labelClass}>Ad Soyad *</label>
+                                                <label className={labelClass}>TEKMER Kabul Tarihi</label>
+                                                <input type="date" name="tekmerAcceptanceDate" value={formData.tekmerAcceptanceDate} onChange={handleChange} className={inputClass} />
+                                            </div>
+                                            <div>
+                                                <label className={labelClass}>Kira Kontrat Tarihi</label>
+                                                <input type="date" name="rentContractDate" value={formData.rentContractDate} onChange={handleChange} className={inputClass} />
+                                            </div>
+                                            <div>
+                                                <label className={labelClass}>Masa / Ofis No</label>
+                                                <input type="text" name="deskOfficeNo" value={formData.deskOfficeNo} onChange={handleChange} className={inputClass} />
+                                            </div>
+                                            <div>
+                                                <label className={labelClass}>Kira Tutarı</label>
+                                                <input type="text" name="rentAmount" value={formData.rentAmount} onChange={handleChange} className={inputClass} placeholder="Örn: 5000 TL" />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="mt-8 pt-6 border-t border-white/10">
+                                        <h4 className="text-orange-400 font-bold mb-4 uppercase text-xs tracking-wider">Yetkili Kişi Bilgileri</h4>
+                                        <div className="grid md:grid-cols-2 gap-4">
+                                            <div>
+                                                <label className={labelClass}>Yetkili Kişi *</label>
                                                 <input required name="founderName" value={formData.founderName} onChange={handleChange} className={inputClass} />
                                             </div>
                                             <div>
-                                                <label className={labelClass}>İletişim (E-posta / Tel) *</label>
-                                                <input required name="founderContact" value={formData.founderContact} onChange={handleChange} className={inputClass} placeholder="mail@ornek.com / 0555..." />
+                                                <label className={labelClass}>T.C. Kimlik No *</label>
+                                                <input required name="tcNo" maxLength={11} value={formData.tcNo} onChange={handleChange} className={inputClass} />
+                                            </div>
+                                            <div>
+                                                <label className={labelClass}>Doğum Tarihi *</label>
+                                                <input required type="date" name="birthDate" value={formData.birthDate} onChange={handleChange} className={inputClass} />
+                                            </div>
+                                            <div>
+                                                <label className={labelClass}>Eğitim Durumu *</label>
+                                                <select required name="educationStatus" value={formData.educationStatus} onChange={handleChange} className={inputClass}>
+                                                    <option className="bg-[#050510]" value="">Seçiniz</option>
+                                                    <option className="bg-[#050510]" value="Önlisans">Önlisans</option>
+                                                    <option className="bg-[#050510]" value="Lisans">Lisans</option>
+                                                    <option className="bg-[#050510]" value="Yüksek Lisans">Yüksek Lisans</option>
+                                                    <option className="bg-[#050510]" value="Doktora">Doktora</option>
+                                                    <option className="bg-[#050510]" value="Diğer">Diğer</option>
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label className={labelClass}>Telefon *</label>
+                                                <input required type="tel" name="founderPhone" value={formData.founderPhone} onChange={handleChange} className={inputClass} placeholder="+90 ..." />
+                                            </div>
+                                            <div>
+                                                <label className={labelClass}>E-Mail *</label>
+                                                <input required type="email" name="founderContact" value={formData.founderContact} onChange={handleChange} className={inputClass} placeholder="mail@ornek.com" />
                                             </div>
                                             <div>
                                                 <label className={labelClass}>Rol *</label>
