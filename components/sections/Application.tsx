@@ -35,12 +35,6 @@ export const Application = () => {
         companyAddress: "",
         naceCode: "",
 
-        // TEKMER Ofis / Sözleşme Bilgileri
-        tekmerAcceptanceDate: "",
-        rentContractDate: "",
-        deskOfficeNo: "",
-        rentAmount: "",
-
         // Page 2
         projectName: "",
         projectSummary: "",
@@ -145,7 +139,7 @@ export const Application = () => {
                                     authorizedPerson: "", tcNo: "", birthDate: "", educationStatus: "", email: "", phone: "",
                                     hasCompany: "", companyName: "", companyTitle: "", foundationDate: "", mersisNo: "", tradeRegistryNo: "",
                                     partnersNames: "", companyWebsite: "", companyEmail: "", companyPhone: "", taxOffice: "", taxNumber: "",
-                                    companyAddress: "", naceCode: "", tekmerAcceptanceDate: "", rentContractDate: "", deskOfficeNo: "", rentAmount: "",
+                                    companyAddress: "", naceCode: "",
                                     projectName: "", projectSummary: "", teamInfo: "", projectTheme: "", projectContribution: "", projectDifference: "",
                                     projectOutputs: "", targetMarket: "", projectTimeline: "", scalability: "", expectations: "", workspacePreference: "", requestedDuration: "", argeQuality: "", presentationLink: ""
                                 });
@@ -330,28 +324,6 @@ export const Application = () => {
                                     </div>
                                 </motion.div>
                             )}
-
-                            <div className="space-y-6 pt-6 border-t border-gray-200 dark:border-white/10">
-                                <h4 className="text-lg font-bold text-black dark:text-white flex items-center gap-2"><Building2 className="w-5 h-5 text-primary" /> TEKMER Sözleşme & Yönetim Bilgileri</h4>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div className="space-y-2">
-                                        <label className="flex items-center gap-2 text-sm uppercase tracking-wider text-black/70 dark:text-gray-400 font-bold">TEKMER Kabul Tarihi</label>
-                                        <input type="date" name="tekmerAcceptanceDate" value={formData.tekmerAcceptanceDate} onChange={handleChange} className="w-full bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-lg focus:border-secondary p-4 text-black dark:text-white outline-none transition-all" />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="flex items-center gap-2 text-sm uppercase tracking-wider text-black/70 dark:text-gray-400 font-bold">Kira Kontrat Tarihi</label>
-                                        <input type="date" name="rentContractDate" value={formData.rentContractDate} onChange={handleChange} className="w-full bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-lg focus:border-secondary p-4 text-black dark:text-white outline-none transition-all" />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="flex items-center gap-2 text-sm uppercase tracking-wider text-black/70 dark:text-gray-400 font-bold">Masa / Ofis No</label>
-                                        <input type="text" name="deskOfficeNo" value={formData.deskOfficeNo} onChange={handleChange} className="w-full bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-lg focus:border-secondary p-4 text-black dark:text-white outline-none transition-all" />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="flex items-center gap-2 text-sm uppercase tracking-wider text-black/70 dark:text-gray-400 font-bold">Kira Tutarı</label>
-                                        <input type="text" name="rentAmount" value={formData.rentAmount} onChange={handleChange} placeholder="Örn: 5000 TL" className="w-full bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-lg focus:border-secondary p-4 text-black dark:text-white outline-none transition-all" />
-                                    </div>
-                                </div>
-                            </div>
 
                             <button
                                 type="button"

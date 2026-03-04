@@ -26,11 +26,6 @@ type FormData = {
     companyAddress: string;
     naceCode: string;
 
-    tekmerAcceptanceDate: string;
-    rentContractDate: string;
-    deskOfficeNo: string;
-    rentAmount: string;
-
     sector: string;
     tekmerClusters: string[]; // AI, Cloud, Mobility etc. (Multi-select)
     employeeCount: string;
@@ -100,11 +95,6 @@ const initialFormData: FormData = {
     taxOffice: "",
     companyAddress: "",
     naceCode: "",
-
-    tekmerAcceptanceDate: "",
-    rentContractDate: "",
-    deskOfficeNo: "",
-    rentAmount: "",
 
     sector: "",
     tekmerClusters: [],
@@ -399,28 +389,6 @@ export const AntsFireApplication = () => {
                                                     <span className="text-xs text-gray-300">{c}</span>
                                                 </label>
                                             ))}
-                                        </div>
-                                    </div>
-
-                                    <div className="mt-8 pt-6 border-t border-white/10">
-                                        <h4 className="text-orange-400 font-bold mb-4 uppercase text-xs tracking-wider">TEKMER Ofis / Sözleşme Bilgileri</h4>
-                                        <div className="grid md:grid-cols-2 gap-4">
-                                            <div>
-                                                <label className={labelClass}>TEKMER Kabul Tarihi</label>
-                                                <input type="date" name="tekmerAcceptanceDate" value={formData.tekmerAcceptanceDate} onChange={handleChange} className={inputClass} />
-                                            </div>
-                                            <div>
-                                                <label className={labelClass}>Kira Kontrat Tarihi</label>
-                                                <input type="date" name="rentContractDate" value={formData.rentContractDate} onChange={handleChange} className={inputClass} />
-                                            </div>
-                                            <div>
-                                                <label className={labelClass}>Masa / Ofis No</label>
-                                                <input type="text" name="deskOfficeNo" value={formData.deskOfficeNo} onChange={handleChange} className={inputClass} />
-                                            </div>
-                                            <div>
-                                                <label className={labelClass}>Kira Tutarı</label>
-                                                <input type="text" name="rentAmount" value={formData.rentAmount} onChange={handleChange} className={inputClass} placeholder="Örn: 5000 TL" />
-                                            </div>
                                         </div>
                                     </div>
 
