@@ -5,6 +5,90 @@ import { Newspaper, Calendar, ArrowRight, Tag, ChevronRight, Sparkles, X } from 
 
 const news = [
     {
+        id: -4,
+        title: "ANTSPARK Demoday 2026 Gerçekleştirildi: Girişimcilik Ekosistemi, Yatırımcılar ve Paydaşlar İKÜANTS TEKMER Çatısı Altında Buluştu",
+        excerpt: "İKÜANTS TEKMER tarafından yürütülen ANTSPARK Ön Kuluçka Programı kapsamında düzenlenen ANTSPARK Demoday 2026, girişimcilik ekosisteminin önemli paydaşlarını, yatırımcıları, mentörleri ve kamu temsilcilerini bir araya getirdi.",
+        fullContent: `İKÜANTS TEKMER tarafından yürütülen ANTSPARK Ön Kuluçka Programı kapsamında düzenlenen ANTSPARK Demoday 2026, girişimcilik ekosisteminin önemli paydaşlarını, yatırımcıları, mentörleri ve kamu temsilcilerini bir araya getirdi. 18 Şubat 2026 Çarşamba günü gerçekleştirilen etkinlikte, program süresince eğitim ve mentörlük alan girişimciler projelerini jüri üyeleri ve yatırımcılar karşısında sunma fırsatı buldu.
+
+ANTSPARK Demoday, networking oturumu ile başladı. Bu oturumda girişimciler; jüri üyeleri, yatırımcılar, mentörler ve ekosistem temsilcileriyle birebir iletişim kurarak projelerini tanıttı, potansiyel iş birlikleri ve yatırım süreçlerine yönelik ilk temaslarını gerçekleştirdi.
+
+Etkinlik, açılış konuşmalarıyla devam etti. Açılışta; İstanbul Kültür Üniversitesi Rektörü Prof. Dr. Fadime Üney Yüksektepe, KOSGEB İkitelli Müdürü Duygu Yücesoy Manyaslı ve İKÜANTS TEKMER Yönetim Kurulu Başkan Vekili Gülce Öğrüç Ildız tarafından üniversite–kamu–girişimcilik ekosistemi iş birliklerinin önemi ile ön kuluçka programlarının girişimcilere sunduğu katkılar vurgulandı.
+
+Açılış konuşmalarının ardından sahne, ANTSPARK Ön Kuluçka Programı kapsamında yer alan girişimcilere bırakıldı. Girişimciler, aylar süren eğitim ve mentörlük sürecinin çıktısı olan projelerini jüri üyeleri ve yatırımcıların katılımıyla sundular.
+
+Etkinlik, ANTSPARK Ön Kuluçka Programı Koordinatörü Alperen Tağman’ın sunumlarıyla başarıyla yürütüldü. Sunumlar sırasında jüri üyeleri ve yatırımcılar; iş modeli, pazar stratejisi, ölçeklenebilirlik ve yatırım potansiyeli başlıklarında interaktif sorular yönelterek değerlendirmelerini gerçekleştirdi.
+
+Girişimci sunumlarının tamamlanmasının ardından jüri değerlendirmeleri sona erdi. Değerlendirme sürecinin ardından jüri üyeleri kısa konuşmalar yaparak girişimcilere geri bildirimlerini paylaştı. Etkinliğe sundukları katkılar dolayısıyla jüri üyelerine, İKÜANTS TEKMER ekibi tarafından teşekkür edilerek hediyeleri takdim edildi.
+
+Demoday etkinliği kapsamında gerçekleştirilen ödül töreninde, jüri değerlendirmeleri sonucunda dereceye giren girişimcilere nakit ödüller İKÜANTS TEKMER tarafından takdim edildi. Ayrıca, girişimcilik ekosistemine sunduğu değerli katkılarla öne çıkan AKINSOFT tarafından ilk üçe giren girişimcilere TaskPano ve CMS Yazılımı ödülleri sağlandı.
+
+ANTSPARK Ön Kuluçka Programı süresince; girişimcilerin gelişimine önemli katkılar sunan Startup Centrum ve Malogra Danışmanlık ile gerçekleştirilen iş birlikleri, programın eğitim ve mentörlük yapısının güçlenmesine katkı sağladı.
+
+Kapanış konuşmasında; programa katkı sunan yatırımcılara, mentörlere, jüri üyelerine ve tüm paydaşlara teşekkür edilerek, İKÜANTS TEKMER’in girişimcileri desteklemeye ve onları bir sonraki aşama olan kuluçka süreçlerine hazırlamaya devam edeceği vurgulandı.
+
+ANTSPARK Demoday 2026, girişimcilerin projelerini yatırımcılarla buluşturduğu, güçlü iş birliklerinin kurulduğu ve girişimcilik ekosistemine değer katan bir organizasyon olarak başarıyla tamamlandı.`,
+        date: "18 Şubat 2026",
+        category: "Etkinlik",
+        image: "/images/news/antspark-demoday-2026/01.jpg",
+        gallery: [
+            "/images/news/antspark-demoday-2026/01.jpg",
+            "/images/news/antspark-demoday-2026/02.jpg",
+            "/images/news/antspark-demoday-2026/03.jpg",
+            "/images/news/antspark-demoday-2026/04.jpg",
+            "/images/news/antspark-demoday-2026/05.jpg"
+        ],
+        featured: true
+    },
+    {
+        id: -3,
+        title: "ANTSPARK DEMODAY",
+        excerpt: "ANTSPARK Ön Kuluçka Programı kapsamında yürütülen yoğun eğitim ve mentörlük sürecinin ardından, girişimler büyük final için sahneye çıkıyor. Aylar boyunca fikirlerini olgunlaştıran, iş modellerini netleştiren ve projelerini geliştiren girişimciler, ANTSPARK DEMODAY’de jüri ve davetliler karşısında sunumlarını gerçekleştirecek.",
+        fullContent: `ANTSPARK Ön Kuluçka Programı kapsamında yürütülen yoğun eğitim ve mentörlük sürecinin ardından, girişimler büyük final için sahneye çıkıyor. Aylar boyunca fikirlerini olgunlaştıran, iş modellerini netleştiren ve projelerini geliştiren girişimciler, ANTSPARK DEMODAY’de jüri ve davetliler karşısında sunumlarını gerçekleştirecek.
+
+ANTSPARK DEMODAY; 15 girişimin, 15 yenilikçi fikirle sahne aldığı; inovasyonun, rekabetin ve girişimcilik ruhunun aynı anda hissedildiği özel bir buluşma noktasıdır. Etkinlik boyunca gerçekleştirilecek sunumlar, jüri değerlendirmeleri ve geri bildirimlerle girişimciler için önemli bir gelişim ve görünürlük fırsatı sunulacaktır.
+
+Program sonunda ise başarılı bulunan girişimler ödüllendirilerek, ANTSPARK Ön Kuluçka sürecinde ortaya konan emekler taçlandırılacaktır. ANTSPARK DEMODAY, yalnızca bir sunum etkinliği değil; yeni iş birliklerinin temellerinin atıldığı, girişimlerin bir sonraki aşamaya hazırlanmasına katkı sağlayan güçlü bir adımdır.
+
+Etkinlik Bilgileri:
+
+• Tarih: 18 Şubat 2026
+• Saat: 12:30 – 16:00
+• Yer: İstanbul Kültür Üniversitesi – İKÜANTS TEKMER
+
+ANTSPARK DEMODAY ile girişimcilik sahnesinde geleceğe yön veren fikirler, yatırımcılar, mentorlar ve ekosistem paydaşlarıyla buluşuyor. Girişimciliğin enerjisini yakından hissetmek isteyen herkesi bu özel finale davet ediyoruz.`,
+        date: "18 Şubat 2026",
+        category: "Etkinlik",
+        image: "/images/news/antspark-demoday/01.png",
+        gallery: [
+            "/images/news/antspark-demoday/01.png",
+            "/images/news/antspark-demoday/02.png",
+            "/images/news/antspark-demoday/03.png"
+        ],
+        featured: false
+    },
+    {
+        id: -2,
+        title: "İKÜANTS TEKMER Staj Başvuruları Açıldı",
+        excerpt: "İKÜANTS TEKMER bünyesinde faaliyet gösteren girişimci firmaların stajyer talepleri ile staj yapmak isteyen öğrenciler için staj başvuruları, 05 Şubat 2025 Perşembe günü itibarıyla açıldı.",
+        fullContent: `İKÜANTS TEKMER bünyesinde faaliyet gösteren girişimci firmaların stajyer talepleri ile staj yapmak isteyen öğrenciler için staj başvuruları, 05 Şubat 2025 Perşembe günü itibarıyla açıldı.
+
+Bu kapsamda;
+
+İKÜANTS TEKMER ekosistemi içerisinde stajyer talebinde bulunmak isteyen firmalar ile staj yeri arayışında olan öğrenciler, hazırlanan başvuru formları aracılığıyla sürece dahil olabilmektedir.
+
+Başvurulara, ilgili sayfada yer alan QR kodun taratılması suretiyle erişilebilmekte olup; başvuru sahipleri öğrenci veya firma olmalarına göre kendilerine uygun olan formu doldurarak başvurularını gerçekleştirebilmektedir.
+
+İlgili başvurular, İKÜANTS TEKMER koordinasyonunda değerlendirilecek; uygun görülen eşleştirmeler doğrultusunda taraflarla iletişime geçilecek.`,
+        date: "05 Şubat 2025",
+        category: "Duyuru",
+        image: "/images/news/staj-basvurulari/01.jpg",
+        gallery: [
+            "/images/news/staj-basvurulari/01.jpg",
+            "/images/news/staj-basvurulari/02.png"
+        ],
+        featured: false
+    },
+    {
         id: -1,
         title: "TÜBİTAK Proje Destekleri Eğitimi",
         excerpt: "İKÜANTS TEKMER koordinasyonunda; ATLAS TEKMER, İstanbul Ticaret Üniversitesi TTO, BTM TEKMER ve Maribor Mühendislik paydaşlığında, TÜBİTAK TEYDEB tarafından yürütülen 1501, 1507 ve 1707 Ar-Ge Destek Programları hakkında bilgilendirme amacıyla çevrim içi eğitim düzenlenecek.",
