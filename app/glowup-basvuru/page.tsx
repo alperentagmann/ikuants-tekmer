@@ -5,6 +5,7 @@ import {
     Send, Users, User, Mail, Phone, GraduationCap, Lightbulb,
     Target, FileText, Check, ChevronRight, ChevronLeft, Sparkles
 } from "lucide-react";
+import { KvkkCheckboxes } from "@/components/ui/KvkkCheckboxes";
 
 interface TeamMember {
     name: string;
@@ -52,6 +53,7 @@ export default function GlowUpBasvuruPage() {
     const [currentPage, setCurrentPage] = useState(1);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isSubmitted, setIsSubmitted] = useState(false);
+    const [isKvkkComplete, setIsKvkkComplete] = useState(false);
     const totalPages = 3;
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -83,7 +85,7 @@ export default function GlowUpBasvuruPage() {
             case 2:
                 return formData.projectName && formData.theme.length > 0 && formData.projectSummary && formData.problemDescription && formData.solutionDescription && formData.targetAudience;
             case 3:
-                return formData.kvkkConsent && formData.photoConsent;
+                return isKvkkComplete;
             default:
                 return false;
         }
@@ -371,33 +373,7 @@ export default function GlowUpBasvuruPage() {
                             </h2>
 
                             <div className="space-y-4">
-                                <label className="flex items-start gap-4 p-4 rounded-lg bg-white/5 border border-white/10 cursor-pointer hover:border-cyan-500/50 transition-all">
-                                    <input
-                                        type="checkbox"
-                                        name="kvkkConsent"
-                                        checked={formData.kvkkConsent}
-                                        onChange={handleChange}
-                                        className="w-5 h-5 accent-cyan-500 mt-0.5"
-                                        required
-                                    />
-                                    <span className="text-sm text-gray-300">
-                                        <a href="https://ikuantstekmer.com/sites/default/files/kvkk" target="_blank" className="text-cyan-400 hover:underline">KVKK Aydınlatma Metni</a>'ni okudum, anladım ve kişisel verilerime ilişkin olarak bilgilendirildiğimi kabul ederim. <span className="text-red-500">*</span>
-                                    </span>
-                                </label>
-
-                                <label className="flex items-start gap-4 p-4 rounded-lg bg-white/5 border border-white/10 cursor-pointer hover:border-cyan-500/50 transition-all">
-                                    <input
-                                        type="checkbox"
-                                        name="photoConsent"
-                                        checked={formData.photoConsent}
-                                        onChange={handleChange}
-                                        className="w-5 h-5 accent-cyan-500 mt-0.5"
-                                        required
-                                    />
-                                    <span className="text-sm text-gray-300">
-                                        Yarışma boyunca alınacak fotoğraf ve video kayıtlarının İKÜANTS TEKMER tarafından sosyal medya ve iletişim kanallarında yayımlanmasına onay veriyorum. <span className="text-red-500">*</span>
-                                    </span>
-                                </label>
+                                <KvkkCheckboxes onComplete={setIsKvkkComplete} />
                             </div>
 
                             <div className="bg-cyan-500/10 border border-cyan-500/30 rounded-lg p-4 mt-6">
