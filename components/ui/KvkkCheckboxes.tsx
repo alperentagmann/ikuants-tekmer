@@ -9,7 +9,7 @@ interface KvkkCheckboxesProps {
 
 const kvkkTexts = {
     kvkk1: {
-        title: "İKÜANTS TEKNOLOJİ GELİŞTİRME MERKEZİ KİŞİSEL VERİLERİN İŞLENMESİ AYDINLATMA METNİ",
+        title: "İKÜANTS Teknoloji Geliştirme Merkezi Kişisel Verilerin İşlenmesi Aydınlatma Metni",
         content: `İKÜANTS Tekmer Teknoloji Geliştirme Merkezi Anonim Şirketi tarafından “Veri Sorumlusu” sıfatı ile kişisel verilerinizin hangi kapsamda işlenebileceği aşağıda açıklanmaktadır. Kişisel verileriniz, Veri Sorumlusu tarafından aşağıda açıklanan çerçevede ve her zaman 6698 sayılı Kişisel Verilerin Korunması Kanunu (“Kanun”) ile uyumlu olarak işlenmektedir.
 İKÜANTS Tekmer Teknoloji Geliştirme Merkezi Anonim Şirketi (“TEKMER” yahut “Şirket” olarak anılacaktır), kişisel verilerin güvenliği hususuna azami hassasiyet göstermektedir. TEKMER tarafından kişisel verilerinizin hangi kapsamda işlenebileceği aşağıda detaylı olarak açıklanmaktadır.
 
@@ -96,11 +96,11 @@ Hizmet binamız içerisindeki giriş kapıları, bina dış cephesi, yemekhane, 
 Söz konusu kişisel veri, Kanunun 5. maddesinde yer alan “veri sorumlusunun hukuki yükümlülüğünü yerine getirebilmesi için zorunlu olması” ve “ilgili kişinin temel hak ve özgürlüklerine zarar vermemek kaydıyla, veri sorumlusunun meşru menfaatleri için veri işlenmesinin zorunlu olması” “4691 Sayılı Teknoloji Bölgeleri Geliştirme Kanunu, 5188 sayılı Özel Güvenlik Hizmetlerine Dair Kanun ve ilgili mevzuat kapsamındaki yükümlülüklerinin yerine getirilmesi’’ hukuki sebebine dayanarak otomatik yolla işlenmektedir.`
     },
     kvkk2: {
-        title: "İKÜANTS TEKMER KİŞİSEL VERİLERİN KORUNMASI AÇIK RIZA FORMU",
+        title: "İKÜANTS TEKMER Kişisel Verilerin Korunması Açık Rıza Formu",
         content: `Tarafımca okunan TEKMER “Kişisel Verilerin Korunması Aydınlatma Metni” ve “Kişisel Veri İşleme Politikası” çerçevesinde kişisel verilerimin veri İKÜANTS Teknoloji Geliştirme Merkezi Anonim Şirketi tarafından T.C. İstanbul Kültür Üniversitesi eğitim programları hakkında ön başvuru bilgisi alınabilmesi, buna ilişkin istatistiki verilerin toplanabilmesi, kimlik iletişim, proje ve etkinlik verilerimin işlenmesine, Etkinlik süresince çekilen fotoğraf ve videoların kurumun sosyal medya, web sitesi ve tanıtım materyallerinde kullanılmasına, Gelecek etkinlikler ve girişimcilik programları hakkında tarafıma bilgilendirme yapılmasına ve katılımcılarla bu hususta iletişime geçilebilmesi de dahil olmak üzere Aydınlatma Metninde belirtilen amaçlarla kişisel verilerimin işlenmesine, yurt içi veya yurt dışına aktarılmasına açıkça izin verdiğimi ve haklarım konusunda bilgilendirildiğimi kabul ve beyan ederim.`
     },
     kvkk3: {
-        title: "İKÜANTS TEKMER TİCARİ ELEKTRONİK İLETİ GÖNDERİLMESİNE İLİŞKİN ONAY METNİ",
+        title: "İKÜANTS TEKMER Ticari Elektronik İleti Gönderilmesine İlişkin Onay Metni",
         content: `İKÜANTS TEKMER (“TEKMER”) tarafından gerçekleştirilecek aktivite, tanıtım, organizasyon ve İKÜANTS TEKMER ve T.C. İSTANBUL KÜLTÜR ÜNİVERSİTİNE bağlı birimlerin gerçekleştirdiği akademik, sosyal tüm etkinliklerden haberdar olmak için İKÜANTS TEKMER ve İSTANBUL KÜLTÜR ÜNİVERSİTESİ tarafından şahsınıza ticari elektronik ileti gönderilmesine onay vermeniz gerekmektedir.
 
 İzin verdiğinizde; İKÜANTS TEKMER ve İSTANBUL KÜLTÜR ÜNİVERSİTESİ’nin, size aktivite ve tanıtımlarla ilgili bilgi sunmasını ve satış, pazarlama ve benzer amaçlı her türlü iletişim mesajlarını göndermesini, paylaşmış olduğunuz kişisel verilerinizi işleyerek, size telefon, kısa mesaj ve elektronik posta ile ulaşmasını ve elektronik iletilerin içeriğinin ve diğer kayıtların gerektiğinde ilgili Bakanlığa sunulmak üzere kayıt altına alınarak saklanmasını kabul etmektesiniz.
@@ -110,7 +110,7 @@ Bu bilgiler sadece iletilerinizin sağlıklı şekilde teslim edilmesi, telefon,
 Dilediğiniz zaman, hiçbir gerekçe göstermeksizin bu kullanım şartları kapsamındaki elektronik iletileri almaktan vazgeçebilirsiniz. Bu talebinizi İKÜANTS TEKMER ve İSTANBUL KÜLTÜR ÜNİVERSİTESİ’ne çağrı veya iletide yer alan iletişim bilgilerini kullanarak veya Üniversitemiz ile İKÜANTS TEKMER bilgilerindeki iletişim adreslerine ücretsiz olarak iletebilirsiniz.`
     },
     kvkk4: {
-        title: "ETKİNLİK SÜRESİNCE FOTOĞRAF VE VİDEO ÇEKİMİNE İLİŞKİN ONAY METNİ",
+        title: "Etkinlik Süresince Fotoğraf ve Video Çekimine İlişkin Onay Metni",
         content: `İKÜANTS TEKMER tarafından düzenlenen veya ev sahipliği yapılan etkinlik, program, eğitim ve organizasyonlar süresince fotoğraf ve video çekimleri gerçekleştirilebilmektedir.
 
 İzin verdiğinizde; etkinlik süresince alınacak olan şahsınıza ait görsel ve işitsel kayıtların (fotoğraf, video vb.), kurumumuzun tanıtım faaliyetleri kapsamında İKÜANTS TEKMER'in kurumsal web sitesinde, resmi sosyal medya hesaplarında (LinkedIn, Instagram, Twitter vb.), basılı veya dijital bültenlerde, sunumlarda ve diğer tanıtım materyallerinde herhangi bir ticari amaç güdülmeksizin kullanılmasına onay vermiş olursunuz.`

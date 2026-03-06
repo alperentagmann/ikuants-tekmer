@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Newspaper, Calendar, ArrowRight, Tag, ChevronRight, Sparkles, X } from "lucide-react";
+import { KvkkCheckboxes } from "@/components/ui/KvkkCheckboxes";
 
 const news = [
     {
@@ -350,6 +351,7 @@ export default function HaberlerPage() {
     const [showRsvpForm, setShowRsvpForm] = useState(false);
     const [rsvpData, setRsvpData] = useState({ name: "", email: "", phone: "" });
     const [rsvpSubmitted, setRsvpSubmitted] = useState(false);
+    const [isKvkkComplete, setIsKvkkComplete] = useState(false);
 
     const filteredNews = selectedCategory === "Tümü"
         ? news
@@ -742,6 +744,9 @@ export default function HaberlerPage() {
                                                             placeholder="0555 123 4567"
                                                         />
                                                     </div>
+                                                    <div className="pt-2">
+                                                        <KvkkCheckboxes onComplete={setIsKvkkComplete} />
+                                                    </div>
                                                     <div className="flex gap-3 pt-4">
                                                         <button
                                                             onClick={() => setShowRsvpForm(false)}
@@ -750,14 +755,18 @@ export default function HaberlerPage() {
                                                             İptal
                                                         </button>
                                                         <button
+                                                            disabled={!isKvkkComplete}
                                                             onClick={() => {
-                                                                if (rsvpData.name && rsvpData.email && rsvpData.phone) {
+                                                                if (rsvpData.name && rsvpData.email && rsvpData.phone && isKvkkComplete) {
                                                                     console.log('RSVP submitted:', { event: selectedNews.title, ...rsvpData });
                                                                     setRsvpSubmitted(true);
                                                                     setShowRsvpForm(false);
                                                                 }
                                                             }}
-                                                            className="flex-1 px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg font-semibold hover:opacity-90 transition-all"
+                                                            className={`flex-1 px-6 py-3 rounded-lg font-semibold transition-all ${isKvkkComplete
+                                                                ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:opacity-90'
+                                                                : 'bg-gray-700 text-gray-400 cursor-not-allowed'
+                                                                }`}
                                                         >
                                                             Kaydımı Oluştur
                                                         </button>
