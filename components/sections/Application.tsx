@@ -274,48 +274,48 @@ export const Application = () => {
                                             <input type="text" name="companyName" required value={formData.companyName} onChange={handleChange} className="w-full bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-lg focus:border-secondary p-4 text-black dark:text-white outline-none transition-all" />
                                         </div>
                                         <div className="space-y-2">
-                                            <label className="flex items-center gap-2 text-sm uppercase tracking-wider text-black/70 dark:text-gray-400 font-bold">Firma Ünvanı</label>
-                                            <input type="text" name="companyTitle" value={formData.companyTitle} onChange={handleChange} className="w-full bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-lg focus:border-secondary p-4 text-black dark:text-white outline-none transition-all" />
+                                            <label className="flex items-center gap-2 text-sm uppercase tracking-wider text-black/70 dark:text-gray-400 font-bold">Firma Ünvanı <span className="text-red-500">*</span></label>
+                                            <input type="text" name="companyTitle" required value={formData.companyTitle} onChange={handleChange} className="w-full bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-lg focus:border-secondary p-4 text-black dark:text-white outline-none transition-all" />
                                         </div>
                                         <div className="space-y-2">
-                                            <label className="flex items-center gap-2 text-sm uppercase tracking-wider text-black/70 dark:text-gray-400 font-bold">Firma Kuruluş Tarihi</label>
-                                            <input type="date" name="foundationDate" value={formData.foundationDate} onChange={handleChange} className="w-full bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-lg focus:border-secondary p-4 text-black dark:text-white outline-none transition-all" />
+                                            <label className="flex items-center gap-2 text-sm uppercase tracking-wider text-black/70 dark:text-gray-400 font-bold">Firma Kuruluş Tarihi <span className="text-red-500">*</span></label>
+                                            <input type="date" name="foundationDate" required value={formData.foundationDate} onChange={handleChange} className="w-full bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-lg focus:border-secondary p-4 text-black dark:text-white outline-none transition-all" />
                                         </div>
                                         <div className="space-y-2">
                                             <label className="flex items-center gap-2 text-sm uppercase tracking-wider text-black/70 dark:text-gray-400 font-bold">Ortakların Adı</label>
                                             <input type="text" name="partnersNames" value={formData.partnersNames} onChange={handleChange} className="w-full bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-lg focus:border-secondary p-4 text-black dark:text-white outline-none transition-all" placeholder="Örn: Ahmet Yılmaz, Ayşe Demir" />
                                         </div>
                                         <div className="space-y-2">
-                                            <label className="flex items-center gap-2 text-sm uppercase tracking-wider text-black/70 dark:text-gray-400 font-bold">Ticaret Sicil No</label>
-                                            <input type="text" name="tradeRegistryNo" value={formData.tradeRegistryNo} onChange={handleChange} className="w-full bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-lg focus:border-secondary p-4 text-black dark:text-white outline-none transition-all" />
+                                            <label className="flex items-center gap-2 text-sm uppercase tracking-wider text-black/70 dark:text-gray-400 font-bold">Ticaret Sicil No <span className="text-red-500">*</span></label>
+                                            <input type="text" name="tradeRegistryNo" required value={formData.tradeRegistryNo} onChange={handleChange} className="w-full bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-lg focus:border-secondary p-4 text-black dark:text-white outline-none transition-all" />
                                         </div>
                                         <div className="space-y-2">
-                                            <label className="flex items-center gap-2 text-sm uppercase tracking-wider text-black/70 dark:text-gray-400 font-bold">Firma Mersis NO</label>
-                                            <input type="text" name="mersisNo" value={formData.mersisNo} onChange={handleChange} className="w-full bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-lg focus:border-secondary p-4 text-black dark:text-white outline-none transition-all" />
+                                            <label className="flex items-center gap-2 text-sm uppercase tracking-wider text-black/70 dark:text-gray-400 font-bold">Firma Mersis NO <span className="text-red-500">*</span></label>
+                                            <input type="text" name="mersisNo" required value={formData.mersisNo} onChange={handleChange} className="w-full bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-lg focus:border-secondary p-4 text-black dark:text-white outline-none transition-all" />
                                         </div>
                                         <div className="space-y-2">
-                                            <label className="flex items-center gap-2 text-sm uppercase tracking-wider text-black/70 dark:text-gray-400 font-bold">Firma V.D. (Vergi Dairesi)</label>
-                                            <input type="text" name="taxOffice" value={formData.taxOffice} onChange={handleChange} className="w-full bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-lg focus:border-secondary p-4 text-black dark:text-white outline-none transition-all" />
+                                            <label className="flex items-center gap-2 text-sm uppercase tracking-wider text-black/70 dark:text-gray-400 font-bold">Firma V.D. (Vergi Dairesi) <span className="text-red-500">*</span></label>
+                                            <input type="text" name="taxOffice" required value={formData.taxOffice} onChange={handleChange} className="w-full bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-lg focus:border-secondary p-4 text-black dark:text-white outline-none transition-all" />
                                         </div>
                                         <div className="space-y-2">
-                                            <label className="flex items-center gap-2 text-sm uppercase tracking-wider text-black/70 dark:text-gray-400 font-bold">Firma VKN.</label>
-                                            <input type="text" name="taxNumber" value={formData.taxNumber} onChange={handleChange} className="w-full bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-lg focus:border-secondary p-4 text-black dark:text-white outline-none transition-all" />
+                                            <label className="flex items-center gap-2 text-sm uppercase tracking-wider text-black/70 dark:text-gray-400 font-bold">Firma VKN. <span className="text-red-500">*</span></label>
+                                            <input type="text" name="taxNumber" required value={formData.taxNumber} onChange={handleChange} className="w-full bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-lg focus:border-secondary p-4 text-black dark:text-white outline-none transition-all" />
                                         </div>
                                         <div className="space-y-2">
-                                            <label className="flex items-center gap-2 text-sm uppercase tracking-wider text-black/70 dark:text-gray-400 font-bold">Firma Telefon</label>
-                                            <input type="tel" name="companyPhone" value={formData.companyPhone} onChange={handleChange} className="w-full bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-lg focus:border-secondary p-4 text-black dark:text-white outline-none transition-all" />
+                                            <label className="flex items-center gap-2 text-sm uppercase tracking-wider text-black/70 dark:text-gray-400 font-bold">Firma Telefon <span className="text-red-500">*</span></label>
+                                            <input type="tel" name="companyPhone" required value={formData.companyPhone} onChange={handleChange} className="w-full bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-lg focus:border-secondary p-4 text-black dark:text-white outline-none transition-all" />
                                         </div>
                                         <div className="space-y-2">
-                                            <label className="flex items-center gap-2 text-sm uppercase tracking-wider text-black/70 dark:text-gray-400 font-bold">Firma E-Mail</label>
-                                            <input type="email" name="companyEmail" value={formData.companyEmail} onChange={handleChange} className="w-full bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-lg focus:border-secondary p-4 text-black dark:text-white outline-none transition-all" />
+                                            <label className="flex items-center gap-2 text-sm uppercase tracking-wider text-black/70 dark:text-gray-400 font-bold">Firma E-Mail <span className="text-red-500">*</span></label>
+                                            <input type="email" name="companyEmail" required value={formData.companyEmail} onChange={handleChange} className="w-full bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-lg focus:border-secondary p-4 text-black dark:text-white outline-none transition-all" />
                                         </div>
                                         <div className="space-y-2">
-                                            <label className="flex items-center gap-2 text-sm uppercase tracking-wider text-black/70 dark:text-gray-400 font-bold">Firma Web Sitesi</label>
-                                            <input type="url" name="companyWebsite" value={formData.companyWebsite} onChange={handleChange} className="w-full bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-lg focus:border-secondary p-4 text-black dark:text-white outline-none transition-all" />
+                                            <label className="flex items-center gap-2 text-sm uppercase tracking-wider text-black/70 dark:text-gray-400 font-bold">Firma Web Sitesi <span className="text-red-500">*</span></label>
+                                            <input type="url" name="companyWebsite" required value={formData.companyWebsite} onChange={handleChange} className="w-full bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-lg focus:border-secondary p-4 text-black dark:text-white outline-none transition-all" />
                                         </div>
                                         <div className="space-y-2">
-                                            <label className="flex items-center gap-2 text-sm uppercase tracking-wider text-black/70 dark:text-gray-400 font-bold">Nace Kodu</label>
-                                            <input type="text" name="naceCode" value={formData.naceCode} onChange={handleChange} className="w-full bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-lg focus:border-secondary p-4 text-black dark:text-white outline-none transition-all" />
+                                            <label className="flex items-center gap-2 text-sm uppercase tracking-wider text-black/70 dark:text-gray-400 font-bold">Nace Kodu <span className="text-red-500">*</span></label>
+                                            <input type="text" name="naceCode" required value={formData.naceCode} onChange={handleChange} className="w-full bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-lg focus:border-secondary p-4 text-black dark:text-white outline-none transition-all" />
                                         </div>
                                         <div className="space-y-2 md:col-span-2">
                                             <label className="flex items-center gap-2 text-sm uppercase tracking-wider text-black/70 dark:text-gray-400 font-bold">

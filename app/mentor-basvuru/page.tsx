@@ -5,7 +5,9 @@ import {
     Send, User, Mail, Phone, Briefcase, Linkedin,
     GraduationCap, Target, Check, Award, MapPin, Clock, FileText
 } from "lucide-react";
+import { Upload, HelpCircle, PieChart, DollarSign, Users } from "lucide-react";
 import Link from "next/link";
+import { KvkkCheckboxes } from "@/components/ui/KvkkCheckboxes";
 
 const expertiseAreas = [
     "Yazılım/Endüstriler",
@@ -102,6 +104,7 @@ export default function MentorBasvuruPage() {
     const [formData, setFormData] = useState(initialFormData);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isSubmitted, setIsSubmitted] = useState(false);
+    const [isKvkkComplete, setIsKvkkComplete] = useState(false);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value, type } = e.target;
@@ -150,7 +153,9 @@ export default function MentorBasvuruPage() {
 
         if (!hasFinancialExpectation) return false;
 
-        if (!kvkkConsent) return false;
+        if (!isKvkkComplete) return false;
+
+        if (!formData.kvkkConsent) return false;
 
         return true;
     };
@@ -477,6 +482,7 @@ export default function MentorBasvuruPage() {
 
                         {/* KVKK Onayı */}
                         <div className="space-y-4">
+                            <KvkkCheckboxes onComplete={setIsKvkkComplete} />
                             <label className="flex items-start gap-4 p-4 rounded-lg bg-white/5 border border-white/10 cursor-pointer hover:border-primary/50 transition-all">
                                 <input
                                     type="checkbox"
@@ -495,8 +501,8 @@ export default function MentorBasvuruPage() {
                         {/* Submit */}
                         <button
                             type="submit"
-                            disabled={!isFormValid || isSubmitting}
-                            className={`w-full py-5 rounded-lg font-orbitron font-bold tracking-widest flex items-center justify-center gap-3 transition-all ${isFormValid && !isSubmitting
+                            disabled={!isFormValid || isSubmitting || !isKvkkComplete}
+                            className={`w-full py-5 rounded-lg font-orbitron font-bold tracking-widest flex items-center justify-center gap-3 transition-all ${isFormValid && !isSubmitting && isKvkkComplete
                                 ? 'bg-gradient-to-r from-primary to-purple-600 text-white hover:opacity-90 shadow-lg shadow-primary/30'
                                 : 'bg-gray-700 text-gray-400 cursor-not-allowed'
                                 }`}
