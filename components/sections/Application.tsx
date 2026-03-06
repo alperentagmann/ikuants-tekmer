@@ -1,6 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import { motion } from "framer-motion";
+import { KvkkCheckboxes } from "@/components/ui/KvkkCheckboxes";
 import {
     Send, User, Mail, Phone, Building2, Calendar, FileText, Users,
     ClipboardList, Target, Check, ArrowRight, ArrowLeft, Link as LinkIcon,
@@ -10,6 +11,7 @@ import {
 
 export const Application = () => {
     const [step, setStep] = useState(1);
+    const [isKvkkComplete, setIsKvkkComplete] = useState(false);
     const [formData, setFormData] = useState({
         // Kişisel / Yetkili Bilgileri
         authorizedPerson: "",
@@ -79,7 +81,8 @@ export const Application = () => {
             formData.workspacePreference &&
             formData.requestedDuration &&
             formData.argeQuality &&
-            formData.presentationLink;
+            formData.presentationLink &&
+            isKvkkComplete;
     };
 
     const handleNext = () => {
@@ -485,6 +488,9 @@ export const Application = () => {
                                 <p className="text-xs text-black/60 dark:text-gray-400 mb-2">Başvuru değerlendirmesi için projenizin sunumunu (Pitch Deck) Google Drive, Dropbox veya WeTransfer gibi bir platforma yükleyerek bağlantısını buraya kopyalayınız. (Erişim izninin açık olduğundan emin olun.)</p>
                                 <input type="url" name="presentationLink" required value={formData.presentationLink} onChange={handleChange} className="w-full bg-white dark:bg-black/50 border border-primary/30 rounded-lg p-4 text-black dark:text-white outline-none focus:border-primary transition-all" placeholder="https://drive.google.com/..." />
                             </div>
+
+                            {/* KVKK Checkboxes */}
+                            <KvkkCheckboxes onComplete={setIsKvkkComplete} />
 
                             {/* Submit Button */}
                             <button

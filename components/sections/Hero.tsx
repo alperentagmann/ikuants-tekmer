@@ -51,6 +51,54 @@ const sliderImages = [
     {
         src: "/images/hero-slide-11.jpg",
         alt: "Hackathon Çalışması"
+    },
+    {
+        src: "/images/news/antspark-demoday-2026/01.jpg",
+        alt: "Demoday Ödül Töreni"
+    },
+    {
+        src: "/images/news/antspark-demoday-2026/02.jpg",
+        alt: "Demoday Etkinliği"
+    },
+    {
+        src: "/images/news/antspark-demoday-2026/03.jpg",
+        alt: "Demoday Katılımcıları"
+    },
+    {
+        src: "/images/news/antspark-demoday-2026/04.jpg",
+        alt: "Demoday Sunumları"
+    },
+    {
+        src: "/images/news/antspark-demoday-2026/05.jpg",
+        alt: "Demoday Topluluğu"
+    },
+    {
+        src: "/images/news/antspark-demoday-2026/06.jpeg",
+        alt: "Girişim Sunumu"
+    },
+    {
+        src: "/images/news/antspark-demoday-2026/07.JPG",
+        alt: "Robotik Teknolojiler"
+    },
+    {
+        src: "/images/news/antspark-demoday-2026/08.JPG",
+        alt: "Networking Alanı"
+    },
+    {
+        src: "/images/news/antspark-demoday-2026/09.JPG",
+        alt: "Demoday Etkinlik Alanı"
+    },
+    {
+        src: "/images/news/antspark-demoday-2026/10.JPG",
+        alt: "İkincilik Ödülü"
+    },
+    {
+        src: "/images/news/antspark-demoday-2026/11.jpeg",
+        alt: "Üçüncülük Ödülü"
+    },
+    {
+        src: "/images/news/antspark-demoday-2026/12.JPG",
+        alt: "Birincilik Ödülü"
     }
 ];
 

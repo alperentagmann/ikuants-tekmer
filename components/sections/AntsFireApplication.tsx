@@ -1,6 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { KvkkCheckboxes } from "@/components/ui/KvkkCheckboxes";
 import {
     Send, User, Building2, Flame, Target, Rocket,
     ChevronRight, ChevronLeft, Check, Upload, HelpCircle,
@@ -166,6 +167,7 @@ export const AntsFireApplication = () => {
     const [formData, setFormData] = useState<FormData>(initialFormData);
     const [isSubmitted, setIsSubmitted] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isKvkkComplete, setIsKvkkComplete] = useState(false);
 
     const totalPages = 5; // Increased pages to accommodate more fields
 
@@ -628,12 +630,8 @@ export const AntsFireApplication = () => {
                                     </div>
 
                                     <div className="mt-8 pt-4 border-t border-white/10 space-y-4">
-                                        <label className="flex gap-3 items-start cursor-pointer group">
-                                            <input required type="checkbox" name="privacyConsent" checked={formData.privacyConsent} onChange={handleChange} className="mt-1 accent-orange-500" />
-                                            <span className="text-xs text-gray-400 group-hover:text-gray-300 transition-colors">
-                                                KVKK Aydınlatma Metni'ni okudum, kişisel verilerimin işlenmesini, gizlilik ilkelerini ve <a href="#" className="underline text-orange-400">Katılım Şartları</a>'nı kabul ediyorum.
-                                            </span>
-                                        </label>
+                                        <KvkkCheckboxes onComplete={setIsKvkkComplete} />
+
                                         <label className="flex gap-3 items-start cursor-pointer group">
                                             <input required type="checkbox" name="termsConsent" checked={formData.termsConsent} onChange={handleChange} className="mt-1 accent-orange-500" />
                                             <span className="text-xs text-gray-400 group-hover:text-gray-300 transition-colors">
@@ -659,7 +657,7 @@ export const AntsFireApplication = () => {
                         {currentPage === totalPages ? (
                             <button
                                 onClick={handleSubmit}
-                                disabled={isSubmitting || !formData.privacyConsent || !formData.termsConsent}
+                                disabled={isSubmitting || !isKvkkComplete || !formData.termsConsent}
                                 className="flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-lg font-bold hover:shadow-[0_0_20px_rgba(234,88,12,0.4)] disabled:opacity-50 disabled:shadow-none transition-all"
                             >
                                 {isSubmitting ? "Gönderiliyor..." : "Başvuruyu Tamamla"} <Send className="w-4 h-4" />

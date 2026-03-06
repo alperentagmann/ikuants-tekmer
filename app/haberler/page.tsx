@@ -29,7 +29,7 @@ Kapanış konuşmasında; programa katkı sunan yatırımcılara, mentörlere, j
 ANTSPARK Demoday 2026, girişimcilerin projelerini yatırımcılarla buluşturduğu, güçlü iş birliklerinin kurulduğu ve girişimcilik ekosistemine değer katan bir organizasyon olarak başarıyla tamamlandı.`,
         date: "18 Şubat 2026",
         category: "Etkinlik",
-        image: "/images/news/antspark-demoday-2026/01.jpg",
+        image: "/images/news/antspark-demoday-2026/05.jpg",
         gallery: [
             "/images/news/antspark-demoday-2026/01.jpg",
             "/images/news/antspark-demoday-2026/02.jpg",
