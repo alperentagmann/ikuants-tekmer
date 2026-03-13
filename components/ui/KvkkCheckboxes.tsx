@@ -5,6 +5,7 @@ import { X, Check } from "lucide-react";
 
 interface KvkkCheckboxesProps {
     onComplete: (isComplete: boolean) => void;
+    hidePhotoVideoConsent?: boolean;
 }
 
 const kvkkTexts = {
@@ -117,14 +118,17 @@ Dilediğiniz zaman, hiçbir gerekçe göstermeksizin bu kullanım şartları kap
     }
 };
 
-export const KvkkCheckboxes: React.FC<KvkkCheckboxesProps> = ({ onComplete }) => {
+export const KvkkCheckboxes: React.FC<KvkkCheckboxesProps> = ({ onComplete, hidePhotoVideoConsent = false }) => {
     const [checks, setChecks] = useState({ check1: false, check2: false, check3: false, check4: false });
     const [modalContent, setModalContent] = useState<{ title: string; content: string } | null>(null);
 
     const handleCheck = (key: keyof typeof checks) => {
         const newChecks = { ...checks, [key]: !checks[key] };
         setChecks(newChecks);
-        onComplete(newChecks.check1 && newChecks.check2 && newChecks.check3 && newChecks.check4);
+        const isComplete = hidePhotoVideoConsent
+            ? newChecks.check1 && newChecks.check2 && newChecks.check3
+            : newChecks.check1 && newChecks.check2 && newChecks.check3 && newChecks.check4;
+        onComplete(isComplete);
     };
 
     return (
@@ -182,22 +186,24 @@ export const KvkkCheckboxes: React.FC<KvkkCheckboxesProps> = ({ onComplete }) =>
                 </label>
             </div>
 
-            <div className="flex items-start gap-3">
-                <input
-                    type="checkbox"
-                    id="kvkk4"
-                    checked={checks.check4}
-                    onChange={() => handleCheck('check4')}
-                    className="mt-1 w-5 h-5 text-primary bg-gray-100 border-gray-300 rounded focus:ring-primary dark:focus:ring-primary dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600 outline-none"
-                    required
-                />
-                <label htmlFor="kvkk4" className="text-sm font-medium text-gray-900 dark:text-gray-300">
-                    <button type="button" onClick={() => setModalContent(kvkkTexts.kvkk4)} className="text-primary hover:underline font-bold transition-all text-left">
-                        {kvkkTexts.kvkk4.title}
-                    </button>
-                    'ni okudum ve onaylıyorum. <span className="text-red-500">*</span>
-                </label>
-            </div>
+            {!hidePhotoVideoConsent && (
+                <div className="flex items-start gap-3">
+                    <input
+                        type="checkbox"
+                        id="kvkk4"
+                        checked={checks.check4}
+                        onChange={() => handleCheck('check4')}
+                        className="mt-1 w-5 h-5 text-primary bg-gray-100 border-gray-300 rounded focus:ring-primary dark:focus:ring-primary dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600 outline-none"
+                        required
+                    />
+                    <label htmlFor="kvkk4" className="text-sm font-medium text-gray-900 dark:text-gray-300">
+                        <button type="button" onClick={() => setModalContent(kvkkTexts.kvkk4)} className="text-primary hover:underline font-bold transition-all text-left">
+                            {kvkkTexts.kvkk4.title}
+                        </button>
+                        'ni okudum ve onaylıyorum. <span className="text-red-500">*</span>
+                    </label>
+                </div>
+            )}
 
             {/* Modal */}
             <AnimatePresence>

@@ -42,6 +42,7 @@ export const Navbar = () => {
                 { name: "ANTSFire Kuluçka", href: "/antsfire" },
                 { name: "ANTSPARK Ön Kuluçka", href: "/antspark" },
                 { name: "Glow Up Ideathon", href: "/glowup-basvuru" },
+                { name: "Staj Programı", href: "/staj-programi" },
             ]
         },
         { name: "HABERLER", href: "/haberler" },
