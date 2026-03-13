@@ -70,10 +70,32 @@ export const CompanyInternshipForm = () => {
         });
     };
 
-    const nextPage = () => setCurrentPage(prev => Math.min(prev + 1, totalPages));
+    const validateStep = (step: number) => {
+        if (step === 1) {
+            if (!formData.firmaUnvani || !formData.yetkiliKisiIletisim || !formData.tekmerStatusu || !formData.stajyerSayisi || !formData.agirlikliGorevAlanlari || formData.arananTemelBeceriler.length === 0) {
+                alert('Lütfen 1. adımdaki tüm zorunlu alanları doldurunuz.');
+                return false;
+            }
+        }
+        if (step === 2) {
+            if (!formData.stajTuru || !formData.stajSuresiVeGun || !formData.uygunBolumler || !formData.sinifTercihi || !formData.temelBilgiVeBeceriler || !formData.gorevAlacagiAlanlar || !formData.yapilacakCalismalar || !formData.calismaModeli || !formData.saglananImkanlar || !formData.mulakatDurumu) {
+                alert('Lütfen 2. adımdaki tüm zorunlu alanları doldurunuz.');
+                return false;
+            }
+        }
+        return true;
+    };
+
+    const handleNext = () => {
+        if (validateStep(currentPage)) {
+            setCurrentPage(prev => Math.min(prev + 1, totalPages));
+        }
+    };
+
     const prevPage = () => setCurrentPage(prev => Math.max(prev - 1, 1));
 
     const handleSubmit = async () => {
+        if (!validateStep(2)) return;
         setIsSubmitting(true);
         try {
             const response = await fetch('/api/basvuru', {
@@ -283,7 +305,7 @@ export const CompanyInternshipForm = () => {
                     </button>
                 ) : (
                     <button
-                        onClick={nextPage}
+                        onClick={handleNext}
                         className="flex items-center gap-2 px-8 py-3 bg-white/10 text-white rounded-lg hover:bg-white/20 transition text-sm font-semibold"
                     >
                         Sonraki <ChevronRight className="w-4 h-4" />
