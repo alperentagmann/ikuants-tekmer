@@ -60,7 +60,7 @@ const yonetimKurulu = [
 
     {
         name: "Yusuf Yılmaz",
-        title: "Yönetim Kurulu Üyesi",
+        title: "Yönetim Kurulu Başkan Vekili",
         image: "/images/yusuf-yilmaz.jpg"
     },
     {
@@ -77,6 +77,11 @@ const yonetimKurulu = [
         name: "Dr. Öğr. Üyesi Artür Yetvart Mumcu",
         title: "Yönetim Kurulu Üyesi",
         image: "/images/artur-yetvart-mumcu.jpg"
+    },
+    {
+        name: "Raife İmren Öner Topaloğlu",
+        title: "Yönetim Kurulu Üyesi",
+        image: ""
     }
 ];
 const degerlendirmeKurulu = [
