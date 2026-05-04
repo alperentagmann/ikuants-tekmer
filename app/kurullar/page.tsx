@@ -79,7 +79,7 @@ const yonetimKurulu = [
         image: "/images/artur-yetvart-mumcu.jpg"
     },
     {
-        name: "Raife İmren Öner Topaloğlu",
+        name: "Av. R. İmren Öner Topaloğlu",
         title: "Yönetim Kurulu Üyesi",
         image: ""
     }
