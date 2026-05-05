@@ -55,7 +55,8 @@ const yonetimKurulu = [
     {
         name: "Prof. Dr. Gülce Öğrüç Martins Riberio da Silva Lourenço",
         title: "Yönetim Kurulu Başkan Vekili",
-        image: "/images/gulce-ogruc-ildiz.jpg"
+        image: "/images/gulce-ogruc-ildiz.jpg",
+        imageStyle: "scale-125 origin-top object-top"
     },
 
     {
@@ -66,12 +67,14 @@ const yonetimKurulu = [
     {
         name: "Dr. Öğr. Üyesi Ceren Bilgici",
         title: "Yönetim Kurulu Üyesi",
-        image: "/images/ceren-bilgici.jpg"
+        image: "/images/ceren-bilgici.jpg",
+        imageStyle: "object-top"
     },
     {
         name: "Dr. Öğr. Üyesi Ender Demir",
         title: "Yönetim Kurulu Üyesi",
-        image: "/images/ender-demir.jpg"
+        image: "/images/ender-demir.jpg",
+        imageStyle: "object-top"
     },
     {
         name: "Dr. Öğr. Üyesi Artür Yetvart Mumcu",
@@ -81,7 +84,8 @@ const yonetimKurulu = [
     {
         name: "Av. R. İmren Öner Topaloğlu",
         title: "Yönetim Kurulu Üyesi",
-        image: ""
+        image: "/images/imren-oner-topaloglu.jpg",
+        imageStyle: "object-top"
     }
 ];
 const degerlendirmeKurulu = [
@@ -116,12 +120,12 @@ const degerlendirmeKurulu = [
 type BoardType = 'danisma' | 'yonetim' | 'degerlendirme';
 
 export default function KurullarPage() {
-    const [activeBoard, setActiveBoard] = useState<BoardType>('danisma');
+    const [activeBoard, setActiveBoard] = useState<BoardType>('yonetim');
 
     const boards = [
-        { id: 'danisma' as BoardType, name: 'Danışma Kurulu', icon: Users, members: danismaKurulu, color: 'from-purple-500 to-pink-500' },
         { id: 'yonetim' as BoardType, name: 'Yönetim Kurulu', icon: Briefcase, members: yonetimKurulu, color: 'from-cyan-500 to-blue-500' },
-        { id: 'degerlendirme' as BoardType, name: 'Değerlendirme Kurulu', icon: Award, members: degerlendirmeKurulu, color: 'from-orange-500 to-red-500' }
+        { id: 'degerlendirme' as BoardType, name: 'Değerlendirme Kurulu', icon: Award, members: degerlendirmeKurulu, color: 'from-orange-500 to-red-500' },
+        { id: 'danisma' as BoardType, name: 'Danışma Kurulu', icon: Users, members: danismaKurulu, color: 'from-purple-500 to-pink-500' }
     ];
 
     return (
@@ -201,11 +205,13 @@ export default function KurullarPage() {
                                             <div className="p-6 rounded-2xl bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 hover:border-primary/40 transition-all hover:shadow-lg dark:hover:shadow-primary/10 shadow-md dark:shadow-none">
                                                 <div className="flex items-start gap-4">
                                                     {(member as any).image ? (
+                                                    <div className={`w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 ${(member as any).wrapperStyle || ''}`}>
                                                         <img
                                                             src={(member as any).image}
                                                             alt={member.name}
-                                                            className={`w-16 h-16 rounded-xl object-cover flex-shrink-0 ${(member as any).imageStyle || ''}`}
+                                                            className={`w-full h-full object-cover ${(member as any).imageStyle || ''}`}
                                                         />
+                                                    </div>
                                                     ) : (
                                                         <div className={`w-16 h-16 rounded-xl bg-gradient-to-br ${board.color} flex items-center justify-center flex-shrink-0`}>
                                                             <span className="text-white font-bold text-xl">
@@ -248,13 +254,6 @@ export default function KurullarPage() {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm text-black/80 dark:text-gray-400">
                         <div>
                             <h4 className="text-black dark:text-white font-semibold mb-2 flex items-center gap-2">
-                                <Users className="w-4 h-4 text-purple-400" />
-                                Danışma Kurulu
-                            </h4>
-                            <p>Stratejik yönlendirme ve sektörel danışmanlık sağlayan uzman kadromuz.</p>
-                        </div>
-                        <div>
-                            <h4 className="text-black dark:text-white font-semibold mb-2 flex items-center gap-2">
                                 <Briefcase className="w-4 h-4 text-cyan-400" />
                                 Yönetim Kurulu
                             </h4>
@@ -266,6 +265,13 @@ export default function KurullarPage() {
                                 Değerlendirme Kurulu
                             </h4>
                             <p>Başvuruları ve projeleri değerlendiren bağımsız uzman jüri üyelerimiz.</p>
+                        </div>
+                        <div>
+                            <h4 className="text-black dark:text-white font-semibold mb-2 flex items-center gap-2">
+                                <Users className="w-4 h-4 text-purple-400" />
+                                Danışma Kurulu
+                            </h4>
+                            <p>Stratejik yönlendirme ve sektörel danışmanlık sağlayan uzman kadromuz.</p>
                         </div>
                     </div>
                 </motion.div>
