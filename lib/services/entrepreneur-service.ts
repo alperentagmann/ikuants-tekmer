@@ -25,6 +25,7 @@ export interface EntrepreneurData {
     graduationDate?: Date;
     status?: string;
     isFeatured?: boolean;
+    isPublished?: boolean;
     sortOrder?: number;
     seoTitle?: string;
     seoDescription?: string;
@@ -49,7 +50,7 @@ export const EntrepreneurService = {
     async getPublicEntrepreneurs() {
         try {
             const list = await prisma.entrepreneur.findMany({
-                where: { status: 'ACTIVE', isArchived: false },
+                where: { isPublished: true, status: 'ACTIVE', isArchived: false },
                 select: {
                     id: true,
                     name: true,
@@ -69,6 +70,7 @@ export const EntrepreneurService = {
                     incubationType: true,
                     startDate: true,
                     isFeatured: true,
+                    isPublished: true,
                     sortOrder: true,
                 },
                 orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
@@ -240,6 +242,7 @@ export const EntrepreneurService = {
                 graduationDate: data.graduationDate,
                 status: data.status || 'ACTIVE',
                 isFeatured: data.isFeatured ?? false,
+                isPublished: data.isPublished ?? true,
                 sortOrder: data.sortOrder ?? 0,
                 seoTitle: data.seoTitle,
                 seoDescription: data.seoDescription,
@@ -334,6 +337,35 @@ export const EntrepreneurService = {
         });
 
         return archived;
+    },
+
+    async togglePublicVisibility(
+        id: string,
+        isPublished: boolean,
+        actor?: { id: string; name: string; email: string; ip?: string; userAgent?: string }
+    ) {
+        const oldRecord = await prisma.entrepreneur.findUnique({ where: { id } });
+        if (!oldRecord) throw new Error('Girişimci kaydı bulunamadı.');
+
+        const updated = await prisma.entrepreneur.update({
+            where: { id },
+            data: { isPublished },
+        });
+
+        // Audit Log
+        await logAuditEvent({
+            actorId: actor?.id,
+            actorEmail: actor?.email,
+            actorName: actor?.name,
+            action: 'UPDATE',
+            entityType: 'Entrepreneur',
+            entityId: id,
+            diff: `ENTREPRENEUR_PUBLIC_VISIBILITY_CHANGED: "${oldRecord.name}" Old: ${oldRecord.isPublished ? 'VISIBLE' : 'HIDDEN'} -> New: ${isPublished ? 'VISIBLE' : 'HIDDEN'}`,
+            ipAddress: actor?.ip,
+            userAgent: actor?.userAgent,
+        });
+
+        return updated;
     },
 
     async reorderEntrepreneurs(ids: string[], actor?: { id: string; name: string; email: string }) {

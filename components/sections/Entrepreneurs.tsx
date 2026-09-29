@@ -7,27 +7,32 @@ import { Rocket, Shield, Globe, Cpu, Zap, Activity } from "lucide-react";
 
 export const Entrepreneurs = () => {
     const { entrepreneurs: defaultData } = siteContent;
-    const [list, setList] = useState(defaultData.list);
+    const [list, setList] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const load = async () => {
             try {
                 const res = await fetch('/api/public/entrepreneurs');
                 const data = await res.json();
-                if (data.success && data.entrepreneurs && data.entrepreneurs.length > 0) {
+                if (data.success && Array.isArray(data.entrepreneurs)) {
                     setList(data.entrepreneurs.map((ent: any, i: number) => ({
                         id: ent.id || `ent-${i}`,
                         name: ent.name,
                         type: ent.sector || 'Teknoloji',
-                        level: ent.stage || 'Girişim',
-                        service: ent.description || '',
-                        keywords: ent.tags || [],
+                        level: ent.stage || ent.program || 'Girişim',
+                        service: ent.shortDesc || ent.description || '',
+                        keywords: ent.keywords || ent.tags || [],
                         icon: Rocket,
                         color: "text-primary",
                     })));
+                } else {
+                    setList([]);
                 }
             } catch {
-                // Fallback to static list
+                setList([]);
+            } finally {
+                setLoading(false);
             }
         };
         load();

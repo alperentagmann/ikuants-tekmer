@@ -119,6 +119,17 @@ export async function checkPermission(
     }
 }
 
+export function canAssignRole(caller: UserWithPermissions | null | undefined, targetRoleSlug: string): boolean {
+    if (!caller || !caller.isActive) return false;
+    if (caller.isSuperAdmin) return true;
+
+    // Non-superadmins cannot assign super-admin role
+    if (targetRoleSlug === 'super-admin') return false;
+
+    // Caller must have 'users:assign_role' or 'users:*' or '*:*'
+    return hasPermission(caller, 'assign_role', 'users') || hasPermission(caller, '*', 'users') || hasPermission(caller, '*', '*');
+}
+
 export const SYSTEM_PERMISSIONS = [
     // Dashboard & Analytics
     { action: 'view', resource: 'dashboard', description: 'Ana paneli görüntüleme' },
@@ -176,20 +187,58 @@ export const SYSTEM_PERMISSIONS = [
     { action: 'upload', resource: 'media', description: 'Dosya ve görsel yükleme' },
     { action: 'delete', resource: 'media', description: 'Medya dosyalarını silme' },
 
-    // Settings & Navigation & SEO
+    // Tasks & Collaboration
+    { action: 'view', resource: 'tasks', description: 'Görevleri görüntüleme' },
+    { action: 'create', resource: 'tasks', description: 'Yeni görev oluşturma' },
+    { action: 'edit', resource: 'tasks', description: 'Görev düzenleme ve durum güncelleme' },
+    { action: 'delete', resource: 'tasks', description: 'Görev silme/arşivleme' },
+
+    // Corporate Activities & Evidence
+    { action: 'view', resource: 'activities', description: 'Faaliyetleri görüntüleme' },
+    { action: 'create', resource: 'activities', description: 'Yeni faaliyet oluşturma' },
+    { action: 'edit', resource: 'activities', description: 'Faaliyet ve kanıt dosyalarını düzenleme' },
+    { action: 'delete', resource: 'activities', description: 'Faaliyet silme' },
+
+    // Projects & Grants
+    { action: 'view', resource: 'projects', description: 'Projeleri görüntüleme' },
+    { action: 'create', resource: 'projects', description: 'Yeni proje oluşturma' },
+    { action: 'edit', resource: 'projects', description: 'Proje ve bütçe düzenleme' },
+    { action: 'delete', resource: 'projects', description: 'Proje silme' },
+
+    // Trainings & Events
+    { action: 'view', resource: 'trainings', description: 'Eğitimleri görüntüleme' },
+    { action: 'create', resource: 'trainings', description: 'Yeni eğitim oluşturma' },
+    { action: 'edit', resource: 'trainings', description: 'Eğitim ve yoklama düzenleme' },
+    { action: 'view', resource: 'events', description: 'Etkinlikleri görüntüleme' },
+    { action: 'create', resource: 'events', description: 'Yeni etkinlik oluşturma' },
+    { action: 'edit', resource: 'events', description: 'Etkinlik ve biletleri düzenleme' },
+
+    // Settings & Customization
     { action: 'manage', resource: 'settings', description: 'Site ayarlarını yönetme' },
     { action: 'manage', resource: 'menus', description: 'Menü ve bağlantıları düzenleme' },
     { action: 'manage', resource: 'redirects', description: 'SEO ve 301 yönlendirmelerini yönetme' },
     { action: 'manage', resource: 'templates', description: 'E-posta şablonlarını düzenleme' },
+    { action: 'manage', resource: 'terminology', description: 'Terminoloji ve etiketleri özelleştirme' },
+    { action: 'manage', resource: 'custom_fields', description: 'Özel alanları yönetme' },
+    { action: 'manage', resource: 'pipelines', description: 'Durum ve pipeline yönetimi' },
+    { action: 'manage', resource: 'email_outbox', description: 'E-posta kuyruğunu ve gönderimleri yönetme' },
 
-    // User & Roles
+    // User & Roles Management (Granular)
     { action: 'view', resource: 'users', description: 'Admin kullanıcılarını ve rolleri görme' },
-    { action: 'manage', resource: 'users', description: 'Admin kullanıcısı ekleme, düzenleme, oturum kapatma' },
+    { action: 'create', resource: 'users', description: 'Yeni admin/kullanıcı oluşturma veya davet etme' },
+    { action: 'edit', resource: 'users', description: 'Kullanıcı bilgilerini düzenleme' },
+    { action: 'disable', resource: 'users', description: 'Kullanıcıyı pasife alma veya kilitleme' },
+    { action: 'delete', resource: 'users', description: 'Kullanıcı silme' },
+    { action: 'assign_role', resource: 'users', description: 'Kullanıcılara rol ve yetki atama' },
+    { action: 'reset_password', resource: 'users', description: 'Kullanıcı şifresi sıfırlama' },
+    { action: 'manage_sessions', resource: 'users', description: 'Kullanıcı oturumlarını sonlandırma' },
+    { action: 'manage_mfa', resource: 'users', description: 'Kullanıcı MFA sıfırlama ve yapılandırma' },
     { action: 'manage', resource: 'roles', description: 'Rol ve yetkileri yönetme' },
 
-    // Audit & System Logs
+    // Audit & System Logs & Security
     { action: 'view', resource: 'audit_logs', description: 'Güvenlik ve denetim loglarını görüntüleme' },
     { action: 'view', resource: 'system_health', description: 'Sistem durumu ve hata loglarını görme' },
+    { action: 'view', resource: 'security_center', description: 'Güvenlik merkezini görüntüleme ve olayları yönetme' },
 ];
 
 export const DEFAULT_ROLES = [
@@ -215,6 +264,11 @@ export const DEFAULT_ROLES = [
             { action: '*', resource: 'forms' },
             { action: '*', resource: 'contacts' },
             { action: '*', resource: 'media' },
+            { action: '*', resource: 'tasks' },
+            { action: '*', resource: 'activities' },
+            { action: '*', resource: 'projects' },
+            { action: '*', resource: 'trainings' },
+            { action: '*', resource: 'events' },
             { action: '*', resource: 'settings' },
             { action: '*', resource: 'menus' },
             { action: '*', resource: 'redirects' },
@@ -234,6 +288,7 @@ export const DEFAULT_ROLES = [
             { action: 'view', resource: 'entrepreneurs' },
             { action: 'view', resource: 'mentors' },
             { action: 'view', resource: 'programs' },
+            { action: 'view', resource: 'events' },
         ],
     },
     {
@@ -261,6 +316,44 @@ export const DEFAULT_ROLES = [
             { action: 'view', resource: 'programs' },
             { action: 'view', resource: 'media' },
             { action: 'upload', resource: 'media' },
+        ],
+    },
+    {
+        name: 'Program Yöneticisi',
+        slug: 'program-manager',
+        description: 'Kuluçka/Hızlandırma programlarını, eğitim müfredatını ve kohortları yönetme.',
+        isSystem: true,
+        permissions: [
+            { action: 'view', resource: 'dashboard' },
+            { action: '*', resource: 'programs' },
+            { action: '*', resource: 'trainings' },
+            { action: 'view', resource: 'applications' },
+            { action: 'view', resource: 'mentors' },
+            { action: 'view', resource: 'entrepreneurs' },
+        ],
+    },
+    {
+        name: 'Etkinlik Sorumlusu',
+        slug: 'event-manager',
+        description: 'Etkinlikleri, oturumları, konuşmacıları ve bilet kayıtlarını yönetme.',
+        isSystem: true,
+        permissions: [
+            { action: 'view', resource: 'dashboard' },
+            { action: '*', resource: 'events' },
+            { action: 'view', resource: 'media' },
+            { action: 'upload', resource: 'media' },
+        ],
+    },
+    {
+        name: 'Proje Yöneticisi',
+        slug: 'project-manager',
+        description: 'KOSGEB, TÜBİTAK ve AB fonlu kurumsal projeleri, bütçeleri ve kilometre taşlarını yönetme.',
+        isSystem: true,
+        permissions: [
+            { action: 'view', resource: 'dashboard' },
+            { action: '*', resource: 'projects' },
+            { action: '*', resource: 'activities' },
+            { action: 'view', resource: 'tasks' },
         ],
     },
     {

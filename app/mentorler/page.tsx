@@ -4,31 +4,6 @@ import { motion } from "framer-motion";
 import { Users, Linkedin, Award, Briefcase, ChevronDown } from "lucide-react";
 import Link from "next/link";
 
-const staticMentors = [
-    { name: "Zico Ufuk Batum", company: "Ventures & Mentors League", title: "Founder", image: "/images/zico-ufuk-batum.jpg", linkedin: "https://www.linkedin.com/in/zico-ufuk-batum-51238950/" },
-    { name: "Onur Yolay", company: "Innoway R&D Kft.", title: "Co-Founder", image: "/images/onur-yolay.jpg", linkedin: "https://www.linkedin.com/in/onuryolay/" },
-    { name: "Nizamettin Sami Harputlu", company: "Startup Centrum", title: "Co-Founder", image: "/images/nizamettin-harputlu.jpg", linkedin: "https://www.linkedin.com/in/nizamettinsamiharputlu/" },
-    { name: "Abdulsamet Ekşi", company: "Türk Havacılık ve Uzay Sanayii", title: "Technology and Innovation Management", image: "/images/abdulsamet-eksi.jpg", linkedin: "https://www.linkedin.com/in/abdulsameteksi/" },
-    { name: "Bikem İnce İnanç", company: "Malogra Danışmanlık", title: "Founder", image: "/images/bikem-ince.jpg", linkedin: "https://www.linkedin.com/in/bikeminceinanc/" },
-    { name: "Büşra Altınsoy", company: "Pexa Boru Sanayi", title: "Yönetim Kurulu Üyesi", image: "/images/busra-altinsoy.jpg", linkedin: "https://www.linkedin.com/in/busraaltinsoy/" },
-    { name: "Sıla Dinçer", company: "Ödeal", title: "R&D Manager", image: "/images/sila-dincer.jpg", linkedin: "https://www.linkedin.com/in/siladincer/" },
-    { name: "Filiz Aksoy", company: "Bilişim Teknolojileri", title: "Proje ve Ürün Yöneticisi", image: "/images/filiz-aksoy.png", linkedin: "https://www.linkedin.com/in/filiz-aksoy/" },
-    { name: "Pelin Özkuzey", company: "Satış & Pazarlama", title: "Danışman", image: "/images/pelin-ozkuzey.jpg", linkedin: "https://www.linkedin.com/in/pelin-ozkuzey-71223712/" },
-    { name: "Belma Tost", company: "Pluxee Türkiye", title: "Senior Service & Experience Designer", image: "/images/belma-tost.jpg", linkedin: "https://www.linkedin.com/in/belma-tost" },
-    { name: "Dr. Öğr. Üyesi Burçin Ataseven Doğru", company: "İstanbul Kültür Üniversitesi", title: "İktisadi ve İdari Bilimler Fakültesi", image: "/images/burcin-ataseven.jpg", linkedin: "https://www.linkedin.com/in/dr-bur%C3%A7in-ataseven-do%C4%9Fru-689800250/" },
-    { name: "Öğr. Gör. Ezgi Delen", company: "İzmir Bakırçay Üniversitesi", title: "Girişimcilik Atölyesi ve Yarışmalar Koordinatörlüğü", image: "/images/ezgi-delen.jpg", linkedin: "https://www.linkedin.com/in/ezgi-delen" },
-    { name: "Kenan Keleş", company: "Palmiye Yazılım Teknolojileri Tic. Ltd. Şti.", title: "Co-Founder", image: "/images/kenan-keles.jpg", linkedin: "https://www.linkedin.com/in/mak-m%C3%BCh-kenan-kele%C5%9F-b4336a38/" },
-    { name: "Süleyman Bayramoğlu", company: "Pexa Boru Sanayi Anonim Şirketi", title: "CEO", image: "/images/suleyman-bayramoglu.jpg", linkedin: "https://www.linkedin.com/in/suleyman-bayramoglu/" },
-    { name: "Günalp Uysal", company: "Beezsoft", title: "Founder", image: "/images/gunalp-uysal.jpg", linkedin: "https://www.linkedin.com/in/gunalpuysal/" },
-    { name: "Emre Gül", company: "FiProduct – VRHistoria", title: "Product Manager", image: "/images/emre-gul.jpg", linkedin: "https://www.fiproduct.com/" },
-    { name: "Melis Dünya Sezer Türker", company: "FiProduct - VRHistoria", title: "Kreatif Direktör", image: "/images/melis-dunya-sezer.jpg", linkedin: "https://www.fiproduct.com/" },
-    { name: "Müge Bezgin", company: "Startup Centrum", title: "Co-Founder", image: "/images/muge-bezgin.jpg", linkedin: "https://www.linkedin.com/in/mugebezgin/" },
-    { name: "Doç. Dr. Meri Taksi Deveciyan", company: "İstanbul Kültür Üniversitesi", title: "İktisadi ve İdari Bilimler Fakültesi", image: "/images/meri-taksi.jpg", linkedin: "https://www.linkedin.com/in/meritaksideveciyan/" },
-    { name: "Doğukan Gözalp", company: "Startup Centrum", title: "Business Developer & Start-up Mentor", image: "/images/dogukan-gozalp.jpg", linkedin: "https://www.linkedin.com/in/dogukanozalp/" },
-    { name: "Tuncay Işıkçı", company: "Malogra Danışmanlık", title: "Finansal Yönetim Ekip Lideri", image: "/images/tuncay-isikci.jpg", linkedin: "https://www.linkedin.com/in/tuncay-i%C5%9F%C4%B1k%C3%A7%C4%B1-20b978222/" },
-    { name: "Yusuf Kelpetin", company: "AtakDx", title: "Founder", image: "/images/yusuf-yilmaz-mentor.jpg", linkedin: "https://www.linkedin.com/in/yusuf-kelpetin-a016533a/" }
-];
-
 const getInitials = (name: string) => {
     const parts = name.replace(/Dr\.|Öğr\.|Gör\.|Üyesi|Doç\./g, '').trim().split(' ');
     return parts.length >= 2 ? `${parts[0][0]}${parts[parts.length - 1][0]}` : parts[0].substring(0, 2);
@@ -47,7 +22,8 @@ const getColor = (index: number) => {
 };
 
 export default function MentorlerPage() {
-    const [mentorsList, setMentorsList] = useState(staticMentors);
+    const [mentorsList, setMentorsList] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
     const [showAll, setShowAll] = useState(false);
 
     useEffect(() => {
@@ -55,17 +31,22 @@ export default function MentorlerPage() {
             try {
                 const res = await fetch('/api/public/mentors');
                 const data = await res.json();
-                if (data.success && data.mentors && data.mentors.length > 0) {
+                if (data.success && Array.isArray(data.mentors)) {
                     setMentorsList(data.mentors.map((m: any) => ({
+                        id: m.id,
                         name: m.fullName || `${m.name} ${m.surname}`.trim(),
                         company: m.company,
                         title: m.title,
                         image: m.imageUrl || '',
                         linkedin: m.linkedin || ''
                     })));
+                } else {
+                    setMentorsList([]);
                 }
             } catch {
-                // Fallback to staticMentors
+                setMentorsList([]);
+            } finally {
+                setLoading(false);
             }
         };
         loadMentors();

@@ -1,153 +1,127 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getCurrentAdminUser, hashPassword, revokeAllUserSessions } from '@/lib/auth';
-import { hasPermission } from '@/lib/rbac';
-import { logAuditEvent } from '@/lib/audit';
+import { getCurrentAdminUser } from '@/lib/auth';
+import { hasPermission, canAssignRole } from '@/lib/rbac';
+import { UserManagementService } from '@/lib/services/user-management-service';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
     try {
         const user = await getCurrentAdminUser();
-        if (!user || !hasPermission(user, 'view', 'users')) {
-            return NextResponse.json({ success: false, message: 'Yetkisiz' }, { status: 403 });
+        if (!user || (!hasPermission(user, 'view', 'users') && !user.isSuperAdmin)) {
+            return NextResponse.json({ success: false, message: 'Yetkisiz erişim.' }, { status: 403 });
         }
 
-        const users = await prisma.user.findMany({
-            select: {
-                id: true,
-                email: true,
-                name: true,
-                phone: true,
-                avatarUrl: true,
-                isActive: true,
-                isSuperAdmin: true,
-                lastLoginAt: true,
-                lastLoginIp: true,
-                createdAt: true,
-                userRoles: {
-                    include: { role: true },
-                },
-                sessions: {
-                    where: { isValid: true },
-                    select: { id: true, ipAddress: true, userAgent: true, createdAt: true },
-                },
-            },
-            orderBy: { createdAt: 'desc' },
-        });
+        const { searchParams } = new URL(request.url);
+        const search = searchParams.get('search')?.toLowerCase().trim();
+        const role = searchParams.get('role');
+        const department = searchParams.get('department');
+        const status = searchParams.get('status');
 
-        return NextResponse.json({ success: true, users });
-    } catch {
-        return NextResponse.json({ success: false, message: 'Hata' }, { status: 500 });
+        const where: any = {};
+
+        if (search) {
+            where.OR = [
+                { name: { contains: search, mode: 'insensitive' } },
+                { email: { contains: search, mode: 'insensitive' } },
+                { title: { contains: search, mode: 'insensitive' } },
+            ];
+        }
+
+        if (role) {
+            where.userRoles = { some: { role: { slug: role } } };
+        }
+
+        if (department) {
+            where.department = department;
+        }
+
+        if (status) {
+            where.status = status;
+        }
+
+        const [users, roles] = await Promise.all([
+            prisma.user.findMany({
+                where,
+                select: {
+                    id: true,
+                    email: true,
+                    name: true,
+                    title: true,
+                    department: true,
+                    phone: true,
+                    avatarUrl: true,
+                    isActive: true,
+                    status: true,
+                    isSuperAdmin: true,
+                    mustChangePassword: true,
+                    isMfaEnabled: true,
+                    lastLoginAt: true,
+                    lastLoginIp: true,
+                    createdAt: true,
+                    userRoles: {
+                        include: { role: true },
+                    },
+                    sessions: {
+                        where: { isValid: true, expiresAt: { gte: new Date() } },
+                        select: { id: true, ipAddress: true, userAgent: true, createdAt: true },
+                    },
+                },
+                orderBy: { createdAt: 'desc' },
+            }),
+            prisma.role.findMany({ orderBy: { name: 'asc' } }),
+        ]);
+
+        return NextResponse.json({ success: true, users, roles });
+    } catch (e: any) {
+        return NextResponse.json({ success: false, message: e.message || 'Hata oluştu.' }, { status: 500 });
     }
 }
 
 export async function POST(request: NextRequest) {
     try {
-        const user = await getCurrentAdminUser();
-        if (!user || !hasPermission(user, 'manage', 'users')) {
-            return NextResponse.json({ success: false, message: 'Yetkisiz' }, { status: 403 });
+        const caller = await getCurrentAdminUser();
+        if (!caller || (!hasPermission(caller, 'create', 'users') && !caller.isSuperAdmin)) {
+            return NextResponse.json({ success: false, message: 'Kullanıcı oluşturma yetkiniz bulunmamaktadır.' }, { status: 403 });
         }
 
         const body = await request.json();
-        const { email, password, name, phone, roleId, isSuperAdmin } = body;
+        const { email, name, title, department, phone, roleId, isSuperAdmin, passwordMethod, tempPassword, notes } = body;
 
-        if (!email || !password || !name) {
-            return NextResponse.json({ success: false, message: 'E-posta, ad soyad ve parola zorunludur.' }, { status: 400 });
+        if (!email || !name || !roleId) {
+            return NextResponse.json({ success: false, message: 'E-posta, ad soyad ve rol seçimi zorunludur.' }, { status: 400 });
         }
 
-        const existing = await prisma.user.findUnique({ where: { email: email.toLowerCase().trim() } });
-        if (existing) {
-            return NextResponse.json({ success: false, message: 'Bu e-posta adresiyle kayıtlı kullanıcı zaten var.' }, { status: 400 });
+        // Check role hierarchy
+        const targetRole = await prisma.role.findUnique({ where: { id: roleId } });
+        if (!targetRole) {
+            return NextResponse.json({ success: false, message: 'Geçersiz rol.' }, { status: 400 });
         }
 
-        const passwordHash = await hashPassword(password);
+        if (!canAssignRole(caller, targetRole.slug)) {
+            return NextResponse.json({ success: false, message: 'Bu rolü atama yetkiniz bulunmamaktadır.' }, { status: 403 });
+        }
 
-        const newUser = await prisma.user.create({
-            data: {
-                email: email.toLowerCase().trim(),
-                name,
-                phone,
-                passwordHash,
-                isSuperAdmin: !!isSuperAdmin,
-                isActive: true,
-                userRoles: roleId ? { create: { roleId } } : undefined,
-            },
+        const result = await UserManagementService.createUser({
+            email,
+            name,
+            title,
+            department,
+            phone,
+            roleId,
+            isSuperAdmin: !!isSuperAdmin,
+            passwordMethod: passwordMethod === 'TEMP_PASSWORD' ? 'TEMP_PASSWORD' : 'INVITE',
+            tempPassword,
+            notes,
+            actorId: caller.id,
         });
 
-        await logAuditEvent({
-            actorId: user.id,
-            actorEmail: user.email,
-            actorName: user.name,
-            action: 'CREATE',
-            entityType: 'User',
-            entityId: newUser.id,
-            diff: `Created admin user "${newUser.name}" (${newUser.email})`,
+        return NextResponse.json({
+            success: true,
+            user: result.user,
+            inviteToken: result.inviteToken,
+            message: passwordMethod === 'INVITE' ? 'Davet e-postası kuyruğa eklendi.' : 'Kullanıcı başarıyla oluşturuldu.',
         });
-
-        return NextResponse.json({ success: true, user: newUser });
     } catch (e: any) {
-        return NextResponse.json({ success: false, message: e.message || 'Hata' }, { status: 500 });
-    }
-}
-
-export async function PUT(request: NextRequest) {
-    try {
-        const user = await getCurrentAdminUser();
-        if (!user || !hasPermission(user, 'manage', 'users')) {
-            return NextResponse.json({ success: false, message: 'Yetkisiz' }, { status: 403 });
-        }
-
-        const body = await request.json();
-        const { id, isActive, roleId, password, isSuperAdmin } = body;
-
-        // Security check: prevent deactivating the last active super admin
-        if (isActive === false || isSuperAdmin === false) {
-            const targetUser = await prisma.user.findUnique({ where: { id } });
-            if (targetUser?.isSuperAdmin) {
-                const superAdminCount = await prisma.user.count({
-                    where: { isSuperAdmin: true, isActive: true },
-                });
-                if (superAdminCount <= 1) {
-                    return NextResponse.json({
-                        success: false,
-                        message: 'Sistemdeki son Süper Yönetici hesabı devre dışı bırakılamaz veya yetkisi düşürülemez.',
-                    }, { status: 400 });
-                }
-            }
-        }
-
-        const updateData: any = {};
-        if (isActive !== undefined) updateData.isActive = isActive;
-        if (isSuperAdmin !== undefined && user.isSuperAdmin) updateData.isSuperAdmin = isSuperAdmin;
-        if (password) updateData.passwordHash = await hashPassword(password);
-
-        const updatedUser = await prisma.user.update({
-            where: { id },
-            data: updateData,
-        });
-
-        // If user was deactivated, revoke all active sessions immediately
-        if (isActive === false) {
-            await revokeAllUserSessions(id);
-        }
-
-        // Update role if specified
-        if (roleId) {
-            await prisma.userRole.deleteMany({ where: { userId: id } });
-            await prisma.userRole.create({ data: { userId: id, roleId } });
-        }
-
-        await logAuditEvent({
-            actorId: user.id,
-            actorEmail: user.email,
-            actorName: user.name,
-            action: 'UPDATE',
-            entityType: 'User',
-            entityId: id,
-            diff: `Updated user account "${updatedUser.name}" (isActive: ${updatedUser.isActive})`,
-        });
-
-        return NextResponse.json({ success: true, user: updatedUser });
-    } catch (e: any) {
-        return NextResponse.json({ success: false, message: e.message || 'Hata' }, { status: 500 });
+        return NextResponse.json({ success: false, message: e.message || 'Kullanıcı oluşturulamadı.' }, { status: 400 });
     }
 }

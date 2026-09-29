@@ -4,7 +4,7 @@ import { DataTable, Column } from '@/components/admin/DataTable';
 import { StatusBadge } from '@/components/admin/StatusBadge';
 import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
 import { RevisionViewer } from '@/components/admin/RevisionViewer';
-import { Plus, Edit2, Trash2, Rocket, History, Globe, Linkedin, ArrowLeft, Save, X, ExternalLink } from 'lucide-react';
+import { Plus, Edit2, Trash2, Rocket, History, Globe, Linkedin, ArrowLeft, Save, X, ExternalLink, Eye, EyeOff } from 'lucide-react';
 
 export default function AdminGirisimcilerPage() {
     const [entrepreneurs, setEntrepreneurs] = useState<any[]>([]);
@@ -33,6 +33,24 @@ export default function AdminGirisimcilerPage() {
     useEffect(() => {
         fetchEntrepreneurs();
     }, []);
+
+    const handleToggleVisibility = async (item: any) => {
+        try {
+            const res = await fetch(`/api/admin/entrepreneurs/${item.id}/toggle-visibility`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ isPublished: item.isPublished === false ? true : false }),
+            });
+            const data = await res.json();
+            if (data.success) {
+                await fetchEntrepreneurs();
+            } else {
+                alert(data.message || 'Görünürlük güncellenemedi');
+            }
+        } catch {
+            alert('Bağlantı hatası oluştu');
+        }
+    };
 
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -98,6 +116,34 @@ export default function AdminGirisimcilerPage() {
             key: 'sector',
             header: 'Sektör',
             render: (item) => <span className="text-cyan-400 font-mono">{item.sector}</span>,
+        },
+        {
+            key: 'isPublished',
+            header: 'Public Görünürlük',
+            render: (item) => (
+                <button
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        handleToggleVisibility(item);
+                    }}
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-mono font-semibold transition-all border ${
+                        item.isPublished !== false
+                            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20'
+                            : 'bg-amber-500/10 text-amber-400 border-amber-500/20 hover:bg-amber-500/20'
+                    }`}
+                    title="Görünürlüğü değiştirmek için tıklayın"
+                >
+                    {item.isPublished !== false ? (
+                        <>
+                            <Eye className="w-3.5 h-3.5 text-emerald-400" /> Yayında
+                        </>
+                    ) : (
+                        <>
+                            <EyeOff className="w-3.5 h-3.5 text-amber-400" /> Yayından Kaldırıldı (Gizli)
+                        </>
+                    )}
+                </button>
+            ),
         },
         {
             key: 'status',
@@ -313,6 +359,34 @@ export default function AdminGirisimcilerPage() {
                                     className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:border-primary outline-none"
                                 />
                             </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 rounded-xl bg-black/40 border border-white/5">
+                            <label className="flex items-center justify-between cursor-pointer">
+                                <div>
+                                    <div className="text-xs font-semibold text-white">Public Sitede Göster (isPublished)</div>
+                                    <div className="text-[10px] text-gray-400">/girisimciler sayfasında ve arama sonuçlarında görünürlük</div>
+                                </div>
+                                <input
+                                    type="checkbox"
+                                    checked={editingItem.isPublished !== false}
+                                    onChange={(e) => setEditingItem({ ...editingItem, isPublished: e.target.checked })}
+                                    className="w-4 h-4 rounded bg-black/40 border-white/10 text-primary cursor-pointer"
+                                />
+                            </label>
+
+                            <label className="flex items-center justify-between cursor-pointer">
+                                <div>
+                                    <div className="text-xs font-semibold text-white">Öne Çıkarılan Girişim (isFeatured)</div>
+                                    <div className="text-[10px] text-gray-400">Ana sayfada vitrin kartı olarak gösterim</div>
+                                </div>
+                                <input
+                                    type="checkbox"
+                                    checked={editingItem.isFeatured || false}
+                                    onChange={(e) => setEditingItem({ ...editingItem, isFeatured: e.target.checked })}
+                                    className="w-4 h-4 rounded bg-black/40 border-white/10 text-primary cursor-pointer"
+                                />
+                            </label>
                         </div>
 
                         <div className="flex items-center justify-end gap-3 pt-4 border-t border-white/5">

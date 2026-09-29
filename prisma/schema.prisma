@@ -48,12 +48,24 @@ model User {
   workflowApprovals WorkflowApproval[] @relation("ApprovalReviewer")
   requestedApprovals WorkflowApproval[] @relation("ApprovalRequester")
 
+  // Enterprise User Fields
+  title                  String?
+  department             String?
+  mustChangePassword     Boolean            @default(false)
+  status                 String             @default("ACTIVE") // ACTIVE, INVITED, DISABLED, LOCKED, PENDING_PASSWORD_RESET
+  mfaBackupCodes         String?            // JSON array of hashed recovery codes
+  notificationPreferences String?           // JSON preferences
+  notes                  String?
+
   // V4 Enterprise relations
-  reservations      Reservation[]
-  managedContracts  Contract[]          @relation("ContractManager")
-  createdArticles   KnowledgeArticle[]  @relation("ArticleAuthor")
-  portalAccounts    PortalAccount[]
-  aiLogs            AiTaskLog[]
+  reservations           Reservation[]
+  managedContracts       Contract[]          @relation("ContractManager")
+  createdArticles        KnowledgeArticle[]  @relation("ArticleAuthor")
+  portalAccounts         PortalAccount[]
+  aiLogs                 AiTaskLog[]
+  sentInvites            UserInvite[]        @relation("UserInviter")
+  passwordResetTokens    PasswordResetToken[]
+  securityEvents         SecurityEvent[]
 }
 
 model Role {
@@ -67,6 +79,7 @@ model Role {
 
   userRoles   UserRole[]
   permissions RolePermission[]
+  userInvites UserInvite[]
 }
 
 model Permission {
@@ -283,6 +296,7 @@ model Entrepreneur {
   isFeatured     Boolean   @default(false)
   sortOrder      Int       @default(0)
   isArchived     Boolean   @default(false)
+  isPublished    Boolean   @default(true) // Public visibility toggle
   
   // V3 Extended Operational Fields
   milestones     String?   // Legacy JSON fallback
@@ -1994,5 +2008,204 @@ model AiTaskLog {
 
   @@index([taskType])
   @@index([status])
+}
+
+// ----------------------------------------------------------------------------
+// V5 ENTERPRISE: MULTI-ADMIN INVITES & CREDENTIALS LIFECYCLE
+// ----------------------------------------------------------------------------
+
+model UserInvite {
+  id           String    @id @default(uuid())
+  email        String    @unique
+  name         String?
+  title        String?
+  department   String?
+  tokenHash    String    @unique
+  roleId       String
+  invitedById  String
+  mustChangePassword Boolean @default(true)
+  expiresAt    DateTime
+  usedAt       DateTime?
+  createdAt    DateTime  @default(now())
+
+  invitedBy    User      @relation("UserInviter", fields: [invitedById], references: [id], onDelete: Cascade)
+  role         Role      @relation(fields: [roleId], references: [id], onDelete: Restrict)
+
+  @@index([tokenHash])
+  @@index([email])
+}
+
+model PasswordResetToken {
+  id           String    @id @default(uuid())
+  userId       String
+  tokenHash    String    @unique
+  expiresAt    DateTime
+  usedAt       DateTime?
+  createdAt    DateTime  @default(now())
+
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([tokenHash])
+}
+
+// ----------------------------------------------------------------------------
+// V5 ENTERPRISE: CUSTOMIZABLE TERMINOLOGY & LABELS
+// ----------------------------------------------------------------------------
+
+model TerminologyLabel {
+  id           String    @id @default(uuid())
+  key          String    @unique // e.g. "tasks.title", "tasks.status.done", "entrepreneurs.title"
+  group        String    @default("GENERAL") // MODULES, STATUSES, BUTTONS, MESSAGES
+  defaultLabel String
+  customLabel  String?
+  description  String?
+  updatedAt    DateTime  @updatedAt
+
+  @@index([group])
+}
+
+// ----------------------------------------------------------------------------
+// V5 ENTERPRISE: MODULE CUSTOM FIELDS & EXTENSIBILITY
+// ----------------------------------------------------------------------------
+
+model CustomFieldDefinition {
+  id             String             @id @default(uuid())
+  moduleKey      String             // ENTREPRENEUR, MENTOR, TASK, ACTIVITY, APPLICATION, PROJECT
+  fieldKey       String             // e.g. "is_exporting", "trl_level", "annual_revenue"
+  label          String
+  fieldType      String             @default("TEXT") // TEXT, TEXTAREA, NUMBER, CURRENCY, DATE, DATETIME, BOOLEAN, SELECT, MULTI_SELECT, USER, ORGANIZATION, URL, EMAIL, PHONE, FILE
+  placeholder    String?
+  description    String?
+  isRequired     Boolean            @default(false)
+  defaultValue   String?
+  optionsJson    String?            // JSON array for SELECT / MULTI_SELECT
+  viewPermission String?            // Specific permission or null for all
+  editPermission String?            // Specific permission or null for all
+  isPublic       Boolean            @default(false)
+  sortOrder      Int                @default(0)
+  isActive       Boolean            @default(true)
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  values         CustomFieldValue[]
+
+  @@unique([moduleKey, fieldKey])
+  @@index([moduleKey])
+}
+
+model CustomFieldValue {
+  id           String                @id @default(uuid())
+  definitionId String
+  entityId     String                // ID of the target record (e.g. Entrepreneur.id)
+  textValue    String?
+  numValue     Float?
+  dateValue    DateTime?
+  jsonValue    String?
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
+
+  definition   CustomFieldDefinition @relation(fields: [definitionId], references: [id], onDelete: Cascade)
+
+  @@unique([definitionId, entityId])
+  @@index([entityId])
+}
+
+// ----------------------------------------------------------------------------
+// V5 ENTERPRISE: CUSTOM STATUS & PIPELINES
+// ----------------------------------------------------------------------------
+
+model PipelineStatus {
+  id                 String   @id @default(uuid())
+  moduleKey          String   // APPLICATION, TASK, PROJECT, ACTIVITY
+  statusKey          String   // e.g. "NEW", "PRE_REVIEW", "TODO", "IN_PROGRESS"
+  displayLabel       String
+  colorCode          String   @default("#6366f1")
+  sortOrder          Int      @default(0)
+  isInitial          Boolean  @default(false)
+  isTerminal         Boolean  @default(false)
+  isActive           Boolean  @default(true)
+  allowedTransitions String?  // JSON array of target statusKeys
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@unique([moduleKey, statusKey])
+  @@index([moduleKey])
+}
+
+// ----------------------------------------------------------------------------
+// V5 ENTERPRISE: EMAIL OUTBOX & DELIVERY ENGINE
+// ----------------------------------------------------------------------------
+
+model EmailOutbox {
+  id                 String    @id @default(uuid())
+  recipientEmail     String
+  recipientName      String?
+  subject            String
+  templateKey        String?
+  htmlBody           String
+  textBody           String?
+  status             String    @default("PENDING") // PENDING, PROCESSING, SENT, FAILED, CANCELLED
+  retryCount         Int       @default(0)
+  maxRetries         Int       @default(3)
+  nextRetryAt        DateTime?
+  sentAt             DateTime?
+  providerMessageId  String?
+  errorMessage       String?
+  entityType         String?   // APPLICATION, TASK, INVITE, PASSWORD_RESET, SECURITY_ALERT
+  entityId           String?
+  metadata           String?   // JSON
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@index([status])
+  @@index([recipientEmail])
+  @@index([createdAt])
+}
+
+// ----------------------------------------------------------------------------
+// V5 ENTERPRISE: NOTIFICATION RULES BUILDER
+// ----------------------------------------------------------------------------
+
+model NotificationRule {
+  id               String   @id @default(uuid())
+  name             String
+  eventType        String   // APPLICATION_SUBMITTED, TASK_ASSIGNED, TASK_STATUS_CHANGED, CONTRACT_EXPIRING, MENTOR_ASSIGNED
+  channels         String   @default("[\"IN_APP\",\"EMAIL\"]") // JSON array: IN_APP, EMAIL, TEAMS
+  recipientGroup   String   // ASSIGNED_USER, PROGRAM_MANAGER, ALL_ADMINS, ROLE:slug, EMAIL:addr
+  emailTemplateKey String?
+  conditionsJson   String?  // JSON criteria
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([eventType])
+  @@index([isActive])
+}
+
+// ----------------------------------------------------------------------------
+// V5 ENTERPRISE: SECURITY EVENT CENTER
+// ----------------------------------------------------------------------------
+
+model SecurityEvent {
+  id           String    @id @default(uuid())
+  eventType    String    // FAILED_LOGIN, LOCKED_ACCOUNT, MFA_DISABLED, SUSPICIOUS_IP, MASS_EXPORT, PII_BULK_ACCESS, SUPER_ADMIN_MODIFIED, SESSION_REVOKED
+  severity     String    @default("WARN") // INFO, WARN, HIGH, CRITICAL
+  userId       String?
+  userEmail    String?
+  ipAddress    String?
+  userAgent    String?
+  details      String?   // JSON or text
+  isResolved   Boolean   @default(false)
+  resolvedAt   DateTime?
+  resolvedById String?
+  createdAt    DateTime  @default(now())
+
+  user         User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([eventType])
+  @@index([severity])
+  @@index([createdAt])
+  @@index([userId])
 }
 

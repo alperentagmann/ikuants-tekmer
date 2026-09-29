@@ -47,6 +47,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ isCollapsed, onToggl
             title: 'CRM & BAŞVURU',
             items: [
                 { title: 'Başvuru Pipeline', href: '/admin/basvurular', icon: FileText },
+                { title: 'Pipeline Durumları', href: '/admin/durumlar', icon: Layers },
                 { title: 'Form Builder', href: '/admin/form-builder', icon: Sparkles },
                 { title: 'Paydaş & Kişi Rehberi', href: '/admin/rehber', icon: Users },
                 { title: 'İletişim & Randevular', href: '/admin/iletisim', icon: Mail },
@@ -74,8 +75,13 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ isCollapsed, onToggl
             items: [
                 { title: 'Site Ayarları', href: '/admin/ayarlar', icon: Settings },
                 { title: 'Menü Yönetimi', href: '/admin/menuler', icon: Navigation },
+                { title: 'Terim & Etiketler', href: '/admin/terimler', icon: Sparkles },
+                { title: 'Özel Alanlar', href: '/admin/ozel-alanlar', icon: Folder },
+                { title: 'E-Posta Şablonları', href: '/admin/eposta-sablonlari', icon: Mail },
+                { title: 'E-Posta Merkezi', href: '/admin/eposta-merkezi', icon: Mail },
+                { title: 'Kullanıcı & Roller', href: '/admin/kullanicilar', icon: Users },
+                { title: 'Güvenlik Merkezi', href: '/admin/guvenlik', icon: ShieldAlert },
                 { title: 'SEO & Redirects', href: '/admin/seo-redirects', icon: Globe },
-                { title: 'Kullanıcı & Roller', href: '/admin/kullanicilar', icon: Shield },
                 { title: 'Audit Log (Denetim)', href: '/admin/audit-log', icon: History },
                 { title: 'Sistem Durumu', href: '/admin/sistem-durumu', icon: Activity },
             ],

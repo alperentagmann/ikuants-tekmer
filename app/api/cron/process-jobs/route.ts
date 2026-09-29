@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { logAuditEvent } from '@/lib/audit';
+import { EmailOutboxService } from '@/lib/services/email-outbox-service';
 
 export async function GET(req: NextRequest) {
     const authHeader = req.headers.get('authorization');
@@ -17,6 +18,7 @@ export async function GET(req: NextRequest) {
     const results = {
         publishedNewsCount: 0,
         cleanedSessionsCount: 0,
+        processedEmails: { processed: 0, succeeded: 0, failed: 0 },
         timestamp: new Date().toISOString(),
     };
 
@@ -61,6 +63,10 @@ export async function GET(req: NextRequest) {
             },
         });
         results.cleanedSessionsCount = expiredSessions.count;
+
+        // 3. Process Pending Email Outbox Queue
+        const emailResults = await EmailOutboxService.processPendingEmails(20);
+        results.processedEmails = emailResults;
 
         return NextResponse.json({ success: true, results });
     } catch (error: any) {

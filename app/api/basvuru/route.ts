@@ -1,121 +1,156 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { sendMail, generateEmailTemplate } from '@/lib/email-service';
+import { prisma } from '@/lib/prisma';
+import { EmailOutboxService } from '@/lib/services/email-outbox-service';
 
 export async function POST(request: NextRequest) {
     try {
         const formData = await request.json();
 
-        // Log to console for debugging
-        console.log('YENİ BAŞVURU:', formData.programName || "ANTSPARK", formData.projectName);
+        const programName = formData.programName || 'ANTSPARK';
+        const applicantName = formData.fullName || formData.founderName || 'Başvuru Sahibi';
+        const companyName = formData.companyName || formData.projectName || null;
+        const email = (formData.email || formData.founderContact || '').toLowerCase().trim();
+        const phone = formData.phone || formData.founderPhone || null;
+        const tcNumber = formData.tcNumber || formData.tc_no || null;
 
-        const programName = formData.programName || "ANTSPARK";
-        let emailData = {};
-
-        if (programName === "ANTSFire") {
-            emailData = {
-                'Program': programName,
-                // Şirket
-                'Şirket Adı': formData.companyName,
-                'Vergi No': formData.taxNumber,
-                'Kuruluş Yılı': formData.foundationYear,
-                'Sektör': formData.sector,
-                'Kümeler': formData.tekmerClusters?.join(", "),
-                'Çalışan Sayısı': formData.employeeCount,
-                'Web Sitesi': formData.website,
-                // Kurucu
-                'Kurucu': formData.founderName,
-                'İletişim': formData.founderContact,
-                'Rol': formData.founderRole,
-                'Haftalık Zaman': formData.weeklyHours,
-                // Ürün
-                'Ürün Tanımı': formData.productShortDesc,
-                'Problem': formData.problemDefinition,
-                'Farklılık': formData.solutionDifference,
-                'TRL': formData.trlLevel,
-                'Demo Linki': formData.demoLink,
-                'Ar-Ge Özeti': formData.randdProjectSummary,
-                // Pazar
-                'Hedef Müşteri': formData.targetCustomer,
-                'Pazar Büyüklüğü': formData.marketSize,
-                'Rakipler': formData.competitors,
-                'GTM Planı': formData.gtmPlan,
-                // Finans
-                'Pilot/LOI': formData.hasPilot,
-                'Gelir': formData.revenueStatus,
-                'Runway': formData.runway,
-                'Yatırım Geçmişi': formData.investmentHistory,
-                'Finansal Özet': formData.financialSummary,
-                // Dosyalar
-                'Pitch Deck': formData.pitchDeckLink,
-                'CVler': formData.founderCvLink,
-                // İhtiyaç
-                'Darboğazlar': formData.bottlenecks,
-                'Hedefler': formData.goals,
-                'Modüller': formData.selectedModules?.join(", ")
-            };
-        } else {
-            // Default ANTSPARK or General Application fields
-            emailData = {
-                'Program': formData.programName || "İKÜANTS TEKMER Başvuru",
-                // Kişisel / Şirket Bilgileri
-                'Şirket Var Mı?': formData.hasCompany,
-                'Ad Soyad / Firma İsmi': formData.fullName,
-                'Doğum Tarihi': formData.birthDate,
-                'E-Posta': formData.email,
-                'Telefon': formData.phone,
-                'Vergi Numarası': formData.taxNumber || 'Belirtilmedi',
-                'Nace Kodu': formData.naceCode || 'Belirtilmedi',
-                'TEKMER Dışı Adres': formData.companyAddress || 'Belirtilmedi',
-
-                // Proje Bilgileri
-                'Proje Adı': formData.projectName,
-                'Proje Özeti': formData.projectSummary,
-                'Ekip / Kurucu Bilgisi': formData.teamInfo,
-                'Proje Teması': formData.projectTheme,
-                'Gelişmeye Katkı': formData.projectContribution,
-                'Mevcut Ürünlerden Farkı': formData.projectDifference,
-                'Çıktılar ve Kullanım Alanları': formData.projectOutputs,
-
-                // Pazar ve Finansal Bilgiler
-                'Hedef Müşteri ve Pazar': formData.targetMarket,
-                'Faaliyet/Zaman Planlaması': formData.projectTimeline,
-                'Ölçeklenebilirlik / Ticarileşme': formData.scalability,
-
-                // Beklenti ve İhtiyaçlar
-                'Beklentiler (Neden TEKMER?)': formData.expectations,
-                'Fiziksel Alan Talebi': formData.workspacePreference,
-                'Talep Edilen Süre': formData.requestedDuration,
-                'AR-GE Niteliği': formData.argeQuality,
-                'Sunum Dosyası': formData.presentationLink
-            };
+        if (!email) {
+            return NextResponse.json({ success: false, message: 'Geçerli bir e-posta adresi gereklidir.' }, { status: 400 });
         }
 
-        const html = generateEmailTemplate(`🚀 Yeni ${programName} Başvurusu`, emailData);
+        // Mask TC Number if provided
+        let tcNumberMasked: string | null = null;
+        let tcNumberEncrypted: string | null = null;
+        if (tcNumber && tcNumber.length >= 11) {
+            tcNumberMasked = `${tcNumber.substring(0, 3)}******${tcNumber.substring(9)}`;
+            tcNumberEncrypted = Buffer.from(tcNumber).toString('base64'); // Obfuscation
+        }
 
-        // Send email
-        const result = await sendMail({
-            to: 'bilgi@ikuantstekmer.com',
-            subject: `${programName} Başvurusu: ${formData.companyName || formData.projectName}`,
-            html: html,
-            replyTo: formData.email || formData.founderContact
+        // Match Program if exists
+        const matchedProgram = await prisma.program.findFirst({
+            where: {
+                OR: [
+                    { name: { contains: programName, mode: 'insensitive' } },
+                    { slug: { contains: programName.toLowerCase().replace(/\s+/g, '-') } },
+                ],
+            },
         });
 
-        if (result.success) {
-            return NextResponse.json({
-                success: true,
-                message: 'Başvurunuz başarıyla alındı ve e-posta gönderildi!'
+        // Get default active Form Version
+        let formVersion = await prisma.formVersion.findFirst({
+            where: { status: 'PUBLISHED' },
+            orderBy: { createdAt: 'desc' },
+        });
+
+        if (!formVersion) {
+            // Create default form version if none exists
+            let form = await prisma.form.findFirst();
+            if (!form) {
+                form = await prisma.form.create({
+                    data: {
+                        title: 'Genel Girişimcilik Başvuru Formu',
+                        slug: 'genel-basvuru-formu',
+                        formType: 'APPLICATION',
+                        isPublished: true,
+                    },
+                });
+            }
+            formVersion = await prisma.formVersion.create({
+                data: {
+                    formId: form.id,
+                    versionNumber: 1,
+                    schemaSnapshot: JSON.stringify({ title: 'Standart Form' }),
+                    status: 'PUBLISHED',
+                    publishedAt: new Date(),
+                },
             });
-        } else {
-            console.error('Application email failed:', result.error);
-            return NextResponse.json({
-                success: false,
-                message: 'Başvuru alındı ancak e-posta gönderilemedi. Lütfen iletişime geçin.'
-            }, { status: 500 });
         }
-    } catch (error) {
+
+        // Generate sequential application number with year prefix
+        const year = new Date().getFullYear();
+        const count = await prisma.application.count();
+        const applicationNumber = `ANTS-${year}-${String(count + 1).padStart(6, '0')}`;
+        const submissionNumber = `SUB-${year}-${String(count + 1).padStart(6, '0')}`;
+
+        // Atomic Transaction
+        const { application } = await prisma.$transaction(async (tx) => {
+            const submission = await tx.submission.create({
+                data: {
+                    formVersionId: formVersion!.id,
+                    submissionNumber,
+                    status: 'SUBMITTED',
+                    rawSnapshot: JSON.stringify(formData),
+                },
+            });
+
+            const app = await tx.application.create({
+                data: {
+                    applicationNumber,
+                    formVersionId: formVersion!.id,
+                    submissionId: submission.id,
+                    programId: matchedProgram?.id || null,
+                    applicantName,
+                    companyName,
+                    email,
+                    phone,
+                    tcNumberMasked,
+                    tcNumberEncrypted,
+                    status: 'NEW',
+                    stage: 'PIPELINE',
+                },
+            });
+
+            await tx.applicationStatusHistory.create({
+                data: {
+                    applicationId: app.id,
+                    fromStatus: 'NONE',
+                    toStatus: 'NEW',
+                    reason: 'Başvuru form üzerinden başarıyla alındı.',
+                },
+            });
+
+            await tx.activityTimeline.create({
+                data: {
+                    entityType: 'Application',
+                    entityId: app.id,
+                    title: 'Yeni Başvuru Alındı',
+                    description: `${applicantName} tarafından ${programName} programı için başvuru yapıldı.`,
+                    eventType: 'STATUS_CHANGE',
+                },
+            });
+
+            await tx.notification.create({
+                data: {
+                    title: 'Yeni Başvuru Alındı',
+                    message: `${applicantName} tarafından yeni bir ${programName} başvurusu yapıldı (${applicationNumber}).`,
+                    notificationType: 'NEW_APPLICATION',
+                    targetUrl: `/admin/basvurular/${app.id}`,
+                },
+            });
+
+            return { application: app };
+        });
+
+        // Trigger emails via Outbox Engine (asynchronous & safe from serverless timeouts)
+        await EmailOutboxService.triggerApplicationSubmittedEmails({
+            id: application.id,
+            applicationNumber: application.applicationNumber,
+            applicantName: application.applicantName,
+            email: application.email,
+            programName: matchedProgram?.name || programName,
+        });
+
+        // Try to process outbox immediately
+        EmailOutboxService.processPendingEmails(5).catch((err) => console.error('Immediate outbox process error:', err));
+
+        return NextResponse.json({
+            success: true,
+            applicationNumber: application.applicationNumber,
+            message: 'Başvurunuz başarıyla sisteme kaydedildi ve onay e-postası gönderildi!',
+        });
+    } catch (error: any) {
         console.error('Form submission error:', error);
         return NextResponse.json(
-            { success: false, message: 'Bir hata oluştu. Lütfen tekrar deneyin.' },
+            { success: false, message: error.message || 'Başvuru sırasında bir hata oluştu. Lütfen tekrar deneyiniz.' },
             { status: 500 }
         );
     }

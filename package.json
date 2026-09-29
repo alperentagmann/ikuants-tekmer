@@ -10,6 +10,8 @@
     "start": "next start",
     "lint": "eslint",
     "seed": "npx tsx prisma/seed.ts",
+    "bootstrap:prod": "npx tsx scripts/bootstrap-production.ts",
+    "import:legacy": "npx tsx scripts/import-legacy-public-data.ts",
     "admin": "npx tsx scripts/manage-admin.ts",
     "test": "npx tsx --test tests/*.test.ts"
   },

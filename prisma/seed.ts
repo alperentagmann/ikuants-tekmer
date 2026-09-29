@@ -395,6 +395,159 @@ async function main() {
         });
     }
 
+    // 12. ENTERPRISE EMAIL TEMPLATES
+    console.log('Seeding default email templates...');
+    const defaultTemplates = [
+        {
+            templateKey: 'APPLICATION_RECEIVED',
+            name: 'Başvuru Alındı Bildirimi (Başvurana)',
+            subject: 'Başvurunuz Alındı: {{applicationNumber}} — {{programName}}',
+            htmlBody: '<h2>Sayın {{recipientName}},</h2><p>{{programName}} başvurunuz başarıyla alınmıştır. Başvuru Numaranız: <strong>{{applicationNumber}}</strong></p>',
+            variables: JSON.stringify(['recipientName', 'applicationNumber', 'programName']),
+        },
+        {
+            templateKey: 'APPLICATION_NEW_ADMIN',
+            name: 'Yeni Başvuru Yönetici Bildirimi',
+            subject: '[Yeni Başvuru] {{applicationNumber}} — {{programName}}',
+            htmlBody: '<h3>Yeni Başvuru Alındı</h3><p>Başvuran: {{applicantName}} | Program: {{programName}}</p><p><a href="{{actionUrl}}">Başvuruyu İncele</a></p>',
+            variables: JSON.stringify(['applicationNumber', 'programName', 'applicantName', 'actionUrl']),
+        },
+        {
+            templateKey: 'TASK_ASSIGNED',
+            name: 'Görev Atandı Bildirimi',
+            subject: 'Yeni Görev Atandı: {{taskTitle}}',
+            htmlBody: '<h3>Sayın {{recipientName}},</h3><p>{{assignerName}} tarafından size yeni bir görev atandı: <strong>{{taskTitle}}</strong></p><p><a href="{{actionUrl}}">Görevi Aç</a></p>',
+            variables: JSON.stringify(['recipientName', 'assignerName', 'taskTitle', 'actionUrl']),
+        },
+        {
+            templateKey: 'USER_INVITE',
+            name: 'Yönetim Paneli Davet E-postası',
+            subject: 'İKÜANTS TEKMER Yönetim Paneline Davet Edildiniz',
+            htmlBody: '<h3>Sayın {{recipientName}},</h3><p>İKÜANTS TEKMER Yönetim Paneline <strong>{{roleName}}</strong> olarak davet edildiniz.</p><p><a href="{{actionUrl}}">Hesabınızı Etkinleştirin</a></p>',
+            variables: JSON.stringify(['recipientName', 'roleName', 'actionUrl']),
+        },
+        {
+            templateKey: 'PASSWORD_RESET',
+            name: 'Şifre Sıfırlama E-postası',
+            subject: 'İKÜANTS TEKMER — Şifre Sıfırlama',
+            htmlBody: '<h3>Sayın {{recipientName}},</h3><p>Şifrenizi sıfırlamak için aşağıdaki bağlantıyı kullanabilirsiniz:</p><p><a href="{{actionUrl}}">Şifremi Sıfırla</a></p>',
+            variables: JSON.stringify(['recipientName', 'actionUrl']),
+        },
+        {
+            templateKey: 'SECURITY_ALERT',
+            name: 'Güvenlik Uyarısı Bildirimi',
+            subject: '[Güvenlik Uyarısı] {{alertTitle}}',
+            htmlBody: '<h3>Güvenlik Uyarısı</h3><p>{{alertDetails}}</p>',
+            variables: JSON.stringify(['alertTitle', 'alertDetails']),
+        },
+    ];
+
+    for (const t of defaultTemplates) {
+        await prisma.emailTemplate.upsert({
+            where: { templateKey: t.templateKey },
+            update: { name: t.name, subject: t.subject },
+            create: t,
+        });
+    }
+
+    // 13. ENTERPRISE TERMINOLOGY LABELS
+    console.log('Seeding default terminology labels...');
+    const defaultLabels = [
+        { key: 'tasks.title', group: 'MODULES', defaultLabel: 'Görevler', description: 'Görev modülü ana başlığı' },
+        { key: 'tasks.create', group: 'BUTTONS', defaultLabel: 'Yeni Görev', description: 'Görev oluşturma butonu' },
+        { key: 'tasks.status.todo', group: 'STATUSES', defaultLabel: 'Yapılacak', description: 'To-do durum etiketi' },
+        { key: 'tasks.status.in_progress', group: 'STATUSES', defaultLabel: 'Devam Ediyor', description: 'In-progress durum etiketi' },
+        { key: 'tasks.status.review', group: 'STATUSES', defaultLabel: 'İncelemede', description: 'Review durum etiketi' },
+        { key: 'tasks.status.done', group: 'STATUSES', defaultLabel: 'Tamamlandı', description: 'Done durum etiketi' },
+        { key: 'applications.title', group: 'MODULES', defaultLabel: 'Başvurular', description: 'Başvuru modülü ana başlığı' },
+        { key: 'applications.status.new', group: 'STATUSES', defaultLabel: 'Yeni Başvuru', description: 'Yeni başvuru durumu' },
+        { key: 'applications.status.pre_review', group: 'STATUSES', defaultLabel: 'Ön İnceleme', description: 'Ön inceleme durumu' },
+        { key: 'applications.status.under_evaluation', group: 'STATUSES', defaultLabel: 'Değerlendirmede', description: 'Değerlendirme durumu' },
+        { key: 'applications.status.accepted', group: 'STATUSES', defaultLabel: 'Kabul Edildi', description: 'Kabul durumu' },
+        { key: 'applications.status.rejected', group: 'STATUSES', defaultLabel: 'Reddedildi', description: 'Red durumu' },
+        { key: 'entrepreneurs.title', group: 'MODULES', defaultLabel: 'Girişimciler', description: 'Girişimci modülü ana başlığı' },
+        { key: 'mentors.title', group: 'MODULES', defaultLabel: 'Mentörler', description: 'Mentör modülü ana başlığı' },
+        { key: 'activities.title', group: 'MODULES', defaultLabel: 'Kurumsal Faaliyetler', description: 'Faaliyetler modülü başlığı' },
+        { key: 'projects.title', group: 'MODULES', defaultLabel: 'Projeler', description: 'Proje modülü başlığı' },
+    ];
+
+    for (const l of defaultLabels) {
+        await prisma.terminologyLabel.upsert({
+            where: { key: l.key },
+            update: { defaultLabel: l.defaultLabel, group: l.group, description: l.description },
+            create: l,
+        });
+    }
+
+    // 14. ENTERPRISE PIPELINE STATUSES
+    console.log('Seeding default pipeline statuses...');
+    const defaultPipelines = [
+        // Applications
+        { moduleKey: 'APPLICATION', statusKey: 'NEW', displayLabel: 'Yeni Başvuru', colorCode: '#3b82f6', sortOrder: 1, isInitial: true },
+        { moduleKey: 'APPLICATION', statusKey: 'PRE_REVIEW', displayLabel: 'Ön İnceleme', colorCode: '#8b5cf6', sortOrder: 2 },
+        { moduleKey: 'APPLICATION', statusKey: 'MISSING_DOCS', displayLabel: 'Eksik Evrak', colorCode: '#f59e0b', sortOrder: 3 },
+        { moduleKey: 'APPLICATION', statusKey: 'UNDER_EVALUATION', displayLabel: 'Değerlendirmede', colorCode: '#06b6d4', sortOrder: 4 },
+        { moduleKey: 'APPLICATION', statusKey: 'JURY', displayLabel: 'Jüri / Mülakat', colorCode: '#ec4899', sortOrder: 5 },
+        { moduleKey: 'APPLICATION', statusKey: 'ACCEPTED', displayLabel: 'Kabul Edildi', colorCode: '#10b981', sortOrder: 6, isTerminal: true },
+        { moduleKey: 'APPLICATION', statusKey: 'REJECTED', displayLabel: 'Reddedildi', colorCode: '#ef4444', sortOrder: 7, isTerminal: true },
+        { moduleKey: 'APPLICATION', statusKey: 'WAITLIST', displayLabel: 'Yedek Liste', colorCode: '#6b7280', sortOrder: 8 },
+
+        // Tasks
+        { moduleKey: 'TASK', statusKey: 'TODO', displayLabel: 'Yapılacak', colorCode: '#64748b', sortOrder: 1, isInitial: true },
+        { moduleKey: 'TASK', statusKey: 'IN_PROGRESS', displayLabel: 'Devam Ediyor', colorCode: '#3b82f6', sortOrder: 2 },
+        { moduleKey: 'TASK', statusKey: 'REVIEW', displayLabel: 'İncelemede', colorCode: '#f59e0b', sortOrder: 3 },
+        { moduleKey: 'TASK', statusKey: 'DONE', displayLabel: 'Tamamlandı', colorCode: '#10b981', sortOrder: 4, isTerminal: true },
+        { moduleKey: 'TASK', statusKey: 'CANCELLED', displayLabel: 'İptal Edildi', colorCode: '#94a3b8', sortOrder: 5, isTerminal: true },
+    ];
+
+    for (const p of defaultPipelines) {
+        await prisma.pipelineStatus.upsert({
+            where: { moduleKey_statusKey: { moduleKey: p.moduleKey, statusKey: p.statusKey } },
+            update: { displayLabel: p.displayLabel, colorCode: p.colorCode, sortOrder: p.sortOrder },
+            create: p,
+        });
+    }
+
+    // 15. DEFAULT CUSTOM FIELDS
+    console.log('Seeding default custom fields...');
+    const defaultCustomFields = [
+        {
+            moduleKey: 'ENTREPRENEUR',
+            fieldKey: 'is_exporting',
+            label: 'İhracat Yapıyor mu?',
+            fieldType: 'BOOLEAN',
+            isPublic: true,
+            sortOrder: 1,
+        },
+        {
+            moduleKey: 'ENTREPRENEUR',
+            fieldKey: 'trl_level',
+            label: 'Teknolojik Hazırlık Seviyesi (TRL)',
+            fieldType: 'SELECT',
+            optionsJson: JSON.stringify(['TRL 1-3 (Fikir/Temel Ar-Ge)', 'TRL 4-6 (Prototip/Doğrulama)', 'TRL 7-9 (Ticarileşme/Saha)']),
+            isPublic: true,
+            sortOrder: 2,
+        },
+        {
+            moduleKey: 'ENTREPRENEUR',
+            fieldKey: 'annual_revenue',
+            label: 'Yıllık Ciro (TRY)',
+            fieldType: 'CURRENCY',
+            viewPermission: 'finance_view',
+            editPermission: 'finance_edit',
+            isPublic: false,
+            sortOrder: 3,
+        },
+    ];
+
+    for (const cf of defaultCustomFields) {
+        await prisma.customFieldDefinition.upsert({
+            where: { moduleKey_fieldKey: { moduleKey: cf.moduleKey, fieldKey: cf.fieldKey } },
+            update: { label: cf.label, fieldType: cf.fieldType },
+            create: cf,
+        });
+    }
+
     console.log('✅ Seeding completed successfully!');
 }
 

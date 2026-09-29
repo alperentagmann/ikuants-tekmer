@@ -3,14 +3,25 @@ import assert from 'node:assert';
 import { siteContent } from '../data/content';
 
 describe('Content & Database Seed Data Parity', () => {
-    test('siteContent has all 24 initial entrepreneurs defined with complete fields', () => {
+    test('siteContent has public entrepreneurs defined with complete fields and excludes unpublished entries', () => {
         const { list } = siteContent.entrepreneurs;
-        assert.ok(list.length >= 24, `Expected at least 24 entrepreneurs, got ${list.length}`);
+        assert.ok(list.length >= 15, `Expected at least 15 public entrepreneurs, got ${list.length}`);
+
+        const hiddenNames = [
+            'Aleaza Development Solutions',
+            'Ability Pool Blşm. Yaz. Tic. Eğt. Dan. Ve R&G A.Ş.',
+            'Kulüpbirliğim Bilişim İletişim ve Danışmanlık Ltd. Şti.',
+            'Hazır Cevap Akıllı Teknolojiler Ve Sürdürülebilirlik Ltd. Şti.',
+            'Altelca Aviation',
+            'M-RADS (Medical Reporting and Detection System)',
+            'Elevatora',
+        ];
 
         list.forEach((ent) => {
             assert.ok(ent.name, 'Entrepreneur must have a name');
             assert.ok(ent.type, `Entrepreneur ${ent.name} must have a sector/type`);
             assert.ok(ent.level, `Entrepreneur ${ent.name} must have a stage`);
+            assert.ok(!hiddenNames.includes(ent.name), `Hidden company ${ent.name} should not be in public list`);
         });
     });
 
