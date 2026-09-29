@@ -66,6 +66,19 @@ model User {
   sentInvites            UserInvite[]        @relation("UserInviter")
   passwordResetTokens    PasswordResetToken[]
   securityEvents         SecurityEvent[]
+
+  // Personal Workspace & Reports relations
+  personalTodos          PersonalTodo[]
+  personalNotes          PersonalNote[]
+  userReminders          UserReminder[]
+  favorites              UserFavorite[]
+  recentItems            RecentItem[]
+  meetingNotes           MeetingNote[]
+  delegations            UserDelegation[]    @relation("UserDelegations")
+  delegatedTo            UserDelegation[]    @relation("UserDelegatedTo")
+  widgetConfigs          DashboardWidgetConfig[]
+  authoredReports        OperationalReport[] @relation("ReportAuthor")
+  approvedReports        OperationalReport[] @relation("ReportApprover")
 }
 
 model Role {
@@ -2407,5 +2420,233 @@ model SocialContentLink {
   @@index([socialPostId])
   @@index([entityType, entityId])
 }
+
+// ----------------------------------------------------------------------------
+// ENTERPRISE: PERSONAL WORKSPACE & DAILY OPERATIONS (BENİM GÜNÜM)
+// ----------------------------------------------------------------------------
+
+model PersonalTodo {
+  id                String    @id @default(uuid())
+  userId            String
+  title             String
+  description       String?   @db.Text
+  dueDate           DateTime?
+  dueTime           String?   // e.g. "14:30"
+  priority          String    @default("MEDIUM") // LOW, MEDIUM, HIGH, URGENT
+  category          String    @default("GENERAL") // GENERAL, MEETING, FOLLOW_UP, REVIEW, CALL
+  isCompleted       Boolean   @default(false)
+  completedAt       DateTime?
+  reminderDate      DateTime?
+  reminderChannel   String?   @default("IN_APP") // IN_APP, EMAIL, TEAMS
+  relatedEntityType String?   // Entrepreneur, Mentor, Project, Application, Task
+  relatedEntityId   String?
+  convertedTaskId   String?
+  sortOrder         Int       @default(0)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isCompleted])
+  @@index([dueDate])
+}
+
+model PersonalNote {
+  id                String    @id @default(uuid())
+  userId            String
+  title             String
+  content           String    @db.Text
+  isShared          Boolean   @default(false)
+  sharedWithRoles   String?   // JSON array of roles or userIds
+  relatedEntityType String?   // Entrepreneur, Mentor, Project, Meeting, Application
+  relatedEntityId   String?
+  isPinned          Boolean   @default(false)
+  color             String?   @default("#0f172a")
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([relatedEntityType, relatedEntityId])
+}
+
+model UserReminder {
+  id                String    @id @default(uuid())
+  userId            String
+  title             String
+  description       String?
+  remindAt          DateTime
+  channel           String    @default("IN_APP") // IN_APP, EMAIL, TEAMS
+  isTriggered       Boolean   @default(false)
+  triggeredAt       DateTime?
+  relatedEntityType String?
+  relatedEntityId   String?
+  actionUrl         String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([remindAt])
+  @@index([isTriggered])
+}
+
+model UserFavorite {
+  id         String   @id @default(uuid())
+  userId     String
+  entityType String   // Entrepreneur, Mentor, Project, Task, Report, Page
+  entityId   String
+  title      String
+  url        String
+  createdAt  DateTime @default(now())
+
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, entityType, entityId])
+  @@index([userId])
+}
+
+model RecentItem {
+  id         String   @id @default(uuid())
+  userId     String
+  entityType String   // Entrepreneur, Mentor, Project, Task, Application, News, Event
+  entityId   String
+  title      String
+  url        String
+  viewedAt   DateTime @default(now())
+
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, entityType, entityId])
+  @@index([userId, viewedAt])
+}
+
+model MeetingNote {
+  id              String    @id @default(uuid())
+  meetingId       String?   // Link to CalendarEvent / TrainingSession if applicable
+  title           String
+  agenda          String?   @db.Text
+  attendees       String?   // JSON array of [{ name, email, role }]
+  notes           String    @db.Text
+  decisions       String?   @db.Text
+  actionsJson     String?   // JSON array of action items [{ text, assigneeId, dueDate }]
+  filesJson       String?   // JSON array of attachments [{ name, url, size }]
+  teamsJoinUrl    String?   @db.Text
+  createdById     String
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  user            User      @relation(fields: [createdById], references: [id], onDelete: Cascade)
+
+  @@index([createdById])
+  @@index([meetingId])
+}
+
+model UserDelegation {
+  id              String    @id @default(uuid())
+  userId          String    // Delegator (User giving authority)
+  delegateUserId  String    // Delegate (User receiving authority)
+  startDate       DateTime
+  endDate         DateTime
+  scope           String    @default("ALL") // ALL, TASKS, APPROVALS
+  reason          String?
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  user            User      @relation("UserDelegations", fields: [userId], references: [id], onDelete: Cascade)
+  delegate        User      @relation("UserDelegatedTo", fields: [delegateUserId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([delegateUserId])
+  @@index([isActive])
+}
+
+model DashboardWidgetConfig {
+  id        String   @id @default(uuid())
+  userId    String
+  widgetKey String   // tasks, meetings, approvals, applications, notes, reminders, recent, email
+  posX      Int      @default(0)
+  posY      Int      @default(0)
+  width     Int      @default(1)
+  height    Int      @default(1)
+  isVisible Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, widgetKey])
+  @@index([userId])
+}
+
+// ----------------------------------------------------------------------------
+// ENTERPRISE: MERKEZİ RAPORLAMA & MANAGEMENT INTELLIGENCE CENTER
+// ----------------------------------------------------------------------------
+
+model OperationalReport {
+  id                 String    @id @default(uuid())
+  title              String
+  slug               String    @unique
+  reportType         String    // DAILY, MONTHLY, TEAM, YEARLY, SOCIAL, CROSS_CHANNEL, CUSTOM
+  periodStart        DateTime
+  periodEnd          DateTime
+  authorId           String
+  department         String?
+  status             String    @default("DRAFT") // DRAFT, IN_REVIEW, APPROVED, PUBLISHED, ARCHIVED
+  executiveSummary   String?   @db.Text
+  aiDraftSummary     String?   @db.Text
+  contentJson        String?   @db.Text // Modular report blocks and text sections
+  metricsJson        String?   @db.Text // Computed facts and KPIs from live database
+  chartsConfigJson   String?   @db.Text // Charts and visualization configuration
+  approvedById       String?
+  approvedAt         DateTime?
+  version            Int       @default(1)
+  isScheduled        Boolean   @default(false)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  author             User      @relation("ReportAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  approvedBy         User?     @relation("ReportApprover", fields: [approvedById], references: [id], onDelete: SetNull)
+
+  @@index([reportType])
+  @@index([status])
+  @@index([authorId])
+  @@index([periodStart, periodEnd])
+}
+
+model ReportTemplate {
+  id                 String    @id @default(uuid())
+  key                String    @unique
+  title              String
+  description        String?
+  category           String    @default("GENERAL") // DAILY, MONTHLY, YEARLY, PROGRAM, EVENT, MENTORSHIP, SOCIAL, PROJECT
+  defaultLayoutJson  String?   @db.Text
+  defaultMetricsJson String?   @db.Text
+  isSystem           Boolean   @default(true)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+}
+
+model ReportSchedule {
+  id                 String    @id @default(uuid())
+  title              String
+  reportType         String    @default("DAILY") // DAILY, WEEKLY, MONTHLY, YEARLY
+  frequency          String    // DAILY_1800, WEEKLY_MON, MONTHLY_1ST, YEARLY_JAN1
+  cronExpression     String?
+  targetRole         String?
+  recipientsJson     String    // JSON array of recipient emails
+  lastRunAt          DateTime?
+  nextRunAt          DateTime?
+  isActive           Boolean   @default(true)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@index([isActive])
+}
+
 
 
