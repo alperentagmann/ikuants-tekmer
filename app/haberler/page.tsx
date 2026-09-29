@@ -346,6 +346,7 @@ interface NewsItem {
 }
 
 export default function HaberlerPage() {
+    const [newsList, setNewsList] = useState<NewsItem[]>(news);
     const [selectedCategory, setSelectedCategory] = useState("Tümü");
     const [selectedNews, setSelectedNews] = useState<NewsItem | null>(null);
     const [showRsvpForm, setShowRsvpForm] = useState(false);
@@ -353,11 +354,37 @@ export default function HaberlerPage() {
     const [rsvpSubmitted, setRsvpSubmitted] = useState(false);
     const [isKvkkComplete, setIsKvkkComplete] = useState(false);
 
-    const filteredNews = selectedCategory === "Tümü"
-        ? news
-        : news.filter(item => item.category === selectedCategory);
+    useEffect(() => {
+        const load = async () => {
+            try {
+                const res = await fetch('/api/public/news');
+                const data = await res.json();
+                if (data.success && Array.isArray(data.news) && data.news.length > 0) {
+                    setNewsList(data.news.map((n: any) => ({
+                        id: n.id,
+                        title: n.title,
+                        excerpt: n.excerpt || '',
+                        fullContent: n.fullContent || n.content || '',
+                        date: n.date || '',
+                        category: n.category || 'Duyuru',
+                        image: n.image || '/images/news-placeholder.jpg',
+                        gallery: Array.isArray(n.gallery) ? n.gallery : [],
+                        featured: !!n.featured,
+                        registrationLink: n.registrationLink,
+                    })));
+                }
+            } catch {
+                // Fallback to static news
+            }
+        };
+        load();
+    }, []);
 
-    const featuredNews = news.find(n => n.featured);
+    const filteredNews = selectedCategory === "Tümü"
+        ? newsList
+        : newsList.filter(item => item.category === selectedCategory);
+
+    const featuredNews = newsList.find(n => n.featured) || newsList[0];
     const regularNews = filteredNews.filter(n => n.id !== featuredNews?.id || selectedCategory !== "Tümü");
 
     const closeModal = () => {

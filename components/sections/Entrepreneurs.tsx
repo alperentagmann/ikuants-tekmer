@@ -1,16 +1,40 @@
 "use client";
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { siteContent } from "@/data/content";
+import { Rocket, Shield, Globe, Cpu, Zap, Activity } from "lucide-react";
 
 export const Entrepreneurs = () => {
-    const { entrepreneurs } = siteContent;
+    const { entrepreneurs: defaultData } = siteContent;
+    const [list, setList] = useState(defaultData.list);
+
+    useEffect(() => {
+        const load = async () => {
+            try {
+                const res = await fetch('/api/public/entrepreneurs');
+                const data = await res.json();
+                if (data.success && data.entrepreneurs && data.entrepreneurs.length > 0) {
+                    setList(data.entrepreneurs.map((ent: any, i: number) => ({
+                        id: ent.id || `ent-${i}`,
+                        name: ent.name,
+                        type: ent.sector || 'Teknoloji',
+                        level: ent.stage || 'Girişim',
+                        service: ent.description || '',
+                        keywords: ent.tags || [],
+                        icon: Rocket,
+                        color: "text-primary",
+                    })));
+                }
+            } catch {
+                // Fallback to static list
+            }
+        };
+        load();
+    }, []);
 
     return (
         <section id="entrepreneurs" className="py-24 relative overflow-hidden bg-gray-50 dark:bg-[#050510] transition-colors duration-300">
-
-
             <div className="container mx-auto px-6 max-w-7xl">
                 <div className="text-center mb-16">
                     <motion.h2
@@ -19,21 +43,21 @@ export const Entrepreneurs = () => {
                         viewport={{ once: true }}
                         className="font-orbitron font-bold text-4xl md:text-5xl mb-4 text-black dark:text-white"
                     >
-                        {entrepreneurs.header}
+                        {defaultData.header}
                     </motion.h2>
                     <p className="text-black/70 dark:text-gray-400 max-w-xl mx-auto">
-                        {entrepreneurs.description}
+                        {defaultData.description}
                     </p>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    {entrepreneurs.list.map((startup, i) => (
+                    {list.map((startup: any, i: number) => (
                         <motion.div
-                            key={startup.id}
+                            key={startup.id || i}
                             initial={{ opacity: 0, scale: 0.9 }}
                             whileInView={{ opacity: 1, scale: 1 }}
                             viewport={{ once: true }}
-                            transition={{ delay: i * 0.05 }}
+                            transition={{ delay: (i % 6) * 0.05 }}
                             className="group relative h-56 bg-white dark:bg-[#0f0f1a] border border-gray-200 dark:border-white/5 hover:border-primary/50 rounded-lg overflow-hidden transition-all duration-300 shadow-md dark:shadow-none"
                         >
                             <div className="absolute inset-0 bg-primary/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
@@ -41,10 +65,14 @@ export const Entrepreneurs = () => {
                             {/* Front of the card */}
                             <div className="absolute inset-0 flex flex-col items-center justify-center p-6 z-10 transition-transform duration-500 group-hover:-translate-y-full">
                                 <div className="w-16 h-16 rounded-full bg-gray-100 dark:bg-black/50 border border-gray-200 dark:border-white/10 flex items-center justify-center mb-4 group-hover:scale-110 group-hover:border-secondary transition-all shadow-lg dark:shadow-[0_0_15px_rgba(0,0,0,0.5)]">
-                                    <startup.icon className={`w-8 h-8 ${startup.color}`} />
+                                    {startup.icon ? (
+                                        <startup.icon className={`w-8 h-8 ${startup.color || 'text-primary'}`} />
+                                    ) : (
+                                        <Rocket className="w-8 h-8 text-primary" />
+                                    )}
                                 </div>
 
-                                <h3 className="font-orbitron font-bold text-center text-lg text-black dark:text-white tracking-widest group-hover:text-secondary transition-colors line-clamp-2">
+                                <h3 className="font-orbitron font-bold text-center text-lg text-black dark:text-white tracking-widest group-hover:text-secondary transition-colors line-clamp-2 px-2">
                                     {startup.name}
                                 </h3>
 
@@ -81,7 +109,6 @@ export const Entrepreneurs = () => {
                             <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-gray-300 dark:border-white/30 group-hover:border-secondary transition-colors" />
 
                             <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/5 to-transparent h-[200%] w-full animate-[scan_3s_linear_infinite] opacity-0 group-hover:opacity-100 pointer-events-none" />
-
                         </motion.div>
                     ))}
                 </div>
@@ -91,7 +118,6 @@ export const Entrepreneurs = () => {
                         SİZ DE BURADA YER ALMAK İÇİN BAŞVURUN
                     </Link>
                 </div>
-
             </div>
         </section>
     );

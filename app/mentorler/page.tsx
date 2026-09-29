@@ -1,10 +1,10 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Users, Linkedin, Award, Briefcase, GraduationCap, ChevronDown, ExternalLink } from "lucide-react";
+import { Users, Linkedin, Award, Briefcase, ChevronDown } from "lucide-react";
 import Link from "next/link";
 
-const mentors = [
+const staticMentors = [
     { name: "Zico Ufuk Batum", company: "Ventures & Mentors League", title: "Founder", image: "/images/zico-ufuk-batum.jpg", linkedin: "https://www.linkedin.com/in/zico-ufuk-batum-51238950/" },
     { name: "Onur Yolay", company: "Innoway R&D Kft.", title: "Co-Founder", image: "/images/onur-yolay.jpg", linkedin: "https://www.linkedin.com/in/onuryolay/" },
     { name: "Nizamettin Sami Harputlu", company: "Startup Centrum", title: "Co-Founder", image: "/images/nizamettin-harputlu.jpg", linkedin: "https://www.linkedin.com/in/nizamettinsamiharputlu/" },
@@ -47,8 +47,31 @@ const getColor = (index: number) => {
 };
 
 export default function MentorlerPage() {
+    const [mentorsList, setMentorsList] = useState(staticMentors);
     const [showAll, setShowAll] = useState(false);
-    const displayedMentors = showAll ? mentors : mentors.slice(0, 12);
+
+    useEffect(() => {
+        const loadMentors = async () => {
+            try {
+                const res = await fetch('/api/public/mentors');
+                const data = await res.json();
+                if (data.success && data.mentors && data.mentors.length > 0) {
+                    setMentorsList(data.mentors.map((m: any) => ({
+                        name: m.fullName || `${m.name} ${m.surname}`.trim(),
+                        company: m.company,
+                        title: m.title,
+                        image: m.imageUrl || '',
+                        linkedin: m.linkedin || ''
+                    })));
+                }
+            } catch {
+                // Fallback to staticMentors
+            }
+        };
+        loadMentors();
+    }, []);
+
+    const displayedMentors = showAll ? mentorsList : mentorsList.slice(0, 12);
 
     return (
         <div className="py-24 relative min-h-screen bg-gray-50 dark:bg-[#050510] transition-colors duration-300">
@@ -119,13 +142,13 @@ export default function MentorlerPage() {
                 </div>
 
                 {/* Show More Button */}
-                {mentors.length > 12 && !showAll && (
+                {mentorsList.length > 12 && !showAll && (
                     <div className="text-center mb-16">
                         <button
                             onClick={() => setShowAll(true)}
                             className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-white hover:border-primary/50 transition-all shadow-sm"
                         >
-                            Tümünü Göster ({mentors.length - 12} daha)
+                            Tümünü Göster ({mentorsList.length - 12} daha)
                             <ChevronDown className="w-4 h-4" />
                         </button>
                     </div>

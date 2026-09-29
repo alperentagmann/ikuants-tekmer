@@ -1,0 +1,408 @@
+import { PrismaClient } from '@prisma/client';
+import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
+
+const prisma = new PrismaClient();
+
+async function main() {
+    console.log('🌱 Starting database seeding for İKÜANTS TEKMER...');
+
+    // 1. SYSTEM PERMISSIONS
+    console.log('Inserting permissions...');
+    const permissions = [
+        { action: '*', resource: '*', description: 'Tüm yetkiler' },
+        { action: 'view', resource: 'dashboard', description: 'Dashboard görüntüleme' },
+        { action: 'view', resource: 'analytics', description: 'Analitikleri görme' },
+        { action: '*', resource: 'entrepreneurs', description: 'Girişimcileri yönetme' },
+        { action: 'view', resource: 'entrepreneurs', description: 'Girişimcileri görme' },
+        { action: '*', resource: 'mentors', description: 'Mentörleri yönetme' },
+        { action: 'view', resource: 'mentors', description: 'Mentörleri görme' },
+        { action: '*', resource: 'programs', description: 'Programları yönetme' },
+        { action: 'view', resource: 'programs', description: 'Programları görme' },
+        { action: '*', resource: 'news', description: 'Haberleri yönetme' },
+        { action: 'view', resource: 'news', description: 'Haberleri görme' },
+        { action: '*', resource: 'applications', description: 'Başvuruları yönetme' },
+        { action: 'view', resource: 'applications', description: 'Başvuruları görme' },
+        { action: 'view_sensitive', resource: 'applications', description: 'Hassas PII verilerini görme' },
+        { action: '*', resource: 'forms', description: 'Formları yönetme' },
+        { action: '*', resource: 'contacts', description: 'İletişim taleplerini yönetme' },
+        { action: '*', resource: 'media', description: 'Medya kütüphanesini yönetme' },
+        { action: '*', resource: 'settings', description: 'Ayarları yönetme' },
+        { action: 'view', resource: 'audit_logs', description: 'Audit loglarını görme' },
+        { action: 'view', resource: 'system_health', description: 'Sistem durumunu görme' },
+        { action: '*', resource: 'users', description: 'Kullanıcıları yönetme' },
+    ];
+
+    const permMap = new Map<string, string>();
+    for (const p of permissions) {
+        const record = await prisma.permission.upsert({
+            where: { action_resource: { action: p.action, resource: p.resource } },
+            update: { description: p.description },
+            create: p,
+        });
+        permMap.set(`${p.action}:${p.resource}`, record.id);
+    }
+
+    // 2. ROLES
+    console.log('Inserting roles...');
+    const superAdminRole = await prisma.role.upsert({
+        where: { slug: 'super-admin' },
+        update: {},
+        create: {
+            name: 'Süper Yönetici',
+            slug: 'super-admin',
+            description: 'Tüm yetkilere tam erişim',
+            isSystem: true,
+        },
+    });
+
+    const adminRole = await prisma.role.upsert({
+        where: { slug: 'admin' },
+        update: {},
+        create: {
+            name: 'Yönetici (Admin)',
+            slug: 'admin',
+            description: 'Operasyonel modüllere tam erişim',
+            isSystem: true,
+        },
+    });
+
+    const editorRole = await prisma.role.upsert({
+        where: { slug: 'content-editor' },
+        update: {},
+        create: {
+            name: 'İçerik Editörü',
+            slug: 'content-editor',
+            description: 'Haber, etkinlik ve medya içeriklerini düzenleme',
+            isSystem: true,
+        },
+    });
+
+    const appManagerRole = await prisma.role.upsert({
+        where: { slug: 'application-manager' },
+        update: {},
+        create: {
+            name: 'Başvuru Yöneticisi',
+            slug: 'application-manager',
+            description: 'Başvuruları inceleme, puanlama ve CRM yönetimi',
+            isSystem: true,
+        },
+    });
+
+    // Link Super Admin to *:*
+    const allPermId = permMap.get('*:*');
+    if (allPermId) {
+        await prisma.rolePermission.upsert({
+            where: { roleId_permissionId: { roleId: superAdminRole.id, permissionId: allPermId } },
+            update: {},
+            create: { roleId: superAdminRole.id, permissionId: allPermId },
+        });
+    }
+
+    // 3. ROLES & PERMISSIONS READY
+    console.log('✅ Permissions and roles seeded successfully.');
+    console.log('ℹ️  Security Notice: Hardcoded super admin password in seed has been removed.');
+    console.log('👉 To create your initial Super Admin account interactively, run: npm run admin create\n');
+
+    // 4. MENTORS SEED
+    console.log('Seeding existing mentors...');
+    const initialMentors = [
+        { name: "Zico Ufuk", surname: "Batum", company: "Ventures & Mentors League", title: "Founder", imageUrl: "/images/zico-ufuk-batum.jpg", linkedin: "https://www.linkedin.com/in/zico-ufuk-batum-51238950/" },
+        { name: "Onur", surname: "Yolay", company: "Innoway R&D Kft.", title: "Co-Founder", imageUrl: "/images/onur-yolay.jpg", linkedin: "https://www.linkedin.com/in/onuryolay/" },
+        { name: "Nizamettin Sami", surname: "Harputlu", company: "Startup Centrum", title: "Co-Founder", imageUrl: "/images/nizamettin-harputlu.jpg", linkedin: "https://www.linkedin.com/in/nizamettinsamiharputlu/" },
+        { name: "Abdulsamet", surname: "Ekşi", company: "Türk Havacılık ve Uzay Sanayii", title: "Technology and Innovation Management", imageUrl: "/images/abdulsamet-eksi.jpg", linkedin: "https://www.linkedin.com/in/abdulsameteksi/" },
+        { name: "Bikem", surname: "İnce İnanç", company: "Malogra Danışmanlık", title: "Founder", imageUrl: "/images/bikem-ince.jpg", linkedin: "https://www.linkedin.com/in/bikeminceinanc/" },
+        { name: "Büşra", surname: "Altınsoy", company: "Pexa Boru Sanayi", title: "Yönetim Kurulu Üyesi", imageUrl: "/images/busra-altinsoy.jpg", linkedin: "https://www.linkedin.com/in/busraaltinsoy/" },
+        { name: "Sıla", surname: "Dinçer", company: "Ödeal", title: "R&D Manager", imageUrl: "/images/sila-dincer.jpg", linkedin: "https://www.linkedin.com/in/siladincer/" },
+        { name: "Filiz", surname: "Aksoy", company: "Bilişim Teknolojileri", title: "Proje ve Ürün Yöneticisi", imageUrl: "/images/filiz-aksoy.png", linkedin: "https://www.linkedin.com/in/filiz-aksoy/" },
+        { name: "Pelin", surname: "Özkuzey", company: "Satış & Pazarlama", title: "Danışman", imageUrl: "/images/pelin-ozkuzey.jpg", linkedin: "https://www.linkedin.com/in/pelin-ozkuzey-71223712/" },
+        { name: "Belma", surname: "Tost", company: "Pluxee Türkiye", title: "Senior Service & Experience Designer", imageUrl: "/images/belma-tost.jpg", linkedin: "https://www.linkedin.com/in/belma-tost" },
+        { name: "Dr. Öğr. Üyesi Burçin", surname: "Ataseven Doğru", company: "İstanbul Kültür Üniversitesi", title: "İktisadi ve İdari Bilimler Fakültesi", imageUrl: "/images/burcin-ataseven.jpg", linkedin: "https://www.linkedin.com/in/dr-bur%C3%A7in-ataseven-do%C4%9Fru-689800250/" },
+        { name: "Öğr. Gör. Ezgi", surname: "Delen", company: "İzmir Bakırçay Üniversitesi", title: "Girişimcilik Atölyesi ve Yarışmalar Koordinatörlüğü", imageUrl: "/images/ezgi-delen.jpg", linkedin: "https://www.linkedin.com/in/ezgi-delen" },
+        { name: "Kenan", surname: "Keleş", company: "Palmiye Yazılım Teknolojileri Tic. Ltd. Şti.", title: "Co-Founder", imageUrl: "/images/kenan-keles.jpg", linkedin: "https://www.linkedin.com/in/mak-m%C3%BCh-kenan-kele%C5%9F-b4336a38/" },
+        { name: "Süleyman", surname: "Bayramoğlu", company: "Pexa Boru Sanayi Anonim Şirketi", title: "CEO", imageUrl: "/images/suleyman-bayramoglu.jpg", linkedin: "https://www.linkedin.com/in/suleyman-bayramoglu/" },
+        { name: "Günalp", surname: "Uysal", company: "Beezsoft", title: "Founder", imageUrl: "/images/gunalp-uysal.jpg", linkedin: "https://www.linkedin.com/in/gunalpuysal/" },
+        { name: "Emre", surname: "Gül", company: "FiProduct – VRHistoria", title: "Product Manager", imageUrl: "/images/emre-gul.jpg", linkedin: "https://www.fiproduct.com/" },
+        { name: "Melis Dünya", surname: "Sezer Türker", company: "FiProduct - VRHistoria", title: "Kreatif Direktör", imageUrl: "/images/melis-dunya-sezer.jpg", linkedin: "https://www.fiproduct.com/" },
+        { name: "Müge", surname: "Bezgin", company: "Startup Centrum", title: "Co-Founder", imageUrl: "/images/muge-bezgin.jpg", linkedin: "https://www.linkedin.com/in/mugebezgin/" },
+        { name: "Doç. Dr. Meri", surname: "Taksi Deveciyan", company: "İstanbul Kültür Üniversitesi", title: "İktisadi ve İdari Bilimler Fakültesi", imageUrl: "/images/meri-taksi.jpg", linkedin: "https://www.linkedin.com/in/meritaksideveciyan/" },
+        { name: "Doğukan", surname: "Gözalp", company: "Startup Centrum", title: "Business Developer & Start-up Mentor", imageUrl: "/images/dogukan-gozalp.jpg", linkedin: "https://www.linkedin.com/in/dogukanozalp/" },
+        { name: "Tuncay", surname: "Işıkçı", company: "Malogra Danışmanlık", title: "Finansal Yönetim Ekip Lideri", imageUrl: "/images/tuncay-isikci.jpg", linkedin: "https://www.linkedin.com/in/tuncay-i%C5%9F%C4%B1k%C3%A7%C4%B1-20b978222/" },
+        { name: "Yusuf", surname: "Kelpetin", company: "AtakDx", title: "Founder", imageUrl: "/images/yusuf-yilmaz-mentor.jpg", linkedin: "https://www.linkedin.com/in/yusuf-kelpetin-a016533a/" },
+    ];
+
+    for (let i = 0; i < initialMentors.length; i++) {
+        const m = initialMentors[i];
+        const existing = await prisma.mentor.findFirst({
+            where: { name: m.name, surname: m.surname },
+        });
+        if (!existing) {
+            await prisma.mentor.create({
+                data: {
+                    ...m,
+                    isActive: true,
+                    isFeatured: i < 6,
+                    sortOrder: i,
+                },
+            });
+        }
+    }
+
+    // 5. ENTREPRENEURS SEED
+    console.log('Seeding existing entrepreneurs...');
+    const initialEntrepreneurs = [
+        { name: "Pexa Boru San. A.Ş.", slug: "pexa-boru-san-as", sector: "Sanayi", shortDesc: "Boru ve endüstriyel üretim sanayi çözümleri." },
+        { name: "Serazio Danışmanlık İletişim Ve Satış Tic. Ltd. Şti.", slug: "serazio-danismanlik", sector: "E-Ticaret / Marketplace / İç Mimari", shortDesc: "Premium iç mekân markalarını mimarlar ve son kullanıcılarla buluşturan küratörlü pazaryeri platformudur." },
+        { name: "Aleaza Development Solutions", slug: "aleaza-development", sector: "Robotik / Güvenlik Teknolojileri", shortDesc: "Güvenlik ve savunma ile iş sağlığı alanlarına yönelik akıllı robotik çözümler geliştirir." },
+        { name: "Ability Pool Blşm. Yaz. Tic. Eğt. Dan. Ve R&G A.Ş.", slug: "ability-pool", sector: "Sosyal Etki / Kurumsal Gönüllülük / SaaS", shortDesc: "Kurumların gönüllülük, bağış ve sosyal sorumluluk süreçlerini dijitalleştiren sosyal etki platformudur." },
+        { name: "Atakdx Mühendislik Ve Danışmanlık Hizmetleri Ltd. Şti.", slug: "atakdx-muhendislik", sector: "Mühendislik", shortDesc: "İleri mühendislik ve simülasyon danışmanlık hizmetleri." },
+        { name: "MathTalk", slug: "mathtalk", sector: "Eğitim Teknolojileri / Yapay Zekâ", shortDesc: "Doğal dil ile matematik problemlerini anlayıp çözüm üreten AI destekli problem çözüm platformudur." },
+        { name: "Palmiye Bilgi Teknolojileri Sanayi ve Ticaret Limited Şirketi", slug: "palmiye-bilgi-teknolojileri", sector: "GovTech / Satınalma Süreç Yazılımı", shortDesc: "Doğrudan temin satınalma süreçlerini tek platformda standartlaştıran ve evrak/rapor üretimi yapan yazılımdır." },
+        { name: "Kulüpbirliğim Bilişim İletişim ve Danışmanlık Ltd. Şti.", slug: "kulupbirligim", sector: "EdTech / Community Platform / Sponsorluk Ağı", shortDesc: "Üniversite kulüpleri, sponsorlar ve öğrencileri bir araya getiren etkinlik ve sponsorluk ekosistem platformudur." },
+        { name: "FiProduct", slug: "fiproduct", sector: "Ürün Geliştirme / VR", shortDesc: "Kültürel mirası 3D modelleme ile yeniden inşa edip VR ortamında interaktif deneyimlere dönüştürür." },
+        { name: "İnterfiber Bilişim Teknoloji Ticaret Limited Şirketi", slug: "interfiber-bilisim", sector: "Telekom / İnternet Servis Sağlayıcı / Wi-Fi Çözümleri", shortDesc: "Kurumsal internet altyapısı, 5G destekli yedekli bağlantı ve Wi-Fi portal/reklam entegrasyonu sağlar." },
+        { name: "3B Postür ve Hareket Analiz Girişimi", slug: "3b-postur-hareket", sector: "Sağlık Teknolojileri / 3D Analiz", shortDesc: "Radyasyonsuz 3B postür ve hareket analizi ile klinik süreçlere dijital karar destek sunar." },
+        { name: "Ung Sağlık Teknolojileri Ürünleri Ve Hiz. San. Tic. Ltd. Şti.", slug: "ung-saglik-teknolojileri", sector: "Dijital Sağlık / Yapay Zekâ / Diş Sağlığı", shortDesc: "TMB ve bruksizm için yapay zekâ destekli klinik karar destek ve hasta takip platformu geliştirir." },
+        { name: "Napolion Kahve Ticareti Ve Lojistik Limited Şirketi", slug: "napolion-kahve", sector: "Yazılım", shortDesc: "Teknoloji destekli lojistik ve tedarik çözümleri." },
+        { name: "İPDM Plan Proje Destekleme Merkezleri ve Dan. Hiz. Ltd. Şti.", slug: "ipdm-plan-proje", sector: "B2B Yazılım / Ar-Ge Süreç Yönetimi", shortDesc: "Ar-Ge birimleri için süreç, kaynak, risk ve doküman yönetimini bütünleşik sunan yazılımlar geliştirir." },
+        { name: "Funexagon Oyun Teknolojileri Sanayi Ve Ticaret A.Ş.", slug: "funexagon-oyun", sector: "Oyun Teknolojileri / DOOH / Yaratıcı Teknolojiler", shortDesc: "Unreal Engine tabanlı oyunlar ve anamorfik DOOH/immersive dijital deneyim çözümleri üretir." },
+        { name: "Allesgut Teknoloji Ltd. Şti.", slug: "allesgut-teknoloji", sector: "Sağlık B2B E-Ticaret / Marketplace", shortDesc: "Ecza depoları ile eczaneleri buluşturan B2B dijital sipariş ve tedarik platformu geliştirir." },
+        { name: "İlter İç Ve Dış Ltd. Şti.", slug: "ilter-ic-dis", sector: "Yapay Zekâ / Computer Vision / Davranış Analitiği", shortDesc: "Beden dili ve mikro ifadeleri analiz eden yapay zekâ tabanlı platform geliştirir." },
+        { name: "İnvo Proje Danışmanlık Hizmetleri Ltd. Şti.", slug: "invo-proje", sector: "FinTech / GovTech / Yapay Zekâ SaaS", shortDesc: "KOBİ’ler için hibe-teşvik eşleştirme, başvuru asistanı ve proje yönetimi sağlayan AI destekli platform sunar." },
+        { name: "Hazır Cevap Akıllı Teknolojiler Ve Sürdürülebilirlik Ltd. Şti.", slug: "hazir-cevap", sector: "Lojistik Teknolojileri / Mobil SaaS", shortDesc: "Uluslararası taşımacılıkta sürücü takibi, evrak yönetimi ve operasyon dijitalleşmesi sağlayan mobil platform geliştirir." },
+        { name: "Altelca Aviation", slug: "altelca-aviation", sector: "Havacılık Teknolojileri / Simülasyon", shortDesc: "Havacılık eğitimine yönelik hareketli uçuş simülatörleri ve ilgili yazılım-donanım entegrasyonları geliştirir." },
+        { name: "M-RADS (Medical Reporting and Detection System)", slug: "m-rads", sector: "Sağlıkta Yapay Zekâ / Medikal Görüntüleme", shortDesc: "MRI/CT/USG gibi görüntülerden ön tanı ve raporlama desteği veren çok modaliteli medikal AI karar destek sistemi geliştirir." },
+        { name: "Elevatora", slug: "elevatora", sector: "ERP / KOBİ Dijital Dönüşüm", shortDesc: "İmalat ve saha hizmetleri KOBİ’leri için modüler bulut ERP (stok-üretim-CRM-finans-saha) çözümleri sunar." },
+        { name: "Fatma Patlar Akbulut (Akfa)", slug: "akfa-guvenlik", sector: "Siber Güvenlik / Yapay Zekâ Güvenliği / RegTech", shortDesc: "LLM’ler için prompt injection/jailbreak/PII sızıntısı gibi riskleri test eden ve EU AI Act uyum araçları sunan platformdur." },
+        { name: "Insprefex Yazılım Danışmanlık Anonim Şirketi", slug: "insprefex", sector: "Customer Experience / Analytics / Yapay Zekâ", shortDesc: "NPS/CSAT/CES gibi metrikleri tek havuzda toplayıp analitik ve AI ile müşteri içgörüsü üreten CX platformudur." },
+        { name: "Emre Ertürk Ve Oğuzhan Gökduman Ortaklığı", slug: "emre-erturk-oguzhan-gokduman", sector: "Yazılım / Teknoloji", shortDesc: "Yeni eklenen ortaklık girişimi." }
+    ];
+
+    for (let i = 0; i < initialEntrepreneurs.length; i++) {
+        const ent = initialEntrepreneurs[i];
+        const existing = await prisma.entrepreneur.findUnique({ where: { slug: ent.slug } });
+        if (!existing) {
+            await prisma.entrepreneur.create({
+                data: {
+                    ...ent,
+                    status: 'ACTIVE',
+                    isFeatured: i < 6,
+                    sortOrder: i,
+                },
+            });
+        }
+    }
+
+    // 6. CATEGORIES & NEWS SEED
+    console.log('Seeding categories and news...');
+    const catEvent = await prisma.category.upsert({ where: { slug: 'etkinlik' }, update: {}, create: { name: 'Etkinlik', slug: 'etkinlik', type: 'EVENT' } });
+    const catProgram = await prisma.category.upsert({ where: { slug: 'program' }, update: {}, create: { name: 'Program', slug: 'program', type: 'PROGRAM' } });
+    const catAnnouncement = await prisma.category.upsert({ where: { slug: 'duyuru' }, update: {}, create: { name: 'Duyuru', slug: 'duyuru', type: 'NEWS' } });
+
+    const initialNews = [
+        {
+            title: "ANTSPARK Demoday 2026 Gerçekleştirildi: Girişimcilik Ekosistemi İKÜANTS TEKMER Çatısı Altında Buluştu",
+            slug: "antspark-demoday-2026-gerceklestirildi",
+            excerpt: "İKÜANTS TEKMER tarafından yürütülen ANTSPARK Ön Kuluçka Programı kapsamında düzenlenen ANTSPARK Demoday 2026, girişimcilik ekosisteminin önemli paydaşlarını bir araya getirdi.",
+            content: "İKÜANTS TEKMER tarafından yürütülen ANTSPARK Ön Kuluçka Programı kapsamında düzenlenen ANTSPARK Demoday 2026, girişimcilik ekosisteminin önemli paydaşlarını, yatırımcıları, mentörleri ve kamu temsilcilerini bir araya getirdi.\n\nDemoday etkinliği kapsamında gerçekleştirilen ödül töreninde dereceye giren girişimcilere nakit ödüller ve CMS yazılım destekleri takdim edildi.",
+            coverImage: "/images/news/antspark-demoday-2026/05.jpg",
+            categoryId: catEvent.id,
+            status: "PUBLISHED",
+            publishedAt: new Date("2026-02-18"),
+            eventDate: "18 Şubat 2026",
+            isFeatured: true,
+            showOnHome: true,
+        },
+        {
+            title: "İKÜANTS TEKMER Staj Başvuruları Açıldı",
+            slug: "ikuants-tekmer-staj-basvurulari-acildi",
+            excerpt: "İKÜANTS TEKMER bünyesinde faaliyet gösteren girişimci firmaların stajyer talepleri ile öğrenciler için staj başvuruları açıldı.",
+            content: "İKÜANTS TEKMER bünyesinde faaliyet gösteren girişimci firmaların stajyer talepleri ile staj yapmak isteyen öğrenciler için staj başvuruları açıldı.",
+            coverImage: "/images/news/staj-basvurulari/01.jpg",
+            categoryId: catAnnouncement.id,
+            status: "PUBLISHED",
+            publishedAt: new Date("2025-02-05"),
+            eventDate: "05 Şubat 2025",
+            isFeatured: false,
+            showOnHome: true,
+        },
+        {
+            title: "TÜBİTAK Proje Destekleri Eğitimi",
+            slug: "tubitak-proje-destekleri-egitimi",
+            excerpt: "İKÜANTS TEKMER koordinasyonunda TÜBİTAK TEYDEB 1501, 1507 ve 1707 Ar-Ge Destek Programları hakkında çevrim içi eğitim düzenlenecek.",
+            content: "İKÜANTS TEKMER koordinasyonunda; ATLAS TEKMER, İstanbul Ticaret Üniversitesi TTO, BTM TEKMER ve Maribor Mühendislik paydaşlığında eğitim düzenlendi.",
+            coverImage: "/images/news/tubitak-egitim/01.png",
+            categoryId: catAnnouncement.id,
+            status: "PUBLISHED",
+            publishedAt: new Date("2026-01-27"),
+            eventDate: "27 Ocak 2026",
+            registrationLink: "https://forms.gle/rCGsZPwatVXRCbqM7",
+            isFeatured: true,
+            showOnHome: true,
+        },
+    ];
+
+    for (const newsItem of initialNews) {
+        const existing = await prisma.news.findUnique({ where: { slug: newsItem.slug } });
+        if (!existing) {
+            await prisma.news.create({ data: newsItem });
+        }
+    }
+
+    // 7. PROGRAMS SEED
+    console.log('Seeding programs...');
+    const initialPrograms = [
+        {
+            name: "ANTSPARK Ön Kuluçka Programı",
+            slug: "antspark-on-kulucka",
+            programType: "PRE_INCUBATION",
+            tagline: "Fikirden Ticarileşmeye Hızlı Başlangıç",
+            shortDesc: "Erken aşama teknoloji girişimcilerine yönelik 12 haftalık hızlandırma ve mentörlük programı.",
+            duration: "12 Hafta",
+            quota: "20 Girişim",
+            mentorHours: "70+ Saat",
+            applyStatus: "OPEN",
+            ctaText: "ANTSPARK'A BAŞVUR",
+            ctaLink: "/antspark-basvuru",
+            isFeatured: true,
+            sortOrder: 1,
+        },
+        {
+            name: "ANTSFire Kuluçka Programı",
+            slug: "antsfire-kulucka",
+            programType: "INCUBATION",
+            tagline: "Şirketleşen Girişimler İçin Büyüme ve Yatırım",
+            shortDesc: "Tescilli, şirketleşmiş teknoloji girişimleri için ofis, laboratuvar, yatırım erişimi ve küresel pazara açılma programı.",
+            duration: "24 Ay",
+            quota: "15 Şirket",
+            mentorHours: "150+ Saat",
+            applyStatus: "OPEN",
+            ctaText: "ANTSFIRE'A BAŞVUR",
+            ctaLink: "/antsfire-basvuru",
+            isFeatured: true,
+            sortOrder: 2,
+        },
+        {
+            name: "Glow Up Ideathon",
+            slug: "glow-up-ideathon",
+            programType: "IDEATHON",
+            tagline: "Yaratıcı Fikirlerin Yarıştığı 48 Saatlik İnovasyon Maratonu",
+            shortDesc: "Genç yenilikçiler ve öğrenciler için ödüllü hackathon & ideathon serisi.",
+            duration: "48 Saat",
+            quota: "100 Katılımcı",
+            applyStatus: "UPCOMING",
+            ctaText: "ETKİNLİK DETAYLARI",
+            ctaLink: "/glowup-basvuru",
+            isFeatured: false,
+            sortOrder: 3,
+        }
+    ];
+
+    for (const prog of initialPrograms) {
+        const existing = await prisma.program.findUnique({ where: { slug: prog.slug } });
+        if (!existing) {
+            await prisma.program.create({ data: prog });
+        }
+    }
+
+    // 8. SUPPORTS SEED
+    console.log('Seeding supports...');
+    const initialSupports = [
+        { title: "AR-GE VE TASARIM İNDİRİMİ", description: "Ar-Ge ve yenilik veya tasarım harcamalarının tamamı (%100'ü) kurum kazancının tespitinde indirim konusu yapılmaktadır.", sortOrder: 1 },
+        { title: "GELİR VERGİSİ STOPAJI TEŞVİKİ", description: "Teknoloji merkezlerinde çalışan Ar-Ge ve destek personelinin elde ettikleri ücretler üzerinden hesaplanan gelir vergisinin belirli oranları vergiden indirilebilir.", sortOrder: 2 },
+        { title: "SİGORTA PRİMİ DESTEĞİ", description: "Teknoloji merkezlerinde çalışan Ar-Ge ve destek personelinin elde ettikleri ücretler üzerinden hesaplanan sigorta primi işveren hissesinin %50'si karşılanmaktadır.", sortOrder: 3 },
+        { title: "DAMGA VERGİSİ İSTİSNASI", description: "Ar-Ge ve yenilik faaliyetleri ile ilgili olarak düzenlenen kağıtlar damga vergisinden istisnadır.", sortOrder: 4 },
+        { title: "GÜMRÜK VERGİSİ İSTİSNASI", description: "Ar-Ge, yenilik ve tasarım projeleri ile ilgili araştırmalarda kullanılmak üzere ithal edilen eşya gümrük vergisinden ve diğer harcamalardan istisnadır.", sortOrder: 5 },
+        { title: "TEMEL BİLİMLER DESTEĞİ", description: "En az lisans derecesine sahip Ar-Ge personeli için asgari ücretin brüt tutarı kadarlık kısmı Bakanlık bütçesinden karşılanır.", sortOrder: 6 },
+    ];
+
+    for (const supp of initialSupports) {
+        const existing = await prisma.support.findFirst({ where: { title: supp.title } });
+        if (!existing) {
+            await prisma.support.create({ data: supp });
+        }
+    }
+
+    // 9. DEFAULT MENUS SEED
+    console.log('Seeding default menus...');
+    const headerMenuItems = [
+        { label: 'Girişimciler', url: '/girisimciler', menuLocation: 'HEADER', sortOrder: 1 },
+        { label: 'Mentörler', url: '/mentorler', menuLocation: 'HEADER', sortOrder: 2 },
+        { label: 'Programlar', url: '/programlar', menuLocation: 'HEADER', sortOrder: 3 },
+        { label: 'Destekler', url: '/destekler', menuLocation: 'HEADER', sortOrder: 4 },
+        { label: 'Haberler', url: '/haberler', menuLocation: 'HEADER', sortOrder: 5 },
+        { label: 'İletişim', url: '/iletisim', menuLocation: 'HEADER', sortOrder: 6 },
+    ];
+
+    for (const item of headerMenuItems) {
+        const existing = await prisma.menuItem.findFirst({
+            where: { label: item.label, menuLocation: item.menuLocation },
+        });
+        if (!existing) {
+            await prisma.menuItem.create({
+                data: {
+                    label: item.label,
+                    url: item.url,
+                    menuLocation: item.menuLocation,
+                    sortOrder: item.sortOrder,
+                    isActive: true,
+                },
+            });
+        }
+    }
+
+    // 10. DEFAULT SITE SETTINGS
+    console.log('Seeding default site settings...');
+    const defaultSettings = [
+        { key: 'site_title', value: 'İKÜANTS TEKMER | İnovasyon ve Teknoloji Merkezi', group: 'GENERAL', description: 'Site başlığı' },
+        { key: 'contact_address', value: 'Ataköy 7-8-9-10. Kısım Mah. Çobançeşme E-5 Yan Yol Cad. No: 14 A Bakırköy 34158 İstanbul', group: 'CONTACT', description: 'Merkez adresi' },
+        { key: 'contact_email', value: 'info@ikuantstekmer.com', group: 'CONTACT', description: 'Resmi e-posta adresi' },
+        { key: 'contact_phone', value: '(0212) 498 41 62', group: 'CONTACT', description: 'Telefon numarası' },
+        { key: 'social_instagram', value: 'https://www.instagram.com/ikuantstekmer/', group: 'SOCIAL', description: 'Instagram profili' },
+        { key: 'social_linkedin', value: 'https://www.linkedin.com/company/ikuants-tekmer/', group: 'SOCIAL', description: 'LinkedIn sayfası' },
+        { key: 'social_whatsapp', value: 'https://chat.whatsapp.com/LAg3l2cUSFOHBn0miCO9lz', group: 'SOCIAL', description: 'WhatsApp kanalı' },
+    ];
+
+    for (const s of defaultSettings) {
+        await prisma.siteSetting.upsert({
+            where: { key: s.key },
+            update: {},
+            create: s,
+        });
+    }
+
+    // 11. EVALUATION TEMPLATE
+    console.log('Seeding evaluation templates...');
+    const existingTemplate = await prisma.evaluationTemplate.findFirst({
+        where: { name: "İKÜANTS Standart Jüri & Mentör Değerlendirme Matrisi" }
+    });
+
+    if (!existingTemplate) {
+        await prisma.evaluationTemplate.create({
+            data: {
+                name: "İKÜANTS Standart Jüri & Mentör Değerlendirme Matrisi",
+                description: "Girişim başvuruları için standart 5 boyutlu değerlendirme kriterleri",
+                criteria: {
+                    create: [
+                        { name: "Yenilikçilik ve Özgünlük", maxScore: 10, weight: 1.2, sortOrder: 1 },
+                        { name: "Pazar Büyüklüğü ve Ticarileşme Potansiyeli", maxScore: 10, weight: 1.5, sortOrder: 2 },
+                        { name: "Ekip Yetkinliği ve Taahhüt", maxScore: 10, weight: 1.3, sortOrder: 3 },
+                        { name: "Teknik Uygulanabilirlik (TRL)", maxScore: 10, weight: 1.0, sortOrder: 4 },
+                        { name: "TEKMER İhtiyaç / Katma Değer Uyumu", maxScore: 10, weight: 1.0, sortOrder: 5 },
+                    ]
+                }
+            }
+        });
+    }
+
+    console.log('✅ Seeding completed successfully!');
+}
+
+main()
+    .catch((e) => {
+        console.error('❌ Error during seeding:', e);
+        process.exit(1);
+    })
+    .finally(async () => {
+        await prisma.$disconnect();
+    });

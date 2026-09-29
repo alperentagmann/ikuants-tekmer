@@ -1,0 +1,1998 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ----------------------------------------------------------------------------
+// AUTHENTICATION & RBAC
+// ----------------------------------------------------------------------------
+
+model User {
+  id                String             @id @default(uuid())
+  email             String             @unique
+  passwordHash      String
+  name              String
+  phone             String?
+  avatarUrl         String?
+  isActive          Boolean            @default(true)
+  isSuperAdmin      Boolean            @default(false)
+  lastLoginAt       DateTime?
+  lastLoginIp       String?
+  mfaSecret         String?
+  isMfaEnabled      Boolean            @default(false)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  userRoles         UserRole[]
+  userPermissions   UserPermission[]
+  sessions          Session[]
+  auditLogs         AuditLog[]
+  assignedApps      Application[]      @relation("AssignedTo")
+  assignedContacts  ContactRequest[]   @relation("AssignedContact")
+  evaluations       Evaluation[]
+  applicationNotes  ApplicationNote[]
+  notifications     Notification[]
+  publishedForms    FormVersion[]      @relation("FormPublisher")
+  uploadedMedia     Media[]
+  
+  // V3 Task & Collaboration relations
+  createdTasks      Task[]             @relation("TaskCreator")
+  assignedTasks     TaskAssignee[]
+  taskComments      TaskComment[]
+  createdActivities CorporateActivity[] @relation("ActivityCreator")
+  createdProjects   Project[]           @relation("ProjectCreator")
+  workflowApprovals WorkflowApproval[] @relation("ApprovalReviewer")
+  requestedApprovals WorkflowApproval[] @relation("ApprovalRequester")
+
+  // V4 Enterprise relations
+  reservations      Reservation[]
+  managedContracts  Contract[]          @relation("ContractManager")
+  createdArticles   KnowledgeArticle[]  @relation("ArticleAuthor")
+  portalAccounts    PortalAccount[]
+  aiLogs            AiTaskLog[]
+}
+
+model Role {
+  id          String           @id @default(uuid())
+  name        String           @unique
+  slug        String           @unique
+  description String?
+  isSystem    Boolean          @default(false)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  userRoles   UserRole[]
+  permissions RolePermission[]
+}
+
+model Permission {
+  id          String           @id @default(uuid())
+  action      String           // e.g. create, edit, publish, delete, view_sensitive, export, *
+  resource    String           // e.g. news, mentors, entrepreneurs, applications, tasks, calendar, activities, trainings, events, homepage, approvals, directory, *
+  description String?
+  createdAt   DateTime         @default(now())
+
+  rolePermissions RolePermission[]
+  userPermissions UserPermission[]
+
+  @@unique([action, resource])
+}
+
+model RolePermission {
+  id           String     @id @default(uuid())
+  roleId       String
+  permissionId String
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+}
+
+model UserRole {
+  id        String   @id @default(uuid())
+  userId    String
+  roleId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId])
+}
+
+model UserPermission {
+  id           String     @id @default(uuid())
+  userId       String
+  permissionId String
+  isGranted    Boolean    @default(true) // true: granted extra, false: explicitly denied
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, permissionId])
+}
+
+model Session {
+  id           String   @id @default(uuid())
+  userId       String
+  sessionToken String   @unique
+  ipAddress    String?
+  userAgent    String?
+  isValid      Boolean  @default(true)
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([sessionToken])
+}
+
+model LoginAttempt {
+  id            String   @id @default(uuid())
+  email         String
+  ipAddress     String
+  userAgent     String?
+  isSuccess     Boolean
+  failureReason String?
+  createdAt     DateTime @default(now())
+
+  @@index([email])
+  @@index([ipAddress])
+  @@index([createdAt])
+}
+
+// ----------------------------------------------------------------------------
+// AUDIT LOG, REVISION HISTORY & TIMELINE
+// ----------------------------------------------------------------------------
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  actorId     String?
+  actorEmail  String?
+  actorName   String?
+  action      String   // CREATE, UPDATE, DELETE, RESTORE, LOGIN, LOGOUT, PUBLISH, UNPUBLISH, EXPORT, PII_ACCESS, ASSIGN, APPROVE, REJECT
+  entityType  String   // Mentor, News, Application, Task, Training, Event, CorporateActivity, HeroSlide, etc.
+  entityId    String?
+  fieldName   String?  // If single field update
+  oldValues   String?  // JSON stringified
+  newValues   String?  // JSON stringified
+  diff        String?  // JSON diff or human summary
+  ipAddress   String?
+  userAgent   String?
+  isPiiAccess Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  actor       User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([entityType, entityId])
+  @@index([actorId])
+  @@index([action])
+  @@index([createdAt])
+}
+
+model Revision {
+  id            String   @id @default(uuid())
+  entityType    String   // News, Program, Entrepreneur, Mentor, Page, Form, SiteSetting, HeroSlide, Training, Event, CorporateActivity
+  entityId      String
+  version       Int
+  data          String   // Complete snapshot JSON
+  changeSummary String?
+  authorId      String?
+  authorName    String?
+  createdAt     DateTime @default(now())
+
+  @@unique([entityType, entityId, version])
+  @@index([entityType, entityId])
+}
+
+model ActivityTimeline {
+  id          String   @id @default(uuid())
+  entityType  String   // Application, ContactRequest, Mentor, Entrepreneur, Task, Training, Event, CorporateActivity
+  entityId    String
+  title       String
+  description String?
+  eventType   String   // STATUS_CHANGE, NOTE_ADDED, FILE_UPLOADED, EMAIL_SENT, EVALUATION_SCORED, ASSIGNED, COMPLETED, APPROVED
+  actorId     String?
+  actorName   String?
+  metadata    String?  // JSON
+  createdAt   DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([createdAt])
+}
+
+// ----------------------------------------------------------------------------
+// HOME & HERO SECTION MANAGEMENT (V3)
+// ----------------------------------------------------------------------------
+
+model HeroSlide {
+  id            String    @id @default(uuid())
+  title         String
+  subtitle      String?
+  badgeText     String?
+  description   String?
+  mediaType     String    @default("IMAGE") // IMAGE, VIDEO
+  mediaUrl      String    // Desktop media URL
+  mobileMediaUrl String?  // Mobile specific media URL
+  videoEmbedUrl String?
+  overlayColor  String?   @default("rgba(5, 5, 16, 0.7)")
+  primaryCtaText String?  @default("HEMEN BAŞVUR")
+  primaryCtaLink String?  @default("/basvuru")
+  secondaryCtaText String? @default("DETAYLI BİLGİ")
+  secondaryCtaLink String? @default("/programlar")
+  statsJson     String?   // JSON array of stats [{title, subtitle, icon}]
+  sortOrder     Int       @default(0)
+  status        String    @default("PUBLISHED") // DRAFT, REVIEW, APPROVED, PUBLISHED, ARCHIVED
+  startDate     DateTime?
+  endDate       DateTime?
+  isActive      Boolean   @default(true)
+  isArchived    Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([sortOrder])
+  @@index([status])
+  @@index([isActive])
+}
+
+model HomepageSection {
+  id            String    @id @default(uuid())
+  sectionKey    String    @unique // hero, differences, programs, entrepreneurs, mentors, news, events, supports, partners, cta, announcement_bar, footer
+  title         String
+  subtitle      String?
+  description   String?
+  customConfig  String?   // JSON configuration
+  sortOrder     Int       @default(0)
+  isVisible     Boolean   @default(true)
+  isDraft       Boolean   @default(false)
+  updatedAt     DateTime  @updatedAt
+}
+
+// ----------------------------------------------------------------------------
+// ENTREPRENEURS & MENTORS (V3 ENHANCED)
+// ----------------------------------------------------------------------------
+
+model Entrepreneur {
+  id             String    @id @default(uuid())
+  name           String
+  slug           String    @unique
+  logoUrl        String?
+  coverUrl       String?
+  gallery        String?   // JSON fallback
+  founderAvatars String?   // JSON fallback
+  sector         String
+  subSector      String?
+  shortDesc      String?
+  longDesc       String?
+  keywords       String?
+  founders       String?
+  website        String?
+  linkedin       String?
+  instagram      String?
+  otherSocials   String?
+  email          String?
+  phone          String?
+  program        String?   // e.g. ANTSPARK, ANTSFire
+  incubationType String?   // Pre-incubation, Incubation, Growth
+  startDate      DateTime?
+  graduationDate DateTime?
+  status         String    @default("ACTIVE") // ACTIVE, GRADUATED, PASSIVE
+  isFeatured     Boolean   @default(false)
+  sortOrder      Int       @default(0)
+  isArchived     Boolean   @default(false)
+  
+  // V3 Extended Operational Fields
+  milestones     String?   // Legacy JSON fallback
+  grantsReceived String?   // Legacy JSON fallback
+  investments    String?   // Legacy JSON fallback
+  successStory   String?   // Rich markdown success story
+  patents        String?   // Legacy JSON fallback
+  prototypes     String?   // JSON array of [{ title, trlLevel, description, demoUrl }]
+  files          String?   // Legacy JSON fallback
+  
+  seoTitle       String?
+  seoDescription String?
+  ogImageUrl     String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  // V3 Relational Connections
+  founderMembers      EntrepreneurFounder[]
+  relationalInvestments EntrepreneurInvestment[]
+  relationalPatents   EntrepreneurPatent[]
+  relationalGrants    EntrepreneurGrant[]
+  relationalMilestones EntrepreneurMilestone[]
+  relationalDocuments EntrepreneurDocument[]
+  galleryImages       EntrepreneurGallery[]
+  mentorSessions      MentorSession[]
+  projects            Project[]
+
+  tasks          Task[]
+  activities     CorporateActivity[]
+  portalAccounts PortalAccount[]
+
+  @@index([status])
+  @@index([sector])
+  @@index([sortOrder])
+}
+
+model EntrepreneurFounder {
+  id             String       @id @default(uuid())
+  entrepreneurId String
+  fullName       String
+  title          String?
+  email          String?
+  phone          String?
+  avatarUrl      String?
+  bio            String?
+  linkedin       String?
+  isLead         Boolean      @default(false)
+  sortOrder      Int          @default(0)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  entrepreneur   Entrepreneur @relation(fields: [entrepreneurId], references: [id], onDelete: Cascade)
+
+  @@index([entrepreneurId])
+}
+
+model EntrepreneurInvestment {
+  id             String       @id @default(uuid())
+  entrepreneurId String
+  investorName   String
+  round          String       @default("SEED") // PRE_SEED, SEED, BRIDGE, SERIES_A, SERIES_B, CROWDFUNDING, ANGEL
+  amount         Float
+  currency       String       @default("TRY") // TRY, USD, EUR
+  valuation      Float?
+  investmentDate DateTime
+  isPublic       Boolean      @default(false) // RBAC sensitive
+  notes          String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  entrepreneur   Entrepreneur @relation(fields: [entrepreneurId], references: [id], onDelete: Cascade)
+
+  @@index([entrepreneurId])
+  @@index([investmentDate])
+}
+
+model EntrepreneurPatent {
+  id                 String       @id @default(uuid())
+  entrepreneurId     String
+  title              String
+  applicationNumber  String?
+  registrationNumber String?
+  patentType         String       @default("PATENT") // PATENT, UTILITY_MODEL, DESIGN, TRADEMARK
+  status             String       @default("APPLICATION") // APPLICATION, PENDING, GRANTED, REJECTED
+  filingDate         DateTime?
+  grantDate          DateTime?
+  documentUrl        String?
+  notes              String?
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  entrepreneur       Entrepreneur @relation(fields: [entrepreneurId], references: [id], onDelete: Cascade)
+
+  @@index([entrepreneurId])
+  @@index([status])
+}
+
+model EntrepreneurGrant {
+  id             String       @id @default(uuid())
+  entrepreneurId String
+  grantorName    String       // KOSGEB, TÜBİTAK, İSTKA, AB Ufuk, vb.
+  programName    String       // e.g. "KOSGEB Ar-Ge ve İnovasyon Destek Programı"
+  grantAmount    Float
+  currency       String       @default("TRY")
+  status         String       @default("COMPLETED") // APPLIED, APPROVED, IN_PROGRESS, COMPLETED, CANCELLED
+  awardedDate    DateTime?
+  projectCode    String?
+  notes          String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  entrepreneur   Entrepreneur @relation(fields: [entrepreneurId], references: [id], onDelete: Cascade)
+
+  @@index([entrepreneurId])
+  @@index([grantorName])
+}
+
+model EntrepreneurMilestone {
+  id             String       @id @default(uuid())
+  entrepreneurId String
+  title          String
+  description    String?
+  milestoneDate  DateTime
+  isCompleted    Boolean      @default(false)
+  sortOrder      Int          @default(0)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  entrepreneur   Entrepreneur @relation(fields: [entrepreneurId], references: [id], onDelete: Cascade)
+
+  @@index([entrepreneurId])
+  @@index([milestoneDate])
+}
+
+model EntrepreneurDocument {
+  id             String       @id @default(uuid())
+  entrepreneurId String
+  title          String
+  fileUrl        String
+  fileType       String       @default("DOCUMENT") // LOGO, COVER, CONTRACT, FINANCIAL, REPORT, PRESENTATION, CERTIFICATE
+  fileSize       Int?
+  mimeType       String?
+  isConfidential Boolean      @default(true) // Private document
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  entrepreneur   Entrepreneur @relation(fields: [entrepreneurId], references: [id], onDelete: Cascade)
+
+  @@index([entrepreneurId])
+}
+
+model EntrepreneurGallery {
+  id             String       @id @default(uuid())
+  entrepreneurId String
+  imageUrl       String
+  caption        String?
+  sortOrder      Int          @default(0)
+  createdAt      DateTime     @default(now())
+
+  entrepreneur   Entrepreneur @relation(fields: [entrepreneurId], references: [id], onDelete: Cascade)
+
+  @@index([entrepreneurId])
+  @@index([sortOrder])
+}
+
+model Mentor {
+  id              String    @id @default(uuid())
+  name            String
+  surname         String
+  company         String
+  title           String
+  expertiseAreas  String?   // JSON array
+  bio             String?
+  imageUrl        String?
+  linkedin        String?
+  email           String?
+  phone           String?
+  website         String?
+  mentorAreas     String?   // JSON array
+  programIds      String?   // Legacy JSON
+  availability    String?   @default("AVAILABLE") // AVAILABLE, BUSY, INACTIVE
+  totalHours      Float?    @default(0)
+  notes           String?
+  isActive        Boolean   @default(true)
+  isFeatured      Boolean   @default(false)
+  sortOrder       Int       @default(0)
+  isArchived      Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  mentorPrograms  MentorProgram[]
+  mentorSessions  MentorSession[]
+  trainings       TrainingInstructor[]
+  tasks           Task[]
+  activities      CorporateActivity[]
+  portalAccounts  PortalAccount[]
+
+  @@index([isActive])
+  @@index([sortOrder])
+}
+
+model MentorProgram {
+  id        String   @id @default(uuid())
+  mentorId  String
+  programId String
+  role      String   @default("MENTOR") // LEAD_MENTOR, MENTOR, JURY, ADVISOR
+  createdAt DateTime @default(now())
+
+  mentor    Mentor   @relation(fields: [mentorId], references: [id], onDelete: Cascade)
+  program   Program  @relation(fields: [programId], references: [id], onDelete: Cascade)
+
+  @@unique([mentorId, programId])
+  @@index([mentorId])
+  @@index([programId])
+}
+
+model MentorSession {
+  id              String         @id @default(uuid())
+  mentorId        String
+  entrepreneurId  String?
+  sessionDate     DateTime
+  durationMinutes Int            @default(60)
+  topic           String
+  notes           String?        // Meeting summary
+  status          String         @default("COMPLETED") // SCHEDULED, COMPLETED, CANCELLED, NO_SHOW
+  meetingUrl      String?
+  feedbackRating  Int?           // 1 to 5
+  feedbackText    String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  mentor          Mentor         @relation(fields: [mentorId], references: [id], onDelete: Cascade)
+  entrepreneur    Entrepreneur?  @relation(fields: [entrepreneurId], references: [id], onDelete: SetNull)
+
+  @@index([mentorId])
+  @@index([entrepreneurId])
+  @@index([sessionDate])
+}
+
+// ----------------------------------------------------------------------------
+// PROGRAMS, TRAININGS & CURRICULUM (V3)
+// ----------------------------------------------------------------------------
+
+model Program {
+  id             String    @id @default(uuid())
+  name           String
+  slug           String    @unique
+  programType    String?   // PRE_INCUBATION, INCUBATION, ACCELERATION, IDEATHON
+  tagline        String?
+  shortDesc      String?
+  detailedDesc   String?
+  logoUrl        String?
+  coverUrl       String?
+  gallery        String?   // JSON array
+  colorCode      String?   // CSS color gradient or hex
+  duration       String?   // e.g. "12 Hafta"
+  quota          String?   // e.g. "20 Girişim"
+  mentorHours    String?   // e.g. "70+ Saat"
+  startDate      DateTime?
+  endDate        DateTime?
+  applyStartDate DateTime?
+  applyEndDate   DateTime?
+  applyStatus    String    @default("OPEN") // OPEN, UPCOMING, CLOSED
+  features       String?   // JSON array of { title, desc, icon }
+  supports       String?   // JSON array of strings
+  modules        String?   // JSON array of { title, desc, duration }
+  jury           String?   // JSON array of members
+  partners       String?   // JSON array of partner logos/names
+  programManager String?
+  ctaText        String?   @default("HEMEN BAŞVUR")
+  ctaLink        String?   @default("/basvuru")
+  isFeatured     Boolean   @default(false)
+  sortOrder      Int       @default(0)
+  isArchived     Boolean   @default(false)
+  seoTitle       String?
+  seoDescription String?
+  ogImageUrl     String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  applications   Application[]
+  trainings      Training[]
+  mentorPrograms MentorProgram[]
+  projects       Project[]
+  tasks          Task[]
+  activities     CorporateActivity[]
+
+  @@index([applyStatus])
+  @@index([sortOrder])
+}
+
+model Training {
+  id             String    @id @default(uuid())
+  programId      String
+  title          String
+  slug           String    @unique
+  description    String?
+  objective      String?   // Eğitim hedefi ve kazanımları
+  moduleName     String?   // e.g. "Modül 1: Fikri Mülkiyet ve Patent"
+  weekNumber     Int?      // e.g. 1 (1. Hafta)
+  topics         String?   // JSON array of topic strings
+  format         String    @default("HYBRID") // PHYSICAL, ONLINE, HYBRID
+  location       String?   // Fiziksel salon veya adres
+  onlineMeetingUrl String? // Zoom/Teams linki
+  startDate      DateTime
+  endDate        DateTime?
+  durationMinutes Int?     @default(120)
+  capacity       Int?      @default(30)
+  registrationFormId String?
+  materials      String?   // JSON array of [{ title, fileUrl, type }]
+  homework       String?   // JSON array of [{ title, desc, dueDate }]
+  status         String    @default("SCHEDULED") // DRAFT, SCHEDULED, IN_PROGRESS, COMPLETED, CANCELLED
+  isPublic       Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  program        Program   @relation(fields: [programId], references: [id], onDelete: Cascade)
+  instructors    TrainingInstructor[]
+  sessions       TrainingSession[]
+  enrollments    TrainingEnrollment[]
+  feedback       TrainingFeedback[]
+  tasks          Task[]
+  activities     CorporateActivity[]
+
+  @@index([programId])
+  @@index([startDate])
+  @@index([status])
+}
+
+model TrainingInstructor {
+  id           String    @id @default(uuid())
+  trainingId   String
+  mentorId     String?   // Link to existing mentor if applicable
+  name         String
+  title        String?
+  organization String?
+  avatarUrl    String?
+  bio          String?
+  email        String?
+  phone        String?
+  isLead       Boolean   @default(false)
+  createdAt    DateTime  @default(now())
+
+  training     Training  @relation(fields: [trainingId], references: [id], onDelete: Cascade)
+  mentor       Mentor?   @relation(fields: [mentorId], references: [id], onDelete: SetNull)
+
+  @@index([trainingId])
+  @@index([mentorId])
+}
+
+model TrainingSession {
+  id             String    @id @default(uuid())
+  trainingId     String
+  sessionTitle   String
+  sessionOrder   Int       @default(1)
+  startTime      DateTime
+  endTime        DateTime
+  roomOrUrl      String?
+  notes          String?
+  createdAt      DateTime  @default(now())
+
+  training       Training  @relation(fields: [trainingId], references: [id], onDelete: Cascade)
+  attendance     TrainingAttendance[]
+
+  @@index([trainingId])
+}
+
+model TrainingEnrollment {
+  id             String    @id @default(uuid())
+  trainingId     String
+  fullName       String
+  email          String
+  phone          String?
+  company        String?
+  role           String?
+  status         String    @default("ENROLLED") // ENROLLED, CONFIRMED, WAITLIST, DROPPED, COMPLETED
+  certificateNo  String?
+  certificateIssuedAt DateTime?
+  createdAt      DateTime  @default(now())
+
+  training       Training  @relation(fields: [trainingId], references: [id], onDelete: Cascade)
+  attendance     TrainingAttendance[]
+  feedback       TrainingFeedback[]
+
+  @@index([trainingId])
+  @@index([email])
+}
+
+model TrainingAttendance {
+  id             String    @id @default(uuid())
+  sessionId      String
+  enrollmentId   String
+  isPresent      Boolean   @default(true)
+  checkInTime    DateTime  @default(now())
+  method         String    @default("MANUAL") // MANUAL, QR_CODE, ONLINE_LOG
+
+  session        TrainingSession    @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  enrollment     TrainingEnrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, enrollmentId])
+  @@index([sessionId])
+}
+
+model TrainingFeedback {
+  id             String    @id @default(uuid())
+  trainingId     String
+  enrollmentId   String?
+  contentScore   Int       // 1 - 5
+  instructorScore Int      // 1 - 5
+  organizationScore Int    // 1 - 5
+  overallScore   Float
+  comments       String?
+  suggestions    String?
+  createdAt      DateTime  @default(now())
+
+  training       Training  @relation(fields: [trainingId], references: [id], onDelete: Cascade)
+  enrollment     TrainingEnrollment? @relation(fields: [enrollmentId], references: [id], onDelete: SetNull)
+
+  @@index([trainingId])
+}
+
+// ----------------------------------------------------------------------------
+// EVENTS & MULTI-SESSION STUDIO (V3)
+// ----------------------------------------------------------------------------
+
+model Category {
+  id          String   @id @default(uuid())
+  name        String
+  slug        String   @unique
+  type        String   @default("NEWS") // NEWS, EVENT, PROGRAM, RESOURCE
+  description String?
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  news        News[]
+  events      Event[]
+}
+
+model Event {
+  id                 String    @id @default(uuid())
+  title              String
+  slug               String    @unique
+  categoryId         String?
+  description        String?   // Rich markdown/text
+  agenda             String?   // Rich text or JSON agenda
+  startDate          DateTime
+  endDate            DateTime?
+  location           String?
+  eventType          String    @default("PHYSICAL") // PHYSICAL, ONLINE, HYBRID
+  mapUrl             String?
+  onlineMeetingUrl   String?
+  quota              Int?
+  registrationLink   String?
+  registrationFormId String?
+  coverImage         String?
+  gallery            String?   // JSON array
+  files              String?   // JSON array
+  eventManager       String?
+  partners           String?   // JSON array of partner names/logos
+  status             String    @default("UPCOMING") // UPCOMING, ONGOING, COMPLETED, CANCELLED
+  isFeatured         Boolean   @default(false)
+  isArchived         Boolean   @default(false)
+  seoTitle           String?
+  seoDescription     String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  category           Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  sessions           EventSession[]
+  speakers           EventSpeaker[]
+  registrations      EventRegistration[]
+  tasks              Task[]
+  activities         CorporateActivity[]
+
+  @@index([status])
+  @@index([startDate])
+  @@index([categoryId])
+}
+
+model EventSession {
+  id          String    @id @default(uuid())
+  eventId     String
+  title       String
+  description String?
+  hallRoom    String?
+  startTime   DateTime
+  endTime     DateTime
+  sortOrder   Int       @default(1)
+  createdAt   DateTime  @default(now())
+
+  event       Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([eventId])
+}
+
+model EventSpeaker {
+  id          String    @id @default(uuid())
+  eventId     String
+  name        String
+  title       String?
+  company     String?
+  avatarUrl   String?
+  bio         String?
+  linkedin    String?
+  sortOrder   Int       @default(0)
+  createdAt   DateTime  @default(now())
+
+  event       Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([eventId])
+}
+
+model EventRegistration {
+  id          String    @id @default(uuid())
+  eventId     String
+  fullName    String
+  email       String
+  phone       String?
+  company     String?
+  title       String?
+  qrCode      String?   @unique
+  status      String    @default("CONFIRMED") // CONFIRMED, WAITLIST, CHECKED_IN, CANCELLED
+  checkedInAt DateTime?
+  notes       String?
+  createdAt   DateTime  @default(now())
+
+  event       Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([eventId])
+  @@index([email])
+}
+
+// ----------------------------------------------------------------------------
+// NEWS & EDITORIAL CONTENT STUDIO (V3)
+// ----------------------------------------------------------------------------
+
+model News {
+  id                 String    @id @default(uuid())
+  title              String
+  slug               String    @unique
+  excerpt            String?
+  content            String    // Main markdown or plain text backup
+  contentBlocks      String?   // JSON array of modular blocks [{ id, type, data, sortOrder }]
+  coverImage         String?
+  coverAltText       String?
+  gallery            String?   // JSON array of image URLs
+  videoUrl           String?
+  fileAttachment     String?
+  categoryId         String?
+  tags               String?   // JSON array of strings
+  author             String?
+  publishedAt        DateTime?
+  eventDate          String?
+  registrationLink   String?
+  isFeatured         Boolean   @default(false)
+  showOnHome         Boolean   @default(false)
+  status             String    @default("DRAFT") // DRAFT, REVIEW, APPROVED, SCHEDULED, PUBLISHED, ARCHIVED
+  scheduledPublishAt DateTime?
+  approvalStatus     String    @default("DRAFT") // DRAFT, PENDING_APPROVAL, APPROVED, REJECTED
+  approvedById       String?
+  
+  // Relations to other entities
+  relatedProgramId   String?
+  relatedMentorId    String?
+  relatedEntrepreneurId String?
+  relatedEventId     String?
+  
+  isArchived         Boolean   @default(false)
+  seoTitle           String?
+  seoDescription     String?
+  canonicalUrl       String?
+  ogImageUrl         String?
+  viewCount          Int       @default(0)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  category           Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  tasks              Task[]
+
+  @@index([status])
+  @@index([publishedAt])
+  @@index([categoryId])
+  @@index([approvalStatus])
+}
+
+// ----------------------------------------------------------------------------
+// TASK & TO-DO MANAGEMENT (V3)
+// ----------------------------------------------------------------------------
+
+model Task {
+  id             String    @id @default(uuid())
+  title          String
+  description    String?   // Rich markdown description
+  status         String    @default("TODO") // TODO, IN_PROGRESS, REVIEW, DONE, CANCELLED
+  priority       String    @default("MEDIUM") // LOW, MEDIUM, HIGH, URGENT
+  createdById    String
+  startDate      DateTime?
+  dueDate        DateTime?
+  completedAt    DateTime?
+  estimatedHours Float?
+  actualHours    Float?
+  tags           String?   // JSON array of tag strings
+  isArchived     Boolean   @default(false)
+  
+  // Polymorphic / Relational Links
+  entrepreneurId String?
+  mentorId       String?
+  programId      String?
+  applicationId  String?
+  newsId         String?
+  eventId        String?
+  trainingId     String?
+  activityId     String?
+
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  creator        User      @relation("TaskCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  entrepreneur   Entrepreneur? @relation(fields: [entrepreneurId], references: [id], onDelete: SetNull)
+  mentor         Mentor?   @relation(fields: [mentorId], references: [id], onDelete: SetNull)
+  program        Program?  @relation(fields: [programId], references: [id], onDelete: SetNull)
+  application    Application? @relation(fields: [applicationId], references: [id], onDelete: SetNull)
+  news           News?     @relation(fields: [newsId], references: [id], onDelete: SetNull)
+  event          Event?    @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  training       Training? @relation(fields: [trainingId], references: [id], onDelete: SetNull)
+  activity       CorporateActivity? @relation(fields: [activityId], references: [id], onDelete: SetNull)
+
+  assignees      TaskAssignee[]
+  checklistItems TaskChecklistItem[]
+  comments       TaskComment[]
+  attachments    TaskAttachment[]
+  activitiesLog  TaskActivity[]
+
+  @@index([status])
+  @@index([priority])
+  @@index([createdById])
+  @@index([dueDate])
+}
+
+model TaskAssignee {
+  id        String   @id @default(uuid())
+  taskId    String
+  userId    String
+  role      String   @default("ASSIGNEE") // ASSIGNEE, REVIEWER, WATCHER
+  createdAt DateTime @default(now())
+
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([taskId, userId])
+  @@index([taskId])
+  @@index([userId])
+}
+
+model TaskChecklistItem {
+  id          String   @id @default(uuid())
+  taskId      String
+  title       String
+  isCompleted Boolean  @default(false)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  task        Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+}
+
+model TaskComment {
+  id        String   @id @default(uuid())
+  taskId    String
+  authorId  String
+  comment   String   // Markdown comment with @mention support
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+}
+
+model TaskAttachment {
+  id        String   @id @default(uuid())
+  taskId    String
+  fileName  String
+  fileUrl   String
+  fileSize  Int?
+  mimeType  String?
+  createdAt DateTime @default(now())
+
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+}
+
+model TaskActivity {
+  id          String   @id @default(uuid())
+  taskId      String
+  actorId     String?
+  actorName   String?
+  action      String   // STATUS_CHANGE, ASSIGNED, COMMENT_ADDED, CHECKLIST_TOGGLED, DUE_DATE_CHANGED
+  description String
+  createdAt   DateTime @default(now())
+
+  task        Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+}
+
+// ----------------------------------------------------------------------------
+// CORPORATE ACTIVITY & EVIDENCE PORTFOLIO (V3)
+// ----------------------------------------------------------------------------
+
+model ActivityCategory {
+  id          String   @id @default(uuid())
+  name        String   // Eğitim, Seminer, Atölye, Mentorluk, Girişimci Görüşmesi, Sanayi İş Birliği, vb.
+  slug        String   @unique
+  colorCode   String?  @default("#6366f1")
+  description String?
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  activities  CorporateActivity[]
+}
+
+model CorporateActivity {
+  id               String    @id @default(uuid())
+  categoryId       String
+  title            String
+  description      String?   // Markdown description
+  activityDate     DateTime
+  endDate          DateTime?
+  location         String?
+  targetAudience   String?
+  participantCount Int?      @default(0)
+  status           String    @default("COMPLETED") // PLANNED, IN_PROGRESS, COMPLETED, CANCELLED
+  
+  // Budget & Financials (RBAC Protected)
+  budgetAmount     Float?
+  currency         String?   @default("TRY")
+  fundingSource    String?   // KOSGEB, TÜBİTAK, İKÜ, Özkaynak
+  
+  // Outcomes & Gains
+  outcomes         String?   // JSON array of key takeaways / achievements
+  outputsJson      String?   // JSON array of tangible outputs (patent, report, etc.)
+  
+  // Relational links
+  programId        String?
+  entrepreneurId   String?
+  mentorId         String?
+  trainingId       String?
+  eventId          String?
+  createdById      String
+  
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  category         ActivityCategory @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  creator          User             @relation("ActivityCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  program          Program?         @relation(fields: [programId], references: [id], onDelete: SetNull)
+  entrepreneur     Entrepreneur?    @relation(fields: [entrepreneurId], references: [id], onDelete: SetNull)
+  mentor           Mentor?          @relation(fields: [mentorId], references: [id], onDelete: SetNull)
+  training         Training?        @relation(fields: [trainingId], references: [id], onDelete: SetNull)
+  event            Event?           @relation(fields: [eventId], references: [id], onDelete: SetNull)
+
+  evidenceFiles    ActivityEvidence[]
+  participants     ActivityParticipant[]
+  tasks            Task[]
+
+  @@index([categoryId])
+  @@index([activityDate])
+  @@index([programId])
+}
+
+model ActivityEvidence {
+  id          String   @id @default(uuid())
+  activityId  String
+  title       String
+  fileUrl     String
+  fileType    String   // PHOTO, DOCUMENT, REPORT, ATTENDANCE_SHEET, INVOICE
+  fileSize    Int?
+  mimeType    String?
+  description String?
+  createdAt   DateTime @default(now())
+
+  activity    CorporateActivity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+
+  @@index([activityId])
+}
+
+model ActivityParticipant {
+  id           String   @id @default(uuid())
+  activityId   String
+  fullName     String
+  organization String?
+  role         String?
+  email        String?
+  createdAt    DateTime @default(now())
+
+  activity     CorporateActivity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+
+  @@index([activityId])
+}
+
+// ----------------------------------------------------------------------------
+// UNIFIED STAKEHOLDER DIRECTORY & ORGANIZATIONS (V3)
+// ----------------------------------------------------------------------------
+
+model Organization {
+  id          String   @id @default(uuid())
+  name        String
+  legalName   String?
+  sector      String?
+  orgType     String   @default("COMPANY") // COMPANY, UNIVERSITY, NGO, PUBLIC, VC_ANGEL, TEKMER
+  taxNumber   String?
+  website     String?
+  email       String?
+  phone       String?
+  address     String?
+  logoUrl     String?
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  contacts    StakeholderContact[]
+  projects    Project[]
+
+  @@index([name])
+}
+
+// ----------------------------------------------------------------------------
+// PROJECT & GRANTS MANAGEMENT (V3 RELATIONAL)
+// ----------------------------------------------------------------------------
+
+model Project {
+  id               String            @id @default(uuid())
+  title            String
+  slug             String            @unique
+  code             String?           // e.g. "KOSGEB-2026-ARGE-012"
+  description      String?
+  projectType      String            @default("KOSGEB") // KOSGEB, TUBITAK, ISTKA, TEKMER, INDUSTRIAL, EU_HORIZON, INTERNAL
+  budgetAmount     Float?
+  currency         String            @default("TRY")
+  fundingAgency    String?
+  startDate        DateTime
+  endDate          DateTime?
+  status           String            @default("ACTIVE") // PROPOSAL, APPROVED, ACTIVE, COMPLETED, SUSPENDED, CANCELLED
+  completionRate   Int               @default(0) // 0-100%
+  createdById      String
+  programId        String?
+  entrepreneurId   String?
+  organizationId   String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  creator          User              @relation("ProjectCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  program          Program?          @relation(fields: [programId], references: [id], onDelete: SetNull)
+  entrepreneur     Entrepreneur?     @relation(fields: [entrepreneurId], references: [id], onDelete: SetNull)
+  organization     Organization?     @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+
+  milestones       ProjectMilestone[]
+  risks            ProjectRisk[]
+  budgetItems      ProjectBudget[]
+
+  @@index([projectType])
+  @@index([status])
+  @@index([createdById])
+}
+
+model ProjectMilestone {
+  id            String    @id @default(uuid())
+  projectId     String
+  title         String
+  description   String?
+  targetDate    DateTime
+  completedDate DateTime?
+  status        String    @default("PENDING") // PENDING, IN_PROGRESS, COMPLETED, DELAYED
+  deliverable   String?   // Deliverable file or description
+  sortOrder     Int       @default(0)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  project       Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([targetDate])
+}
+
+model ProjectRisk {
+  id             String   @id @default(uuid())
+  projectId      String
+  riskTitle      String
+  riskLevel      String   @default("MEDIUM") // LOW, MEDIUM, HIGH, CRITICAL
+  probability    String   @default("MEDIUM") // LOW, MEDIUM, HIGH
+  mitigationPlan String?
+  status         String   @default("OPEN") // OPEN, MITIGATED, CLOSED
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  project        Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+}
+
+model ProjectBudget {
+  id            String   @id @default(uuid())
+  projectId     String
+  category      String   // PERSONNEL, EQUIPMENT, MATERIAL, SERVICE, TRAVEL, OVERHEAD
+  title         String
+  plannedAmount Float
+  spentAmount   Float    @default(0)
+  currency      String   @default("TRY")
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  project       Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+}
+
+model StakeholderContact {
+  id             String    @id @default(uuid())
+  organizationId String?
+  fullName       String
+  title          String?
+  email          String?
+  phone          String?
+  contactType    String    @default("PARTNER") // MENTOR, ENTREPRENEUR, INSTRUCTOR, ACADEMIC, INVESTOR, PARTNER, PUBLIC_REP
+  linkedEntityId String?   // ID of Mentor / Entrepreneur if connected
+  linkedin       String?
+  notes          String?   // Internal CRM notes
+  tags           String?   // JSON array
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+
+  @@index([fullName])
+  @@index([contactType])
+  @@index([email])
+}
+
+// ----------------------------------------------------------------------------
+// WORKFLOW & APPROVALS STUDIO (V3)
+// ----------------------------------------------------------------------------
+
+model WorkflowApproval {
+  id            String    @id @default(uuid())
+  entityType    String    // News, HeroSlide, Program, Event, CorporateActivity
+  entityId      String
+  entityTitle   String
+  requestedById String
+  reviewerId    String?
+  status        String    @default("PENDING") // PENDING, APPROVED, REJECTED, CANCELLED
+  requestNote   String?
+  reviewNote    String?
+  submittedAt   DateTime  @default(now())
+  reviewedAt    DateTime?
+
+  requester     User      @relation("ApprovalRequester", fields: [requestedById], references: [id], onDelete: Cascade)
+  reviewer      User?     @relation("ApprovalReviewer", fields: [reviewerId], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([entityType, entityId])
+  @@index([requestedById])
+}
+
+// ----------------------------------------------------------------------------
+// SUPPORTS & LEGAL INCENTIVES
+// ----------------------------------------------------------------------------
+
+model Support {
+  id              String   @id @default(uuid())
+  title           String
+  description     String
+  legalBasis      String?
+  exampleScenario String?
+  iconName        String?
+  colorGradient   String?
+  sortOrder       Int      @default(0)
+  isActive        Boolean  @default(true)
+  ctaText         String?
+  ctaLink         String?
+  sourceUrl       String?
+  isArchived      Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([sortOrder])
+  @@index([isActive])
+}
+
+// ----------------------------------------------------------------------------
+// FORM BUILDER & FORM VERSIONING
+// ----------------------------------------------------------------------------
+
+model Form {
+  id              String        @id @default(uuid())
+  title           String
+  slug            String        @unique
+  description     String?
+  formType        String        @default("APPLICATION") // APPLICATION, MENTOR, EVENT_REGISTRATION, TRAINING_EVALUATION, VISIT, CONTACT, CUSTOM
+  isPublished     Boolean       @default(false)
+  isArchived      Boolean       @default(false)
+  allowMultiple   Boolean       @default(false)
+  requiresAuth    Boolean       @default(false)
+  successMessage  String?
+  redirectUrl     String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  versions        FormVersion[]
+}
+
+model FormVersion {
+  id             String             @id @default(uuid())
+  formId         String
+  versionNumber  Int
+  schemaSnapshot String             // Complete JSON schema of all steps & fields at this version
+  status         String             @default("DRAFT") // DRAFT, TEST, PUBLISHED, ARCHIVED
+  publishedAt    DateTime?
+  publishedById  String?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  form           Form               @relation(fields: [formId], references: [id], onDelete: Cascade)
+  publisher      User?              @relation("FormPublisher", fields: [publishedById], references: [id], onDelete: SetNull)
+  fields         FormField[]
+  submissions    Submission[]
+  applications   Application[]
+
+  @@unique([formId, versionNumber])
+  @@index([formId])
+}
+
+model FormField {
+  id               String      @id @default(uuid()) // Immutable UUID
+  formVersionId    String
+  fieldKey         String      // e.g. "company_name", "tc_no"
+  label            String
+  fieldType        String      // TEXT, TEXTAREA, EMAIL, PHONE, NUMBER, DATE, TIME, SELECT, MULTISELECT, RADIO, CHECKBOX, FILE, IMAGE, TC_NO, KVKK, DIVIDER, HEADING
+  placeholder      String?
+  helpText         String?
+  isRequired       Boolean     @default(false)
+  defaultValue     String?
+  validationRules  String?     // JSON { min, max, regex, pattern }
+  conditionalRules String?     // JSON { showIfFieldKey, equalsValue }
+  options          String?     // JSON array of options for select/radio
+  stepNumber       Int         @default(1)
+  stepTitle        String?
+  width            String      @default("FULL") // FULL, HALF, THIRD
+  sortOrder        Int         @default(0)
+  createdAt        DateTime    @default(now())
+
+  formVersion      FormVersion @relation(fields: [formVersionId], references: [id], onDelete: Cascade)
+  answers          SubmissionAnswer[]
+
+  @@index([formVersionId])
+  @@index([sortOrder])
+}
+
+model Submission {
+  id               String             @id @default(uuid())
+  formVersionId    String
+  submissionNumber String             @unique // e.g. "SUB-2026-0001"
+  isTest           Boolean            @default(false)
+  status           String             @default("SUBMITTED") // SUBMITTED, REVIEWED, SPAM, ARCHIVED
+  ipAddress        String?
+  userAgent        String?
+  idempotencyKey   String?            @unique
+  rawSnapshot      String             // Snapshot JSON of entire submission payload
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  formVersion      FormVersion        @relation(fields: [formVersionId], references: [id], onDelete: Cascade)
+  answers          SubmissionAnswer[]
+  application      Application?
+
+  @@index([formVersionId])
+  @@index([createdAt])
+}
+
+model SubmissionAnswer {
+  id           String      @id @default(uuid())
+  submissionId String
+  fieldId      String
+  fieldKey     String
+  fieldLabel   String
+  textValue    String?
+  numValue     Float?
+  dateValue    DateTime?
+  jsonValue    String?     // For multi-select, files, structured objects
+  createdAt    DateTime    @default(now())
+
+  submission   Submission  @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  field        FormField   @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+
+  @@index([submissionId])
+  @@index([fieldId])
+  @@index([fieldKey])
+}
+
+// ----------------------------------------------------------------------------
+// APPLICATION PIPELINE & CRM
+// ----------------------------------------------------------------------------
+
+model Application {
+  id                 String                    @id @default(uuid())
+  applicationNumber  String                    @unique // Human readable: "ANTS-2026-000124"
+  formVersionId      String
+  submissionId       String                    @unique
+  programId          String?
+  applicantName      String
+  companyName        String?
+  email              String
+  phone              String?
+  tcNumberMasked     String?                   // e.g. "123******01"
+  tcNumberEncrypted  String?                   // Encrypted for authorized viewers
+  status             String                    @default("NEW") // NEW, PRE_REVIEW, MISSING_DOCS, UNDER_EVALUATION, JURY, INTERVIEW, ACCEPTED, REJECTED, WAITLIST, CONTRACT, ACTIVE, ARCHIVED
+  stage              String                    @default("PIPELINE")
+  assignedToId       String?
+  internalNotesCount Int                       @default(0)
+  isFlagged          Boolean                   @default(false)
+  duplicateWarning   String?                   // Details if matching email/phone/tc found
+  isArchived         Boolean                   @default(false)
+  createdAt          DateTime                  @default(now())
+  updatedAt          DateTime                  @updatedAt
+
+  formVersion        FormVersion               @relation(fields: [formVersionId], references: [id], onDelete: Restrict)
+  submission         Submission                @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  program            Program?                  @relation(fields: [programId], references: [id], onDelete: SetNull)
+  assignedTo         User?                     @relation("AssignedTo", fields: [assignedToId], references: [id], onDelete: SetNull)
+  statusHistory      ApplicationStatusHistory[]
+  notes              ApplicationNote[]
+  files              ApplicationFile[]
+  evaluations        Evaluation[]
+  tasks              Task[]
+
+  @@index([status])
+  @@index([programId])
+  @@index([assignedToId])
+  @@index([createdAt])
+}
+
+model ApplicationStatusHistory {
+  id            String      @id @default(uuid())
+  applicationId String
+  fromStatus    String
+  toStatus      String
+  reason        String?
+  changedById   String?
+  changedByName String?
+  createdAt     DateTime    @default(now())
+
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@index([applicationId])
+}
+
+model ApplicationNote {
+  id            String      @id @default(uuid())
+  applicationId String
+  authorId      String?
+  authorName    String
+  noteText      String
+  mentions      String?     // JSON array of user IDs
+  fileUrl       String?
+  isInternal    Boolean     @default(true)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  author        User?       @relation(fields: [authorId], references: [id], onDelete: SetNull)
+
+  @@index([applicationId])
+}
+
+model ApplicationFile {
+  id            String      @id @default(uuid())
+  applicationId String
+  fileType      String      // PITCH_DECK, TAX_PLATE, FOUNDER_CV, CONTRACT, OTHER
+  fileName      String
+  fileUrl       String
+  fileSize      Int?
+  mimeType      String?
+  checksum      String?
+  versionNumber Int         @default(1)
+  uploadedById  String?
+  uploadedByName String?
+  isPrivate     Boolean     @default(true)
+  createdAt     DateTime    @default(now())
+
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@index([applicationId])
+}
+
+// ----------------------------------------------------------------------------
+// EVALUATION MATRIX (PROGRAM BASED SCORING)
+// ----------------------------------------------------------------------------
+
+model EvaluationTemplate {
+  id          String                @id @default(uuid())
+  name        String
+  description String?
+  programId   String?
+  isActive    Boolean               @default(true)
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+
+  criteria    EvaluationCriterion[]
+  evaluations Evaluation[]
+}
+
+model EvaluationCriterion {
+  id          String             @id @default(uuid())
+  templateId  String
+  name        String             // e.g. "Yenilikçilik", "Ekip Yetkinliği", "Pazar Büyüklüğü"
+  description String?
+  maxScore    Int                @default(10)
+  weight      Float              @default(1.0)
+  sortOrder   Int                @default(0)
+  createdAt   DateTime           @default(now())
+
+  template    EvaluationTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  scores      EvaluationScore[]
+
+  @@index([templateId])
+}
+
+model Evaluation {
+  id            String             @id @default(uuid())
+  applicationId String
+  templateId    String
+  evaluatorId   String
+  totalScore    Float              @default(0)
+  finalComment  String?
+  isCompleted   Boolean            @default(false)
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  application   Application        @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  template      EvaluationTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  evaluator     User               @relation(fields: [evaluatorId], references: [id], onDelete: Cascade)
+  scores        EvaluationScore[]
+
+  @@unique([applicationId, evaluatorId])
+  @@index([applicationId])
+}
+
+model EvaluationScore {
+  id           String              @id @default(uuid())
+  evaluationId String
+  criterionId  String
+  score        Float
+  comment      String?
+  createdAt    DateTime            @default(now())
+
+  evaluation   Evaluation          @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
+  criterion    EvaluationCriterion @relation(fields: [criterionId], references: [id], onDelete: Cascade)
+
+  @@unique([evaluationId, criterionId])
+  @@index([evaluationId])
+}
+
+// ----------------------------------------------------------------------------
+// CONTACT, MEETINGS & VISITS CRM
+// ----------------------------------------------------------------------------
+
+model ContactRequest {
+  id           String    @id @default(uuid())
+  requestType  String    @default("MESSAGE") // MESSAGE, MEETING, VISIT
+  fullName     String
+  email        String
+  phone        String?
+  company      String?
+  message      String?
+  
+  // Meeting specific
+  meetingTopic String?
+  meetWith     String?
+  meetingDate  String?
+  meetingTime  String?
+  
+  // Visit specific
+  visitTopic   String?
+  visitWho     String?
+  visitDate    String?
+  visitTime    String?
+  groupSize    String?
+  
+  notes        String?
+  status       String    @default("NEW") // NEW, READ, RESPONDED, CONFIRMED, COMPLETED, CANCELLED, SPAM, ARCHIVED
+  assignedToId String?
+  internalNotes String?
+  isArchived   Boolean   @default(false)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  assignedTo   User?     @relation("AssignedContact", fields: [assignedToId], references: [id], onDelete: SetNull)
+
+  @@index([requestType])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// ----------------------------------------------------------------------------
+// MEDIA MANAGER & STORAGE
+// ----------------------------------------------------------------------------
+
+model Media {
+  id           String   @id @default(uuid())
+  fileName     String
+  originalName String
+  mimeType     String
+  fileSize     Int
+  width        Int?
+  height       Int?
+  folder       String   @default("general")
+  tags         String?  // JSON array
+  storagePath  String   @unique
+  publicUrl    String
+  isPrivate    Boolean  @default(false)
+  checksum     String?
+  altText      String?
+  caption      String?
+  uploadedById String?
+  usageCount   Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  uploadedBy   User?    @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+
+  @@index([folder])
+  @@index([mimeType])
+  @@index([createdAt])
+}
+
+// ----------------------------------------------------------------------------
+// SITE SETTINGS, MENUS, PARTNERS & SEO REDIRECTS
+// ----------------------------------------------------------------------------
+
+model SiteSetting {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  value       String   // JSON or text
+  group       String   @default("GENERAL") // GENERAL, BRANDING, CONTACT, SOCIAL, SEO, SCRIPT
+  description String?
+  isPublic    Boolean  @default(true)
+  updatedAt   DateTime @updatedAt
+
+  @@index([group])
+}
+
+model MenuItem {
+  id           String     @id @default(uuid())
+  menuLocation String     @default("HEADER") // HEADER, FOOTER, SIDEBAR
+  parentId     String?
+  label        String
+  url          String
+  isExternal   Boolean    @default(false)
+  openInNewTab Boolean    @default(false)
+  sortOrder    Int        @default(0)
+  isActive     Boolean    @default(true)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  parent       MenuItem?  @relation("MenuHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  children     MenuItem[] @relation("MenuHierarchy")
+
+  @@index([menuLocation])
+  @@index([sortOrder])
+}
+
+model Partner {
+  id           String   @id @default(uuid())
+  name         String
+  logoUrl      String
+  websiteUrl   String?
+  altText      String?
+  partnerGroup String   @default("STAKEHOLDER") // STAKEHOLDER, SUPPORTER, SPONSOR, ECOSYSTEM
+  sortOrder    Int      @default(0)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([partnerGroup])
+  @@index([sortOrder])
+}
+
+model Redirect {
+  id         String    @id @default(uuid())
+  fromUrl    String    @unique
+  toUrl      String
+  statusCode Int       @default(301)
+  isActive   Boolean   @default(true)
+  hitCount   Int       @default(0)
+  lastHitAt  DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([fromUrl])
+}
+
+model EmailTemplate {
+  id          String   @id @default(uuid())
+  templateKey String   @unique // APPLICATION_RECEIVED, MISSING_DOCS, STATUS_UPDATE, MEETING_CONFIRMED, MENTOR_APPLIED, TASK_ASSIGNED, TRAINING_INVITE, EVENT_CONFIRMATION
+  name        String
+  subject     String
+  htmlBody    String
+  textBody    String?
+  variables   String?  // JSON array e.g. ["name", "application_number", "program_name", "task_title"]
+  isSystem    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Notification {
+  id               String    @id @default(uuid())
+  userId           String?   // null for all admins or specific user
+  title            String
+  message          String
+  notificationType String    @default("INFO") // NEW_APPLICATION, NEW_CONTACT, MENTION, TASK_ASSIGNED, TASK_DUE, APPROVAL_REQUESTED, SYSTEM_ALERT
+  targetUrl        String?
+  isRead           Boolean   @default(false)
+  readAt           DateTime?
+  createdAt        DateTime  @default(now())
+
+  user             User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+}
+
+model SystemErrorLog {
+  id         String   @id @default(uuid())
+  errorCode  String?
+  route      String?
+  requestId  String?
+  userId     String?
+  severity   String   @default("ERROR") // INFO, WARN, ERROR, CRITICAL
+  message    String
+  stackTrace String?
+  metadata   String?  // JSON
+  createdAt  DateTime @default(now())
+
+  @@index([severity])
+  @@index([createdAt])
+}
+
+// ----------------------------------------------------------------------------
+// V4 ENTERPRISE: MICROSOFT 365 & INTEGRATION HUB
+// ----------------------------------------------------------------------------
+
+model M365Integration {
+  id                   String    @id @default(uuid())
+  tenantId             String?
+  clientId             String?
+  status               String    @default("DISCONNECTED") // DISCONNECTED, CONNECTED, ERROR, SYNCING
+  scopes               String?   // JSON array of authorized scopes
+  isCalendarSyncActive Boolean   @default(false)
+  isMailSyncActive     Boolean   @default(false)
+  isTeamsActive        Boolean   @default(false)
+  isSharePointActive   Boolean   @default(false)
+  syncMode             String    @default("READ_ONLY") // READ_ONLY, TWO_WAY
+  calendarDeltaToken   String?
+  lastSyncAt           DateTime?
+  lastSyncStatus       String?   // SUCCESS, FAILED
+  lastErrorLog         String?
+  configJson           String?   // Additional settings JSON
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+}
+
+model CalendarEventMapping {
+  id               String   @id @default(uuid())
+  localEventType   String   // TASK, TRAINING, EVENT, MEETING, MENTOR_SESSION, RESERVATION
+  localEventId     String
+  externalSystem   String   @default("MICROSOFT_365")
+  externalEventId  String
+  externalChangeKey String?
+  syncStatus       String   @default("SYNCED") // SYNCED, PENDING, CONFLICT, FAILED
+  lastSyncedAt     DateTime @default(now())
+
+  @@unique([localEventType, localEventId, externalSystem])
+  @@index([externalEventId])
+}
+
+// ----------------------------------------------------------------------------
+// V4 ENTERPRISE: ROOM & RESOURCE RESERVATION
+// ----------------------------------------------------------------------------
+
+model Resource {
+  id           String        @id @default(uuid())
+  name         String
+  code         String        @unique // e.g. ROOM-101, VR-LAB, CONF-HALL
+  resourceType String        // MEETING_ROOM, TRAINING_HALL, VR_LAB, HARDWARE_EQUIPMENT, STUDIO
+  capacity     Int           @default(10)
+  location     String?       // e.g. 1. Kat / Blok A
+  description  String?
+  features     String?       // JSON e.g. ["Projector", "Teams Rooms", "Smart Board"]
+  isActive     Boolean       @default(true)
+  imageUrl     String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  reservations Reservation[]
+
+  @@index([resourceType])
+  @@index([isActive])
+}
+
+model Reservation {
+  id             String    @id @default(uuid())
+  resourceId     String
+  userId         String
+  title          String
+  startTime      DateTime
+  endTime        DateTime
+  status         String    @default("CONFIRMED") // CONFIRMED, PENDING_APPROVAL, CANCELLED, COMPLETED
+  attendeeCount  Int       @default(1)
+  attendeeNotes  String?
+  agenda         String?
+  meetingNotes   String?
+  followUpTasks  String?   // JSON task summaries or IDs
+  teamsMeetingUrl String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  resource       Resource  @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([resourceId])
+  @@index([userId])
+  @@index([startTime, endTime])
+  @@index([status])
+}
+
+// ----------------------------------------------------------------------------
+// V4 ENTERPRISE: CONTRACTS & LEGAL AGREEMENT LIFECYCLE
+// ----------------------------------------------------------------------------
+
+model Contract {
+  id                   String             @id @default(uuid())
+  title                String
+  contractNumber       String             @unique
+  contractType         String             // INCUBATION_AGREEMENT, PROTOCOL, NDA, MENTORSHIP_MOU, VENDOR, LEASE
+  partyA               String             @default("İKÜANTS TEKMER")
+  partyB               String             // Company / Partner name
+  partyBContactEmail   String?
+  partyBContactPhone   String?
+  status               String             @default("DRAFT") // DRAFT, IN_REVIEW, SIGNED, ACTIVE, EXPIRED, TERMINATED
+  startDate            DateTime
+  endDate              DateTime?
+  autoRenew            Boolean            @default(false)
+  renewalReminderDays  Int                @default(30)
+  isRenewalAlertSent   Boolean            @default(false)
+  responsibleUserId    String?
+  sensitivityClass     String             @default("CONFIDENTIAL") // PUBLIC, INTERNAL, CONFIDENTIAL, STRICTLY_CONFIDENTIAL
+  documentUrl          String?
+  eSignStatus          String             @default("NOT_INITIATED") // NOT_INITIATED, PENDING_SIGNATURES, FULLY_SIGNED, REJECTED
+  eSignProviderRef     String?
+  termsSummary         String?
+  notes                String?
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  responsibleUser      User?              @relation("ContractManager", fields: [responsibleUserId], references: [id])
+  documents            ContractDocument[]
+
+  @@index([contractType])
+  @@index([status])
+  @@index([responsibleUserId])
+  @@index([endDate])
+}
+
+model ContractDocument {
+  id          String   @id @default(uuid())
+  contractId  String
+  title       String
+  fileUrl     String
+  fileSize    Int      @default(0)
+  mimeType    String?
+  version     Int      @default(1)
+  isCurrent   Boolean  @default(true)
+  uploadedAt  DateTime @default(now())
+
+  contract    Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+
+  @@index([contractId])
+}
+
+// ----------------------------------------------------------------------------
+// V4 ENTERPRISE: KNOWLEDGE BASE & INTERNAL WIKI
+// ----------------------------------------------------------------------------
+
+model KnowledgeArticle {
+  id          String   @id @default(uuid())
+  title       String
+  slug        String   @unique
+  category    String   // PROCEDURES, GUIDES, TEMPLATES, ONBOARDING, FAQS, COMPLIANCE
+  content     String   // Markdown or Block JSON
+  excerpt     String?
+  audience    String   @default("STAFF") // ALL, STAFF, ENTREPRENEUR, MENTOR
+  isPublished Boolean  @default(true)
+  viewCount   Int      @default(0)
+  authorId    String?
+  tags        String?  // JSON e.g. ["KOSGEB", "KVKK", "Müfredat"]
+  checklist   String?  // JSON e.g. [{"task": "Kimlik belgesi", "completed": false}]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  author      User?    @relation("ArticleAuthor", fields: [authorId], references: [id])
+
+  @@index([category])
+  @@index([audience])
+  @@index([isPublished])
+}
+
+// ----------------------------------------------------------------------------
+// V4 ENTERPRISE: ENTREPRENEUR & MENTOR PORTALS
+// ----------------------------------------------------------------------------
+
+model PortalAccount {
+  id              String        @id @default(uuid())
+  userId          String
+  accountType     String        // ENTREPRENEUR, MENTOR
+  entrepreneurId  String?
+  mentorId        String?
+  isActive        Boolean       @default(true)
+  canEditProfile  Boolean       @default(true)
+  canUploadDocs   Boolean       @default(true)
+  canBookSessions Boolean       @default(true)
+  allowedModules  String?       // JSON e.g. ["profile", "documents", "trainings", "sessions"]
+  lastAccessedAt  DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  entrepreneur    Entrepreneur? @relation(fields: [entrepreneurId], references: [id], onDelete: Cascade)
+  mentor          Mentor?       @relation(fields: [mentorId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, accountType])
+  @@index([accountType])
+  @@index([entrepreneurId])
+  @@index([mentorId])
+}
+
+// ----------------------------------------------------------------------------
+// V4 ENTERPRISE: AUTOMATION RULES ENGINE
+// ----------------------------------------------------------------------------
+
+model AutomationRule {
+  id                 String          @id @default(uuid())
+  name               String
+  description        String?
+  triggerType        String          // APPLICATION_SUBMITTED, TASK_OVERDUE, TRAINING_PUBLISHED, MEETING_COMPLETED, CONTRACT_EXPIRING, TASK_STATUS_CHANGED
+  conditions         String?         // JSON DSL e.g. {"status": "NEW", "programType": "INCUBATION"}
+  actions            String          // JSON array e.g. [{"action": "ASSIGN_TASK", "role": "application-manager"}, {"action": "SEND_NOTIFICATION"}]
+  isActive           Boolean         @default(true)
+  requireUserApproval Boolean        @default(false)
+  executionCount     Int             @default(0)
+  lastExecutedAt     DateTime?
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+
+  executionLogs      AutomationLog[]
+
+  @@index([triggerType])
+  @@index([isActive])
+}
+
+model AutomationLog {
+  id           String         @id @default(uuid())
+  ruleId       String
+  triggerEvent String
+  status       String         @default("SUCCESS") // SUCCESS, SKIPPED, FAILED, PENDING_APPROVAL
+  payloadJson  String?        // Event payload
+  actionResult String?        // Output of actions
+  error        String?
+  executedAt   DateTime       @default(now())
+
+  rule         AutomationRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+
+  @@index([ruleId])
+  @@index([status])
+  @@index([executedAt])
+}
+
+// ----------------------------------------------------------------------------
+// V4 ENTERPRISE: AI ASSISTANT & AUDIT LOGS
+// ----------------------------------------------------------------------------
+
+model AiTaskLog {
+  id               String    @id @default(uuid())
+  taskType         String    // NEWS_DRAFT, MEETING_SUMMARY, ACTIVITY_DRAFT, SEO_SUGGESTION, PROGRAM_DESCRIPTION
+  inputPrompt      String
+  generatedOutput  String
+  status           String    @default("GENERATED") // GENERATED, ACCEPTED, REJECTED, EDITED
+  approvedByUserId String?
+  approvedAt       DateTime?
+  metadata         String?   // JSON
+  createdAt        DateTime  @default(now())
+
+  approvedByUser   User?     @relation(fields: [approvedByUserId], references: [id])
+
+  @@index([taskType])
+  @@index([status])
+}
+

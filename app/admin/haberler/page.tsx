@@ -1,0 +1,375 @@
+"use client";
+import React, { useState, useEffect } from 'react';
+import { DataTable, Column } from '@/components/admin/DataTable';
+import { StatusBadge } from '@/components/admin/StatusBadge';
+import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
+import { RevisionViewer } from '@/components/admin/RevisionViewer';
+import { Plus, Edit2, Trash2, Newspaper, History, ArrowLeft, Save, X, Sparkles, ExternalLink, Calendar, Eye } from 'lucide-react';
+
+export default function AdminHaberlerPage() {
+    const [news, setNews] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [editingItem, setEditingItem] = useState<any | null>(null);
+    const [isCreating, setIsCreating] = useState(false);
+    const [viewingRevisionsId, setViewingRevisionsId] = useState<string | null>(null);
+    const [deleteTarget, setDeleteTarget] = useState<any | null>(null);
+    const [saving, setSaving] = useState(false);
+
+    const fetchNews = async () => {
+        setLoading(true);
+        try {
+            const res = await fetch('/api/admin/news');
+            const data = await res.json();
+            if (data.success) {
+                setNews(data.items || []);
+            }
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchNews();
+    }, []);
+
+    const handleSave = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setSaving(true);
+        try {
+            const url = isCreating ? '/api/admin/news' : `/api/admin/news/${editingItem.id}`;
+            const method = isCreating ? 'POST' : 'PUT';
+
+            const res = await fetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(editingItem),
+            });
+
+            const data = await res.json();
+            if (data.success) {
+                setIsCreating(false);
+                setEditingItem(null);
+                await fetchNews();
+            } else {
+                alert(data.message || 'Hata oluştu');
+            }
+        } catch {
+            alert('Bağlantı hatası oluştu');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleDelete = async () => {
+        if (!deleteTarget) return;
+        try {
+            const res = await fetch(`/api/admin/news/${deleteTarget.id}`, { method: 'DELETE' });
+            const data = await res.json();
+            if (data.success) {
+                setDeleteTarget(null);
+                await fetchNews();
+            }
+        } catch {
+            alert('Silme işlemi başarısız');
+        }
+    };
+
+    const columns: Column<any>[] = [
+        {
+            key: 'title',
+            header: 'Haber / Duyuru Başlığı',
+            render: (item) => (
+                <div className="max-w-md">
+                    <div className="font-semibold text-white line-clamp-1">{item.title}</div>
+                    <div className="text-[10px] text-gray-400 font-mono line-clamp-1">{item.excerpt || item.content?.slice(0, 80)}</div>
+                </div>
+            ),
+        },
+        {
+            key: 'category',
+            header: 'Kategori',
+            render: (item) => (
+                <span className="text-cyan-400 font-mono">{item.category?.name || 'Genel'}</span>
+            ),
+        },
+        {
+            key: 'status',
+            header: 'Durum',
+            render: (item) => <StatusBadge status={item.status} />,
+        },
+        {
+            key: 'eventDate',
+            header: 'Tarih',
+            render: (item) => (
+                <span className="text-gray-400 font-mono text-[11px]">{item.eventDate || '-'}</span>
+            ),
+        },
+        {
+            key: 'actions',
+            header: 'İşlemler',
+            sortable: false,
+            render: (item) => (
+                <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                    <button
+                        onClick={() => {
+                            setEditingItem(item);
+                            setIsCreating(false);
+                        }}
+                        className="p-1.5 text-gray-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
+                        title="Düzenle"
+                    >
+                        <Edit2 className="w-4 h-4" />
+                    </button>
+                    <button
+                        onClick={() => setViewingRevisionsId(item.id)}
+                        className="p-1.5 text-gray-400 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                        title="Sürüm Geçmişi"
+                    >
+                        <History className="w-4 h-4" />
+                    </button>
+                    <button
+                        onClick={() => setDeleteTarget(item)}
+                        className="p-1.5 text-gray-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors"
+                        title="Arşivle / Sil"
+                    >
+                        <Trash2 className="w-4 h-4" />
+                    </button>
+                </div>
+            ),
+        },
+    ];
+
+    return (
+        <div className="space-y-6">
+            {/* Header */}
+            <div className="flex items-center justify-between">
+                <div>
+                    <h1 className="font-orbitron font-bold text-2xl text-white">Haber & Duyuru Yönetimi</h1>
+                    <p className="text-xs font-mono text-gray-400 mt-1">
+                        /haberler sayfasındaki etkinlik, duyuru ve basın bültenlerinin yönetimi
+                    </p>
+                </div>
+
+                {!editingItem && !isCreating && (
+                    <button
+                        onClick={() => {
+                            setEditingItem({
+                                title: '',
+                                excerpt: '',
+                                content: '',
+                                coverImage: '',
+                                eventDate: '',
+                                registrationLink: '',
+                                status: 'DRAFT',
+                                isFeatured: false,
+                                showOnHome: true,
+                            });
+                            setIsCreating(true);
+                        }}
+                        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90 text-white text-xs font-semibold shadow-lg shadow-primary/25 transition-all"
+                    >
+                        <Plus className="w-4 h-4" />
+                        Yeni Haber Ekle
+                    </button>
+                )}
+            </div>
+
+            {/* Edit / Create Form */}
+            {(editingItem || isCreating) && (
+                <div className="bg-[#0e0e18] border border-white/10 rounded-2xl p-6 shadow-2xl animate-in fade-in">
+                    <div className="flex items-center justify-between pb-4 mb-6 border-b border-white/10">
+                        <div className="flex items-center gap-2">
+                            <Newspaper className="w-5 h-5 text-primary" />
+                            <h2 className="font-orbitron font-bold text-lg text-white">
+                                {isCreating ? 'Yeni Haber / Duyuru Oluştur' : `Düzenle: ${editingItem.title}`}
+                            </h2>
+                        </div>
+                        <button
+                            onClick={() => {
+                                setEditingItem(null);
+                                setIsCreating(false);
+                            }}
+                            className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/5"
+                        >
+                            <X className="w-5 h-5" />
+                        </button>
+                    </div>
+
+                    <form onSubmit={handleSave} className="space-y-4">
+                        <div>
+                            <label className="block text-xs font-mono text-gray-400 mb-1.5">Haber Başlığı *</label>
+                            <input
+                                type="text"
+                                required
+                                value={editingItem.title || ''}
+                                onChange={(e) => setEditingItem({ ...editingItem, title: e.target.value })}
+                                placeholder="Örn: ANTSPARK Demoday 2026 Gerçekleştirildi"
+                                className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-gray-600 focus:border-primary outline-none"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-xs font-mono text-gray-400 mb-1.5">Özet Metin (Spot)</label>
+                            <textarea
+                                rows={2}
+                                value={editingItem.excerpt || ''}
+                                onChange={(e) => setEditingItem({ ...editingItem, excerpt: e.target.value })}
+                                placeholder="Kartlarda ve arama motorlarında görünecek 1-2 cümlelik özet..."
+                                className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-xs text-white placeholder-gray-600 focus:border-primary outline-none"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-xs font-mono text-gray-400 mb-1.5">Haber İçeriği *</label>
+                            <textarea
+                                rows={8}
+                                required
+                                value={editingItem.content || ''}
+                                onChange={(e) => setEditingItem({ ...editingItem, content: e.target.value })}
+                                placeholder="Haberin detaylı içeriği, paragraflar, maddeler..."
+                                className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-xs text-white placeholder-gray-600 focus:border-primary outline-none font-mono"
+                            />
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <label className="block text-xs font-mono text-gray-400 mb-1.5">Kapak Görseli URL</label>
+                                <input
+                                    type="text"
+                                    value={editingItem.coverImage || ''}
+                                    onChange={(e) => setEditingItem({ ...editingItem, coverImage: e.target.value })}
+                                    placeholder="/images/news/..."
+                                    className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-gray-600 focus:border-primary outline-none"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-mono text-gray-400 mb-1.5">Yayın / Etkinlik Tarihi</label>
+                                <input
+                                    type="text"
+                                    value={editingItem.eventDate || ''}
+                                    onChange={(e) => setEditingItem({ ...editingItem, eventDate: e.target.value })}
+                                    placeholder="18 Şubat 2026"
+                                    className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:border-primary outline-none"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-mono text-gray-400 mb-1.5">Yayın Durumu</label>
+                                <select
+                                    value={editingItem.status || 'DRAFT'}
+                                    onChange={(e) => setEditingItem({ ...editingItem, status: e.target.value })}
+                                    className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:border-primary outline-none [&>option]:bg-[#0e0e18]"
+                                >
+                                    <option value="DRAFT">Taslak</option>
+                                    <option value="PUBLISHED">Yayında (Canlı)</option>
+                                    <option value="SCHEDULED">İleri Tarihe Planlandı</option>
+                                    <option value="ARCHIVED">Arşiv</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center gap-6 pt-2">
+                            <label className="flex items-center gap-2 text-xs text-gray-300 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={editingItem.isFeatured ?? false}
+                                    onChange={(e) => setEditingItem({ ...editingItem, isFeatured: e.target.checked })}
+                                    className="rounded border-white/20 bg-black/40 text-primary focus:ring-0"
+                                />
+                                Manşet / Öne Çıkan Haber
+                            </label>
+
+                            <label className="flex items-center gap-2 text-xs text-gray-300 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={editingItem.showOnHome ?? true}
+                                    onChange={(e) => setEditingItem({ ...editingItem, showOnHome: e.target.checked })}
+                                    className="rounded border-white/20 bg-black/40 text-primary focus:ring-0"
+                                />
+                                Ana Sayfada Göster
+                            </label>
+                        </div>
+
+                        <div className="flex items-center justify-end gap-3 pt-4 border-t border-white/5">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setEditingItem(null);
+                                    setIsCreating(false);
+                                }}
+                                className="px-4 py-2.5 rounded-xl border border-white/10 text-xs text-gray-300 hover:text-white hover:bg-white/5 transition-colors"
+                            >
+                                Vazgeç
+                            </button>
+                            <button
+                                type="submit"
+                                disabled={saving}
+                                className="inline-flex items-center gap-1.5 px-6 py-2.5 rounded-xl bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90 text-white text-xs font-semibold shadow-lg shadow-primary/25 disabled:opacity-50 transition-all"
+                            >
+                                <Save className="w-4 h-4" />
+                                {saving ? 'Kaydediliyor...' : 'Kaydet'}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            )}
+
+            {/* Revision Viewer Modal */}
+            {viewingRevisionsId && (
+                <div className="space-y-4 animate-in fade-in">
+                    <div className="flex items-center justify-between">
+                        <h3 className="font-orbitron font-bold text-sm text-white">Sürüm Geçmişi ve Geri Yükleme</h3>
+                        <button
+                            onClick={() => setViewingRevisionsId(null)}
+                            className="text-xs text-gray-400 hover:text-white font-mono flex items-center gap-1"
+                        >
+                            <ArrowLeft className="w-4 h-4" /> Listeye Dön
+                        </button>
+                    </div>
+                    <RevisionViewer
+                        entityType="News"
+                        entityId={viewingRevisionsId}
+                        onRollbackSuccess={() => {
+                            fetchNews();
+                        }}
+                    />
+                </div>
+            )}
+
+            {/* News Data Table */}
+            {!viewingRevisionsId && (
+                <DataTable
+                    data={news}
+                    columns={columns}
+                    searchPlaceholder="Haber başlığı veya içeriği ara..."
+                    exportFileName="ikuants-haberler"
+                    filterOptions={[
+                        {
+                            key: 'status',
+                            label: 'Durum',
+                            options: [
+                                { value: 'PUBLISHED', label: 'Yayında' },
+                                { value: 'DRAFT', label: 'Taslak' },
+                                { value: 'SCHEDULED', label: 'Planlandı' },
+                            ],
+                        },
+                    ]}
+                />
+            )}
+
+            {/* Confirm Delete Dialog */}
+            <ConfirmDialog
+                isOpen={!!deleteTarget}
+                title="Haberi Arşivle"
+                description={`"${deleteTarget?.title}" haberini arşivlemek istediğinize emin misiniz?`}
+                confirmText="Arşivle"
+                isDestructive={true}
+                onConfirm={handleDelete}
+                onCancel={() => setDeleteTarget(null)}
+            />
+        </div>
+    );
+}

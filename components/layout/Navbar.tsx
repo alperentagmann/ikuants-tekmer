@@ -12,43 +12,64 @@ type NavItem = {
     subItems?: { name: string; href: string }[];
 };
 
+const defaultNavLinks: NavItem[] = [
+    { name: "ANA SAYFA", href: "/" },
+    {
+        name: "HAKKIMIZDA",
+        href: "#",
+        subItems: [
+            { name: "Ekibimiz", href: "/ekibimiz" },
+            { name: "Kurullarımız", href: "/kurullar" },
+            { name: "İşbirliklerimiz", href: "/isbirliklerimiz" },
+            { name: "Kullanım Alanları", href: "/kullanim-alanlari" },
+            { name: "Hizmetlerimiz", href: "/hizmetlerimiz" },
+            { name: "Mevzuat", href: "/mevzuat" },
+            { name: "SSS", href: "/sss" },
+        ]
+    },
+    { name: "GİRİŞİMCİLER", href: "/girisimciler" },
+    { name: "DESTEKLER", href: "/destekler" },
+    {
+        name: "PROGRAMLAR",
+        href: "/programlar",
+        subItems: [
+            { name: "Tüm Programlar", href: "/programlar" },
+            { name: "ANTSFire Kuluçka", href: "/antsfire" },
+            { name: "ANTSPARK Ön Kuluçka", href: "/antspark" },
+            { name: "Glow Up Ideathon", href: "/glowup-basvuru" },
+            { name: "Staj Programı", href: "/staj-programi" },
+        ]
+    },
+    { name: "HABERLER", href: "/haberler" },
+    { name: "MENTÖRLER", href: "/mentorler" },
+    { name: "İLETİŞİM", href: "/iletisim" },
+];
+
 export const Navbar = () => {
     const [isOpen, setIsOpen] = React.useState(false);
     const [openDropdown, setOpenDropdown] = React.useState<string | null>(null);
+    const [navLinks, setNavLinks] = React.useState<NavItem[]>(defaultNavLinks);
 
-    const navLinks: NavItem[] = [
-        { name: "ANA SAYFA", href: "/" },
-
-        {
-            name: "HAKKIMIZDA",
-            href: "#",
-            subItems: [
-                { name: "Ekibimiz", href: "/ekibimiz" },
-                { name: "Kurullarımız", href: "/kurullar" },
-                { name: "İşbirliklerimiz", href: "/isbirliklerimiz" },
-                { name: "Kullanım Alanları", href: "/kullanim-alanlari" },
-                { name: "Hizmetlerimiz", href: "/hizmetlerimiz" },
-                { name: "Mevzuat", href: "/mevzuat" },
-                { name: "SSS", href: "/sss" },
-            ]
-        },
-        { name: "GİRİŞİMCİLER", href: "/girisimciler" },
-        { name: "DESTEKLER", href: "/destekler" },
-        {
-            name: "PROGRAMLAR",
-            href: "/programlar",
-            subItems: [
-                { name: "Tüm Programlar", href: "/programlar" },
-                { name: "ANTSFire Kuluçka", href: "/antsfire" },
-                { name: "ANTSPARK Ön Kuluçka", href: "/antspark" },
-                { name: "Glow Up Ideathon", href: "/glowup-basvuru" },
-                { name: "Staj Programı", href: "/staj-programi" },
-            ]
-        },
-        { name: "HABERLER", href: "/haberler" },
-        { name: "MENTÖRLER", href: "/mentorler" },
-        { name: "İLETİŞİM", href: "/iletisim" },
-    ];
+    React.useEffect(() => {
+        const loadMenus = async () => {
+            try {
+                const res = await fetch('/api/public/menus?location=HEADER');
+                const data = await res.json();
+                if (data.success && Array.isArray(data.menuItems) && data.menuItems.length > 0) {
+                    setNavLinks(data.menuItems.map((m: any) => ({
+                        name: m.title,
+                        href: m.url || '#',
+                        subItems: Array.isArray(m.children) && m.children.length > 0
+                            ? m.children.map((c: any) => ({ name: c.title, href: c.url }))
+                            : undefined,
+                    })));
+                }
+            } catch {
+                // Fallback to default navLinks
+            }
+        };
+        loadMenus();
+    }, []);
 
     return (
         <nav className="fixed top-0 w-full z-50 px-6 py-4">

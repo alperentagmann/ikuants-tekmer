@@ -83,6 +83,66 @@ const programs = [
 ];
 
 export const Programs = () => {
+    const [programList, setProgramList] = React.useState(programs);
+
+    React.useEffect(() => {
+        const load = async () => {
+            try {
+                const res = await fetch('/api/public/programs');
+                const data = await res.json();
+                if (data.success && Array.isArray(data.programs) && data.programs.length > 0) {
+                    const iconMap: Record<string, any> = {
+                        antsfire: Flame,
+                        antspark: Rocket,
+                        glowup: Lightbulb,
+                    };
+                    const colorMap: Record<string, string> = {
+                        antsfire: "from-orange-500 to-red-600",
+                        antspark: "from-purple-500 to-pink-500",
+                        glowup: "from-cyan-500 to-blue-500",
+                    };
+                    const glowMap: Record<string, string> = {
+                        antsfire: "rgba(234, 88, 12, 0.4)",
+                        antspark: "rgba(168, 85, 247, 0.4)",
+                        glowup: "rgba(6, 182, 212, 0.4)",
+                    };
+
+                    setProgramList(data.programs.map((p: any) => {
+                        const slug = (p.slug || '').toLowerCase();
+                        return {
+                            id: p.id || slug,
+                            title: p.name,
+                            subtitle: p.programType || 'Program',
+                            tagline: p.tagline || '',
+                            description: p.shortDesc || p.detailedDesc || '',
+                            icon: iconMap[slug] || Rocket,
+                            color: colorMap[slug] || "from-purple-500 to-pink-500",
+                            glowColor: glowMap[slug] || "rgba(168, 85, 247, 0.4)",
+                            stats: [
+                                p.duration ? { label: "Süre", value: p.duration } : null,
+                                p.quota ? { label: "Kontenjan", value: p.quota } : null,
+                                p.mentorHours ? { label: "Mentorluk", value: p.mentorHours } : null,
+                            ].filter(Boolean),
+                            features: Array.isArray(p.features) && p.features.length > 0
+                                ? p.features.map((f: any) => typeof f === 'string' ? f : f.title || f.desc)
+                                : [
+                                    "Kişiselleştirilmiş Eğitim Modülleri",
+                                    "Birebir Mentorluk Desteği",
+                                    "Yatırımcı Buluşmaları",
+                                    "Co-Working & Prototipleme Alanı"
+                                ],
+                            cta: p.ctaText || "Programa Göz At",
+                            link: p.ctaLink || `/${slug || 'programlar'}`,
+                        };
+                    }));
+                }
+            } catch {
+                // Fallback to static programs
+            }
+        };
+        load();
+    }, []);
+
     return (
         <section id="programs" className="py-24 relative bg-gray-50 dark:bg-[#050510] transition-colors duration-300">
             {/* Background Effects */}
@@ -101,7 +161,7 @@ export const Programs = () => {
                 >
                     <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-gray-200 dark:bg-white/5 dark:border-white/10 mb-6 shadow-sm dark:shadow-none">
                         <Sparkles className="w-4 h-4 text-purple-600 dark:text-secondary" />
-                        <span className="text-sm text-gray-600 dark:text-gray-400 font-mono">// PROGRAMLARIMIZ</span>
+                        <span className="text-sm text-gray-600 dark:text-gray-400 font-mono">{"// PROGRAMLARIMIZ"}</span>
                     </div>
                     <h2 className="font-orbitron font-bold text-4xl md:text-5xl mb-4">
                         <span className="text-transparent bg-clip-text bg-gradient-to-r from-gray-900 via-purple-800 to-gray-900 dark:from-white dark:via-purple-200 dark:to-cyan-200">
@@ -116,7 +176,7 @@ export const Programs = () => {
 
                 {/* Programs Grid */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    {programs.map((program, index) => (
+                    {programList.map((program: any, index: number) => (
                         <motion.div
                             key={program.id}
                             initial={{ opacity: 0, y: 50 }}
@@ -166,7 +226,7 @@ export const Programs = () => {
 
                                     {/* Stats */}
                                     <div className="grid grid-cols-3 gap-4 mb-6">
-                                        {program.stats.map((stat) => (
+                                        {program.stats.map((stat: any) => (
                                             <div key={stat.label} className="text-center p-3 rounded-lg bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5">
                                                 <div className="text-gray-900 dark:text-white font-bold font-orbitron">{stat.value}</div>
                                                 <div className="text-xs text-gray-500">{stat.label}</div>
@@ -176,7 +236,7 @@ export const Programs = () => {
 
                                     {/* Features */}
                                     <div className="grid grid-cols-2 gap-2 mb-8">
-                                        {program.features.map((feature) => (
+                                        {program.features.map((feature: any) => (
                                             <div key={feature} className="flex items-center gap-2 text-sm">
                                                 <CheckCircle className="w-4 h-4 text-green-500 dark:text-green-400 shrink-0" />
                                                 <span className="text-gray-600 dark:text-gray-300">{feature}</span>

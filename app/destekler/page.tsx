@@ -55,6 +55,39 @@ const supports = [
 ];
 
 export default function DesteklerPage() {
+    const [supportList, setSupportList] = React.useState(supports);
+
+    React.useEffect(() => {
+        const load = async () => {
+            try {
+                const res = await fetch('/api/public/supports');
+                const data = await res.json();
+                if (data.success && Array.isArray(data.supports) && data.supports.length > 0) {
+                    const iconMap: Record<string, any> = {
+                        Building2,
+                        DollarSign,
+                        Shield,
+                        FileCheck,
+                        Globe,
+                        GraduationCap,
+                    };
+
+                    setSupportList(data.supports.map((s: any, idx: number) => ({
+                        id: s.id || String(idx + 1).padStart(2, '0'),
+                        title: s.title,
+                        description: s.description,
+                        example: s.exampleScenario || s.legalBasis || '',
+                        icon: (s.iconName && iconMap[s.iconName]) || FileCheck,
+                        color: s.colorGradient || (idx % 2 === 0 ? "from-blue-500 to-cyan-500" : "from-purple-500 to-pink-500"),
+                    })));
+                }
+            } catch {
+                // Fallback to static supports
+            }
+        };
+        load();
+    }, []);
+
     return (
         <div className="py-24 relative min-h-screen bg-gray-50 dark:bg-[#050510] transition-colors duration-300">
             <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent pointer-events-none" />
@@ -84,7 +117,7 @@ export default function DesteklerPage() {
 
                 {/* Supports Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-20">
-                    {supports.map((item, index) => (
+                    {supportList.map((item, index) => (
                         <motion.div
                             key={item.id}
                             initial={{ opacity: 0, y: 30 }}

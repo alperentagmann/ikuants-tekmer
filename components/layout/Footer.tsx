@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Instagram, Linkedin, Mail, MapPin, Phone } from "lucide-react";
 import { PartnerLogos } from "@/components/sections/PartnerLogos";
 
@@ -27,10 +28,10 @@ export const Footer = () => {
                                 Hızlı Erişim
                             </h3>
                             <ul className="space-y-2 text-sm">
-                                <li><a href="/" className="hover:text-secondary transition-colors">Ana Sayfa</a></li>
-                                <li><a href="/girisimciler" className="hover:text-secondary transition-colors">Girişimciler</a></li>
-                                <li><a href="/programlar" className="hover:text-secondary transition-colors">Programlar</a></li>
-                                <li><a href="/basvuru" className="hover:text-secondary transition-colors">Başvuru</a></li>
+                                <li><Link href="/" className="hover:text-secondary transition-colors">Ana Sayfa</Link></li>
+                                <li><Link href="/girisimciler" className="hover:text-secondary transition-colors">Girişimciler</Link></li>
+                                <li><Link href="/programlar" className="hover:text-secondary transition-colors">Programlar</Link></li>
+                                <li><Link href="/basvuru" className="hover:text-secondary transition-colors">Başvuru</Link></li>
                             </ul>
                         </div>
 
