@@ -38,6 +38,30 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ success: true, section: sec });
         }
 
+        // Check if section reorder
+        if (body.action === 'reorder-sections' && Array.isArray(body.orderedKeys)) {
+            const sections = await HomepageService.reorderSections(body.orderedKeys, { id: user.id, name: user.name });
+            return NextResponse.json({ success: true, sections });
+        }
+
+        // Check if section update
+        if (body.action === 'update-section' && body.sectionKey) {
+            const sec = await HomepageService.updateSection(body.sectionKey, body, { id: user.id, name: user.name });
+            return NextResponse.json({ success: true, section: sec });
+        }
+
+        // Check if slide reorder
+        if (body.action === 'reorder-slides' && Array.isArray(body.orderedIds)) {
+            const updates = body.orderedIds.map((id: string, index: number) =>
+                prisma.heroSlide.update({
+                    where: { id },
+                    data: { sortOrder: index + 1 },
+                })
+            );
+            await prisma.$transaction(updates);
+            return NextResponse.json({ success: true });
+        }
+
         if (!body.title || !body.mediaUrl) {
             return NextResponse.json({ success: false, message: 'Başlık ve medya görseli zorunludur' }, { status: 400 });
         }

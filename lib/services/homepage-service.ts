@@ -133,4 +133,60 @@ export const HomepageService = {
             },
         });
     },
+
+    async updateSection(sectionKey: string, data: { title?: string; subtitle?: string; description?: string; customConfig?: string; isVisible?: boolean }, actor?: { id: string; name?: string }) {
+        const updated = await prisma.homepageSection.upsert({
+            where: { sectionKey },
+            update: {
+                title: data.title,
+                subtitle: data.subtitle,
+                description: data.description,
+                customConfig: data.customConfig,
+                isVisible: data.isVisible !== undefined ? data.isVisible : undefined,
+            },
+            create: {
+                sectionKey,
+                title: data.title || sectionKey,
+                subtitle: data.subtitle,
+                description: data.description,
+                customConfig: data.customConfig,
+                isVisible: data.isVisible !== undefined ? data.isVisible : true,
+            }
+        });
+
+        if (actor) {
+            await logAuditEvent({
+                actorId: actor.id,
+                actorName: actor.name,
+                action: 'UPDATE',
+                entityType: 'HomepageSection',
+                entityId: updated.id,
+                diff: `Ana sayfa bölümü güncellendi: ${sectionKey}`,
+            });
+        }
+
+        return updated;
+    },
+
+    async reorderSections(orderedKeys: string[], actor?: { id: string; name?: string }) {
+        const updates = orderedKeys.map((key, index) =>
+            prisma.homepageSection.updateMany({
+                where: { sectionKey: key },
+                data: { sortOrder: index + 1 },
+            })
+        );
+        await prisma.$transaction(updates);
+
+        if (actor) {
+            await logAuditEvent({
+                actorId: actor.id,
+                actorName: actor.name,
+                action: 'REORDER',
+                entityType: 'HomepageSection',
+                diff: `Bölüm sırası güncellendi (${orderedKeys.length} bölüm)`,
+            });
+        }
+
+        return this.getSections();
+    },
 };
