@@ -22,6 +22,7 @@ interface DynamicSlide {
     id?: string;
     mediaUrl: string;
     mobileMediaUrl?: string | null;
+    // text fields kept for type compat but NOT used for display — only image rotates
     title?: string;
     subtitle?: string;
     badgeText?: string;
@@ -46,7 +47,8 @@ export const Hero = () => {
                 const res = await fetch('/api/public/slides');
                 const data = await res.json();
                 if (data.success && Array.isArray(data.slides) && data.slides.length > 0) {
-                    setSlides(data.slides);
+                    // Only use image URLs from DB; preserve static text from siteContent
+                    setSlides(data.slides.map((s: DynamicSlide) => ({ mediaUrl: s.mediaUrl, mobileMediaUrl: s.mobileMediaUrl })));
                 }
             } catch (e) {
                 // Fallback kept to defaultSlideImages
@@ -151,7 +153,7 @@ export const Hero = () => {
                     className="mb-6 inline-flex items-center gap-2 px-5 py-2.5 rounded-full border-2 border-primary/50 bg-white/80 dark:bg-black/60 backdrop-blur-xl text-primary dark:text-secondary text-sm font-bold tracking-wider shadow-xl dark:shadow-none dark:border-secondary/40"
                 >
                     <span className="w-2 h-2 rounded-full bg-primary animate-pulse shadow-lg shadow-primary/50" />
-                    {activeSlide.badgeText || hero.status}
+                    {hero.status}
                 </motion.div>
 
                 {/* Title */}
@@ -162,10 +164,10 @@ export const Hero = () => {
                     className="font-orbitron font-black tracking-tight leading-[1.1] mb-6"
                 >
                     <span className="block text-4xl md:text-5xl lg:text-6xl xl:text-7xl mb-2 text-black dark:text-white drop-shadow-2xl">
-                        {activeSlide.title || hero.title.line1}
+                        {hero.title.line1}
                     </span>
                     <span className="block text-4xl md:text-5xl lg:text-6xl xl:text-7xl bg-gradient-to-r from-primary via-purple-600 to-secondary bg-clip-text text-transparent drop-shadow-lg">
-                        {activeSlide.subtitle || hero.title.line2}
+                        {hero.title.line2}
                     </span>
                 </motion.h1>
 
@@ -176,7 +178,7 @@ export const Hero = () => {
                     transition={{ duration: 0.8, delay: 0.4 }}
                     className="text-base md:text-lg lg:text-xl text-black dark:text-gray-300 max-w-3xl mx-auto mb-8 leading-relaxed bg-white/60 dark:bg-transparent backdrop-blur-md dark:backdrop-blur-none px-6 py-3 rounded-xl border border-gray-200 dark:border-transparent shadow-lg dark:shadow-none"
                 >
-                    {activeSlide.description || hero.description}
+                    {hero.description}
                 </motion.p>
 
                 <motion.div
@@ -186,21 +188,21 @@ export const Hero = () => {
                     className="flex flex-col sm:flex-row gap-4 mb-10"
                 >
                     <Link
-                        href={activeSlide.primaryCtaLink || "/basvuru"}
+                        href="/basvuru"
                         className="group relative px-8 py-4 bg-gradient-to-r from-primary via-purple-600 to-primary text-white font-bold text-base tracking-wide overflow-hidden rounded-xl transition-all hover:scale-105 hover:shadow-2xl hover:shadow-primary/40 active:scale-95 shadow-xl"
                     >
                         <span className="relative z-10 flex items-center justify-center gap-2">
-                            {activeSlide.primaryCtaText || hero.buttons.primary}
+                            {hero.buttons.primary}
                             <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                         </span>
                         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
                     </Link>
 
                     <Link
-                        href={activeSlide.secondaryCtaLink || "/destekler"}
+                        href="/destekler"
                         className="px-8 py-4 bg-white/90 dark:bg-white/10 backdrop-blur-md border-2 border-gray-300 dark:border-white/30 text-gray-900 dark:text-white font-bold text-base tracking-wide hover:bg-white dark:hover:bg-white/20 hover:border-primary dark:hover:border-primary transition-all rounded-xl shadow-lg"
                     >
-                        {activeSlide.secondaryCtaText || hero.buttons.secondary}
+                        {hero.buttons.secondary}
                     </Link>
                 </motion.div>
 
