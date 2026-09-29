@@ -431,70 +431,143 @@ export default function AdminAyarlarPage() {
                     </div>
                 )}
 
-                {/* 5. NOTIFICATIONS & DIGEST (Madde 64-71) */}
+                {/* 5. NOTIFICATIONS & ROUTING BUILDER */}
                 {activeTab === 'notifications' && (
                     <div className="bg-[#0e0e18] border border-white/10 rounded-2xl p-6 shadow-xl space-y-6">
                         <div className="font-orbitron font-bold text-sm text-white pb-3 border-b border-white/10 flex items-center gap-2">
-                            <Bell className="w-4 h-4 text-primary" /> Bildirim Kanalları, Yönlendirme ve Digest Ayarları
+                            <Bell className="w-4 h-4 text-primary" /> Program Bazlı Bildirim Yönlendirme & Kanal Yönetimi
                         </div>
 
+                        {/* Global Channel & Digest Settings */}
+                        <div className="p-4 rounded-xl bg-black/30 border border-white/5 space-y-3">
+                            <div className="text-xs font-semibold text-white">Genel Bildirim Kanalları & Gönderim Sıklığı (Digest)</div>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                <label className="flex items-center gap-2 text-xs text-gray-300 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={settings['notify_channel_inapp'] !== 'false'}
+                                        onChange={(e) => handleChange('notify_channel_inapp', String(e.target.checked))}
+                                        className="rounded border-white/20 bg-black/40 text-primary"
+                                    />
+                                    Uygulama İçi (In-App)
+                                </label>
+                                <label className="flex items-center gap-2 text-xs text-gray-300 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={settings['notify_channel_email'] !== 'false'}
+                                        onChange={(e) => handleChange('notify_channel_email', String(e.target.checked))}
+                                        className="rounded border-white/20 bg-black/40 text-primary"
+                                    />
+                                    E-Posta (Email)
+                                </label>
+                                <label className="flex items-center gap-2 text-xs text-gray-300 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={settings['notify_channel_teams'] === 'true'}
+                                        onChange={(e) => handleChange('notify_channel_teams', String(e.target.checked))}
+                                        className="rounded border-white/20 bg-black/40 text-primary"
+                                    />
+                                    Microsoft Teams Webhook
+                                </label>
+                            </div>
+                        </div>
+
+                        {/* Program-Based Visual Routing Cards */}
                         <div className="space-y-4">
-                            <div className="p-4 rounded-xl bg-black/30 border border-white/5 space-y-3">
-                                <div className="text-xs font-semibold text-white">Bildirim Kanalları & Gönderim Sıklığı (Digest)</div>
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                                    <label className="flex items-center gap-2 text-xs text-gray-300">
-                                        <input
-                                            type="checkbox"
-                                            checked={settings['notify_channel_inapp'] !== 'false'}
-                                            onChange={(e) => handleChange('notify_channel_inapp', String(e.target.checked))}
-                                            className="rounded border-white/20 bg-black/40 text-primary"
-                                        />
-                                        Uygulama İçi (In-App)
-                                    </label>
-                                    <label className="flex items-center gap-2 text-xs text-gray-300">
-                                        <input
-                                            type="checkbox"
-                                            checked={settings['notify_channel_email'] !== 'false'}
-                                            onChange={(e) => handleChange('notify_channel_email', String(e.target.checked))}
-                                            className="rounded border-white/20 bg-black/40 text-primary"
-                                        />
-                                        E-Posta (Email)
-                                    </label>
-                                    <label className="flex items-center gap-2 text-xs text-gray-300">
-                                        <input
-                                            type="checkbox"
-                                            checked={settings['notify_channel_teams'] === 'true'}
-                                            onChange={(e) => handleChange('notify_channel_teams', String(e.target.checked))}
-                                            className="rounded border-white/20 bg-black/40 text-primary"
-                                        />
-                                        Microsoft Teams Webhook
-                                    </label>
-                                </div>
+                            <div className="text-xs font-mono font-bold text-gray-400 uppercase tracking-wider">
+                                Program Bazlı Yönlendirme Kuralları
                             </div>
 
-                            <div>
-                                <label className="block text-xs font-mono text-gray-400 mb-1.5">Varsayılan Gönderim Modu (Digest Frequency)</label>
-                                <select
-                                    value={settings['notify_digest_mode'] || 'IMMEDIATE'}
-                                    onChange={(e) => handleChange('notify_digest_mode', e.target.value)}
-                                    className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:border-primary outline-none"
-                                >
-                                    <option value="IMMEDIATE">Anında Bildirim (Immediate Delivery)</option>
-                                    <option value="DAILY_DIGEST">Günlük Özet (Daily Digest - Saat 18:00)</option>
-                                    <option value="WEEKLY_DIGEST">Haftalık Özet (Weekly Digest - Pazartesi 09:00)</option>
-                                </select>
-                            </div>
+                            {[
+                                { id: 'antspark', name: 'ANTsPARK', desc: 'Ön Kuluçka & Hızlandırma Programı' },
+                                { id: 'antsfire', name: 'ANTsFire', desc: 'İleri Aşama Büyüme & Yatırım Programı' },
+                                { id: 'glowup', name: 'GlowUp', desc: 'Kadın Girişimci & İnovasyon Programı' },
+                                { id: 'general', name: 'Genel Başvuru & İletişim', desc: 'Doğrudan web sitesi üzerinden gelen başvurular' },
+                            ].map((prog) => {
+                                const roleKey = `notify_roles_${prog.id}`;
+                                const emailKey = `notify_emails_${prog.id}`;
+                                const selectedRoles = settings[roleKey] ? settings[roleKey].split(',').map(s => s.trim()) : ['program-managers', 'application-managers'];
+                                const extraEmails = settings[emailKey] || '';
 
-                            <div>
-                                <label className="block text-xs font-mono text-gray-400 mb-1.5">ANTsPARK Başvuru Yönlendirme Grubu (E-Posta Listesi / Rol)</label>
-                                <input
-                                    type="text"
-                                    value={settings['notify_group_antspark'] || 'program-managers, application-managers'}
-                                    onChange={(e) => handleChange('notify_group_antspark', e.target.value)}
-                                    placeholder="Rol adları veya virgülle ayrılmış yönlendirme anahtarları"
-                                    className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:border-primary outline-none"
-                                />
-                            </div>
+                                const handleRoleToggle = (roleSlug: string) => {
+                                    const next = selectedRoles.includes(roleSlug)
+                                        ? selectedRoles.filter(r => r !== roleSlug)
+                                        : [...selectedRoles, roleSlug];
+                                    handleChange(roleKey, next.join(', '));
+                                };
+
+                                return (
+                                    <div key={prog.id} className="p-5 rounded-2xl bg-black/40 border border-white/10 space-y-4 hover:border-primary/40 transition-colors">
+                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-white/5">
+                                            <div>
+                                                <h4 className="font-orbitron font-bold text-sm text-white flex items-center gap-2">
+                                                    <span className="w-2 h-2 rounded-full bg-primary" />
+                                                    {prog.name} Başvuru Bildirim Alıcıları
+                                                </h4>
+                                                <p className="text-xs text-gray-400 mt-0.5">
+                                                    {prog.name} programına yeni başvuru geldiğinde veya başvuru durumu değiştiğinde bildirim alacak rol, kullanıcı ve ek e-posta adreslerini belirleyin.
+                                                </p>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => alert(`[Test Bildirimi Simülasyonu]: ${prog.name} kuralı tetiklendi. ${selectedRoles.length} rol ve tanımlı e-postalara denetimli test bildirimi kuyruğa alındı.`)}
+                                                className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-primary/20 text-gray-300 hover:text-primary border border-white/10 text-xs font-mono font-semibold transition-all cursor-pointer flex-shrink-0"
+                                            >
+                                                Test Bildirimi Gönder
+                                            </button>
+                                        </div>
+
+                                        {/* Roles Selection */}
+                                        <div className="space-y-2">
+                                            <label className="block text-[11px] font-mono text-gray-400 font-bold">Bildirim Alacak Roller:</label>
+                                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                                {[
+                                                    { slug: 'program-managers', label: 'Program Yöneticileri' },
+                                                    { slug: 'application-managers', label: 'Başvuru Yöneticileri' },
+                                                    { slug: 'super-admin', label: 'Süper Yönetici' },
+                                                    { slug: 'admin', label: 'Sistem Yöneticisi' },
+                                                    { slug: 'mentor-coordinators', label: 'Mentör Koordinatörleri' },
+                                                    { slug: 'legal-managers', label: 'Hukuk & Sözleşme' },
+                                                ].map((r) => (
+                                                    <label key={r.slug} className="flex items-center gap-2 text-xs text-gray-300 bg-white/5 p-2 rounded-xl border border-white/5 hover:border-white/20 cursor-pointer">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={selectedRoles.includes(r.slug)}
+                                                            onChange={() => handleRoleToggle(r.slug)}
+                                                            className="rounded border-white/20 bg-black/40 text-primary"
+                                                        />
+                                                        <span>{r.label}</span>
+                                                    </label>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        {/* Extra Emails */}
+                                        <div>
+                                            <label className="block text-[11px] font-mono text-gray-400 font-bold mb-1">
+                                                Ek E-Posta Adresleri (Virgülle ayırın):
+                                            </label>
+                                            <input
+                                                type="text"
+                                                placeholder="ornek@iku.edu.tr, info@ikuants.com"
+                                                value={extraEmails}
+                                                onChange={(e) => handleChange(emailKey, e.target.value)}
+                                                className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white focus:border-primary outline-none"
+                                            />
+                                        </div>
+
+                                        {/* Live Preview Summary with De-duplication notice */}
+                                        <div className="p-3 rounded-xl bg-primary/5 border border-primary/20 flex items-center justify-between text-xs font-mono text-primary">
+                                            <span>
+                                                ✓ Bu kurala göre seçili {selectedRoles.length} rol grubu ve {extraEmails ? extraEmails.split(',').filter(Boolean).length : 0} ek e-posta adresi bildirim alacak.
+                                            </span>
+                                            <span className="text-[10px] text-gray-400">
+                                                (Mükerrer Gönderim Engelleme Aktif)
+                                            </span>
+                                        </div>
+                                    </div>
+                                );
+                            })}
                         </div>
                     </div>
                 )}

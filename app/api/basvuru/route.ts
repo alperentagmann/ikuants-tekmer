@@ -6,7 +6,7 @@ export async function POST(request: NextRequest) {
     try {
         const formData = await request.json();
 
-        const programName = formData.programName || 'ANTSPARK';
+        const programName = formData.programName || null;
         const applicantName = formData.fullName || formData.founderName || 'Başvuru Sahibi';
         const companyName = formData.companyName || formData.projectName || null;
         const email = (formData.email || formData.founderContact || '').toLowerCase().trim();

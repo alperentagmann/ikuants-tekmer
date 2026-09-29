@@ -154,7 +154,7 @@ export default function ApplicationDetailPage() {
                             <span>•</span>
                             <span>{app.phone || 'Telefon belirtilmedi'}</span>
                             <span>•</span>
-                            <span className="text-purple-400 font-bold">{app.program?.name || 'ANTSPARK'}</span>
+                            <span className="text-purple-400 font-bold">{app.program?.name || 'Program Atanmamış'}</span>
                         </div>
                     </div>
 

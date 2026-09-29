@@ -154,7 +154,7 @@ export default function AdminGirisimcilerPage() {
             key: 'program',
             header: 'Program',
             render: (item) => (
-                <span className="text-purple-400 font-mono">{item.program || 'ANTSPARK'}</span>
+                <span className="text-purple-400 font-mono">{item.program || 'Program Atanmamış'}</span>
             ),
         },
         {

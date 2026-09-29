@@ -83,7 +83,7 @@ export default function AdminBasvurularPage() {
             header: 'Program',
             render: (item) => (
                 <span className="text-purple-400 font-mono text-[11px]">
-                    {item.program?.name || 'ANTSPARK'}
+                    {item.program?.name || 'Program Atanmamış'}
                 </span>
             ),
         },
@@ -189,7 +189,7 @@ export default function AdminBasvurularPage() {
                                                             {app.applicationNumber}
                                                         </span>
                                                         <span className="text-[9px] font-mono text-purple-400 bg-purple-500/10 px-1.5 py-0.5 rounded">
-                                                            {app.program?.name || 'ANTSPARK'}
+                                                            {app.program?.name || 'Program Atanmamış'}
                                                         </span>
                                                     </div>
 
