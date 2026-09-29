@@ -1,50 +1,68 @@
-# İKÜANTS TEKMER — Role-Based Access Control (RBAC) & Permissions Matrix
+# İKÜANTS TEKMER — SUPER ADMIN & ADMIN YETKİ MATRİSİ (RBAC)
 
-Bu doküman, İKÜANTS TEKMER platformunda tanımlı kullanıcı rolleri, yetki alanları ve server-side yetkilendirme kurallarını detaylandırmaktadır.
-
----
-
-## 1. Rol Hiyerarşisi
-
-Sistemde tanımlı roller:
-
-| Rol | Kod | Açıklama |
-| :--- | :--- | :--- |
-| **Süper Admin** | `SUPER_ADMIN` | Sistem üzerindeki en yüksek yetkiye sahip yönetici. Güvenlik, kullanıcı yönetimi, entegrasyonlar ve kritik ayarları yönetir. |
-| **Admin** | `ADMIN` | Genel operasyonel yönetici. Başvuruları, içerikleri, girişimcileri, mentörleri ve süreçleri yönetir. |
-| **İçerik Editörü** | `CONTENT_EDITOR` | Haber, duyuru, etkinlik, vaka çalışması ve sosyal medya gelen kutusu yönetimi yetkisine sahip kullanıcı. |
-| **Başvuru Yöneticisi** | `APPLICATION_MANAGER` | Girişimci ve mentör başvurularını inceleme, puanlama ve aşama değiştirme yetkisine sahip kullanıcı. |
-| **Program Yöneticisi** | `PROGRAM_MANAGER` | ANTsPARK, ANTsFIRE, GlowUp programlarını ve takvimleri yöneten kullanıcı. |
-| **Mentör Yöneticisi** | `MENTOR_MANAGER` | Mentör eşleştirmeleri ve mentörlük havuzunu yöneten kullanıcı. |
-| **Gözlemci / Denetçi** | `VIEWER` | Yalnızca rapor ve içerikleri okuma/izleme yetkisine sahip kullanıcı. Veri değiştiremez. |
-| **Girişimci** | `ENTREPRENEUR` | Girişimci portalına erişebilen kullanıcı. Admin paneline erişimi **engellenmiştir**. |
-| **Mentör** | `MENTOR` | Mentör portalına erişebilen kullanıcı. Admin paneline erişimi **engellenmiştir**. |
+Bu doküman, İKÜANTS TEKMER Yönetim Paneli ve API katmanında uygulanan **Süper Yönetici (SUPER_ADMIN)** ve **Yönetici (ADMIN / Operasyonel Roller)** arasındaki yetki ayrımını ve güvenlik kurallarını tanımlar.
 
 ---
 
-## 2. Yetki Matrisi (Permission Matrix)
+## 👑 1. ROLLER VE GENEL İLKELER
 
-| Yetki Alanı / Aksiyon | SUPER_ADMIN | ADMIN | CONTENT_EDITOR | APPLICATION_MANAGER | PROGRAM_MANAGER | VIEWER |
-| :--- | :---: | :---: | :---: | :---: | :---: | :---: |
-| **Kullanıcı Yönetimi (Davet/Silme/Rol Değişimi)** | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| **Son Süper Admin Koruması** | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| **Güvenlik Merkezi & Audit Logları** | ✅ | ✅ (Okuma) | ❌ | ❌ | ❌ | ❌ |
-| **Sosyal Medya Hesap Bağlama (OAuth/API)** | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| **Sosyal Medya Gelen Kutusu & Haber Dönüştürme**| ✅ | ✅ | ✅ | ❌ | ❌ | ❌ |
-| **Haber / Duyuru / Etkinlik CRUD** | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ |
-| **Vaka Çalışmaları CRUD** | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ |
-| **Girişimci Havuzu & Profil Yönetimi** | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
-| **Başvuru İnceleme & Durum Değiştirme** | ✅ | ✅ | ❌ | ✅ | ❌ | ❌ |
-| **Program Yönetimi (ANTsPARK/ANTSFIRE)** | ✅ | ✅ | ❌ | ❌ | ✅ | ❌ |
-| **Mentör Havuzu & Eşleştirmeler** | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
-| **E-posta Şablonları & Outbox Yönetimi** | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
-| **Sistem Ayarları & Terminoloji** | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Rol | Rol Slug | Tanım | Yetki Kapsamı |
+|---|---|---|---|
+| **Süper Yönetici** | `super-admin` | Sistem sahibi, platform yöneticisi (`bilgi@ikuantstekmer.com`) | Tüm operasyon, CMS, sistem yapılandırması, roller, güvenlik ve entegrasyonlar dahil tam yetki (`*:*`). |
+| **Yönetici (Admin)** | `admin` | Günlük operasyon, CRM ve içerik yöneticisi | Günlük operasyonel modüller (Görevler, Takvim, Başvurular, Girişimciler, Mentörler, Faaliyetler, Haberler). Sistem ayarları ve güvenlik merkezine erişemez. |
+| **İçerik Editörü** | `content-editor` | Haber, duyuru ve medya içerik sorumlusu | Haberler, etkinlikler ve medya kütüphanesini yönetir. |
+| **Başvuru Yöneticisi** | `application-manager` | Girişim ve program başvuruları CRM sorumlusu | Başvuru pipeline'ı, değerlendirme puanlaması ve iletişim talepleri. |
+| **Mentör Yöneticisi** | `mentor-manager` | Mentör ağı ve seans koordinatörü | Mentör kadrosu ve eşleştirme seansları. |
+| **Program Yöneticisi** | `program-manager` | Kuluçka/Hızlandırma programları yöneticisi | Programlar, eğitim müfredatı ve kohort takibi. |
 
 ---
 
-## 3. Server-Side Güvenlik Kuralları
+## 🛡️ 2. DETAYLI MODÜL & ERİŞİM MATRİSİ
 
-1. **İstemci Güvenilmezdir:** UI üzerinde buton veya menü gizlemek tek başına güvenlik değildir. Her API route, Server Action ve Servis çağrısında `getServerSession(authOptions)` üzerinden rol ve yetki doğrulaması yapılır.
-2. **Privilege Escalation Koruması:** `ADMIN` rolündeki bir kullanıcı başka bir kullanıcıyı `SUPER_ADMIN` yapamaz veya diğer admin kullanıcılarını silemez.
-3. **Admin Panel İzolasyonu:** `ENTREPRENEUR` ve `MENTOR` kullanıcılarının `/admin/*` yollarına erişimi middleware ve server route katmanında 403 ile engellenir.
-4. **Audit Trail:** Tüm kritik CRUD, yetki değişimi, davet ve sosyal medya işlemleri `AuditLog` tablosuna değişen alanlar, IP adresi ve kullanıcı bilgisiyle kaydedilir.
+| Modül / Özellik | Route / API | Süper Yönetici (`super-admin`) | Normal Yönetici (`admin`) | Diğer Operasyonel Roller |
+|---|---|:---:|:---:|:---:|
+| **Dashboard & İstatistikler** | `/admin/dashboard` | ✅ Tam Erişim | ✅ Operasyonel Görünüm | ✅ Rol Kapsamında |
+| **Benim Günüm & Kişisel Çalışma Alanı** | `/admin/benim-gunum` | ✅ Tam Erişim | ✅ Tam Erişim | ✅ Tam Erişim |
+| **Kişisel To-Do & Hızlı Notlar** | `/api/admin/workspace/todos` | ✅ Tam Erişim | ✅ Tam Erişim | ✅ Tam Erişim |
+| **Görevler & Kanban Panosu** | `/admin/gorevler/kanban` | ✅ Tüm Ekipler | ✅ İlgili Ekipler | ✅ Atanan Görevler |
+| **Ortak Takvim & Toplantılar** | `/admin/takvim` | ✅ Tam Erişim | ✅ Tam Erişim | ✅ Okuma / Planlama |
+| **Onay Bekleyenler (Approvals)** | `/admin/onaylar` | ✅ Onaylama / Red | ✅ İzne Bağlı | ❌ |
+| **Başvuru Pipeline (CRM)** | `/admin/basvurular` | ✅ Tam Erişim | ✅ İnceleme / Puanlama | ✅ İnceleme (Yetkili) |
+| **Girişimciler & Mentörler** | `/admin/girisimciler`, `/admin/mentorler` | ✅ Tam Erişim | ✅ CRUD & Medya | ✅ Görüntüleme / Düzenleme |
+| **Paydaş & Kişi Rehberi** | `/admin/rehber` | ✅ Tam Erişim | ✅ CRUD | ✅ CRUD |
+| **Programlar, Eğitimler, Etkinlikler** | `/admin/programlar`, `/admin/etkinlikler` | ✅ Tam Erişim | ✅ CRUD | ✅ Görüntüleme / Düzenleme |
+| **Projeler, Hibeler & Faaliyetler** | `/admin/projeler`, `/admin/faaliyetler` | ✅ Bütçe Dahil Tam | ✅ Operasyonel | ❌ |
+| **Haberler, Duyurular & Editör** | `/admin/haberler` | ✅ Yayınlama Dahil | ✅ Yayınlama Dahil | ✅ Taslak / Yayın |
+| **Medya Kütüphanesi** | `/admin/medya` | ✅ Tam Yönetim | ✅ Yükleme / Seçim | ✅ Yükleme / Seçim |
+| **Ana Sayfa & Hero Banner CMS** | `/admin/anasayfa` | ✅ Tam Yönetim | ✅ Banner & Slide Yönetimi | ❌ |
+| **Sayfa Yönetimi (Page Builder)** | `/admin/sayfalar` | ✅ Tam Erişim | ❌ (Gizli - 403) | ❌ |
+| **Form Builder & Versiyonlama** | `/admin/form-builder` | ✅ Tam Erişim | ❌ (Gizli - 403) | ❌ |
+| **Partner & Logo Yönetimi** | `/admin/partnerler` | ✅ Tam Erişim | ❌ (Gizli - 403) | ❌ |
+| **Menü Yönetimi (Navigation)** | `/admin/menuler` | ✅ Tam Erişim | ❌ (Gizli - 403) | ❌ |
+| **Günlük & Aylık Raporlar** | `/admin/raporlar/gunluk`, `/admin/raporlar/aylik` | ✅ Tüm Kurum | ✅ Kendi / Departman | ✅ Kendi Raporu |
+| **Yıllık & Kurum Geneli Rapor** | `/admin/raporlar/yillik` | ✅ Tam Yetki | ❌ (Gizli - 403) | ❌ |
+| **Özel Rapor Stüdyosu** | `/admin/raporlar/ozel` | ✅ Tam Yetki | ❌ (Gizli - 403) | ❌ |
+| **Sosyal Medya Gelen Kutusu** | `/admin/sosyal-medya/gelen-kutusu` | ✅ Tam Erişim | ✅ Yanıtlama / İnceleme | ❌ |
+| **Sosyal Medya Entegrasyonu & Secrets**| `/admin/entegrasyonlar/sosyal-medya` | ✅ Token/API Yönetimi | ❌ (Gizli - 403) | ❌ |
+| **Site Ayarları & Marka/Tasarım** | `/admin/ayarlar` | ✅ Tam Erişim | ❌ (Gizli - 403) | ❌ |
+| **Kullanıcı Yönetimi & Davetler** | `/admin/kullanicilar` | ✅ Tam Yetki | ❌ (Gizli - 403) | ❌ |
+| **Roller & İzinler Yönetimi** | `/admin/roller` | ✅ Tam Yetki | ❌ (Gizli - 403) | ❌ |
+| **Güvenlik Merkezi & Olaylar** | `/admin/guvenlik` | ✅ Olay İnceleme | ❌ (Gizli - 403) | ❌ |
+| **Sistem Sağlığı & Diagnostic** | `/admin/sistem-durumu` | ✅ Metrikler & Loglar | ❌ (Gizli - 403) | ❌ |
+| **Denetim İzi (Audit Log)** | `/admin/audit-log` | ✅ Tam İnceleme | ❌ (Gizli - 403) | ❌ |
+| **SEO & 301 Yönlendirmeleri** | `/admin/seo-redirects` | ✅ Tam Yetki | ❌ (Gizli - 403) | ❌ |
+| **E-Posta Şablonları & Kuyruk** | `/admin/eposta-sablonlari`, `/admin/eposta-merkezi` | ✅ Şablon & Outbox | ❌ (Gizli - 403) | ❌ |
+| **Terminoloji & Özel Alanlar** | `/admin/terimler`, `/admin/ozel-alanlar` | ✅ Tam Yetki | ❌ (Gizli - 403) | ❌ |
+
+---
+
+## 🔒 3. GÜVENLİK & YETKİ YÜKSELTME (PRIVILEGE ESCALATION) KORUMASI
+
+1. **Super Admin Hesap Dokunulmazlığı:**
+   - Ana Süper Yönetici hesabı (`bilgi@ikuantstekmer.com`) ve sistemdeki son aktif Süper Yönetici hesabı silinemez veya pasife alınamaz.
+2. **Kendi Yetkisini Yükseltme Yasağı:**
+   - Hiçbir kullanıcı kendi profilinden `isSuperAdmin`, `role` veya `permissions` değerlerini değiştiremez.
+3. **Rol Atama Hiyerarşisi:**
+   - Bir kullanıcı yalnızca kendi yetki seviyesinin altındaki rolleri atayabilir. Süper Yönetici olmayan hiç kimse `SUPER_ADMIN` rolü atayamaz veya API üzerinden `isSuperAdmin: true` gönderemez.
+4. **Sunucu Tarafı Güvenlik Doğrulaması:**
+   - Arayüzden gizleme tek başına yeterli değildir; `/api/admin/settings`, `/api/admin/roles`, `/api/admin/security` ve ilgili tüm endpoint'ler `user.isSuperAdmin` kontrolünü zorunlu kılar ve yetkisiz çağrılarda `403 Forbidden` döner.

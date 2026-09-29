@@ -83,7 +83,9 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ isCollapsed, onToggl
         }
     };
 
-    const navSections: NavSection[] = [
+    const isSuper = Boolean(user?.isSuperAdmin);
+
+    const rawNavSections: NavSection[] = [
         {
             id: 'dashboard',
             title: 'DASHBOARD & ÇALIŞMA ALANI',
@@ -130,12 +132,12 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ isCollapsed, onToggl
             title: 'İÇERİK & WEB SİTESİ (CMS)',
             items: [
                 { title: 'Haberler & Editör', href: '/admin/haberler', icon: Newspaper },
-                { title: 'Sayfa Yönetimi', href: '/admin/sayfalar', icon: FileText },
+                ...(isSuper ? [{ title: 'Sayfa Yönetimi', href: '/admin/sayfalar', icon: FileText }] : []),
                 { title: 'Ana Sayfa & Banner', href: '/admin/anasayfa', icon: Building2 },
-                { title: 'Form Builder', href: '/admin/form-builder', icon: Sparkles },
+                ...(isSuper ? [{ title: 'Form Builder', href: '/admin/form-builder', icon: Sparkles }] : []),
                 { title: 'Medya Kütüphanesi', href: '/admin/medya', icon: Folder },
-                { title: 'Partner & Logolar', href: '/admin/partnerler', icon: Sparkles },
-                { title: 'Menü Yönetimi', href: '/admin/menuler', icon: Navigation },
+                ...(isSuper ? [{ title: 'Partner & Logolar', href: '/admin/partnerler', icon: Sparkles }] : []),
+                ...(isSuper ? [{ title: 'Menü Yönetimi', href: '/admin/menuler', icon: Navigation }] : []),
             ],
         },
         {
@@ -145,39 +147,43 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ isCollapsed, onToggl
                 { title: 'Rapor Merkezi', href: '/admin/raporlar', icon: BarChart3 },
                 { title: 'Günlük Rapor', href: '/admin/raporlar/gunluk', icon: Calendar },
                 { title: 'Aylık Rapor', href: '/admin/raporlar/aylik', icon: Calendar },
-                { title: 'Yıllık Rapor', href: '/admin/raporlar/yillik', icon: FileText },
+                ...(isSuper ? [{ title: 'Yıllık Rapor', href: '/admin/raporlar/yillik', icon: FileText }] : []),
                 { title: 'Ekip Raporu', href: '/admin/raporlar/ekip', icon: Users },
                 { title: 'Kullanıcı Raporu', href: '/admin/raporlar/kullanici', icon: Users },
-                { title: 'Sosyal Medya Raporu', href: '/admin/raporlar/sosyal-medya', icon: MessageSquare },
-                { title: 'Özel Rapor Builder', href: '/admin/raporlar/ozel', icon: Sparkles },
+                ...(isSuper ? [{ title: 'Sosyal Medya Raporu', href: '/admin/raporlar/sosyal-medya', icon: MessageSquare }] : []),
+                ...(isSuper ? [{ title: 'Özel Rapor Builder', href: '/admin/raporlar/ozel', icon: Sparkles }] : []),
             ],
         },
         {
             id: 'social',
-            title: 'SOSYAL MEDYA ENTEGRASYONU',
+            title: 'SOSYAL MEDYA',
             items: [
-                { title: 'Entegrasyon Merkezi', href: '/admin/entegrasyonlar/sosyal-medya', icon: Send },
+                ...(isSuper ? [{ title: 'Entegrasyon Merkezi', href: '/admin/entegrasyonlar/sosyal-medya', icon: Send }] : []),
                 { title: 'Gelen Kutusu', href: '/admin/sosyal-medya/gelen-kutusu', icon: Inbox },
             ],
         },
-        {
-            id: 'system',
-            title: 'SİSTEM & GÜVENLİK',
-            items: [
-                { title: 'Kullanıcı & Roller', href: '/admin/kullanicilar', icon: Users },
-                { title: 'Roller & İzinler', href: '/admin/roller', icon: Shield },
-                { title: 'Güvenlik Merkezi', href: '/admin/guvenlik', icon: ShieldAlert },
-                { title: 'Sistem Durumu', href: '/admin/sistem-durumu', icon: Activity },
-                { title: 'Site Ayarları', href: '/admin/ayarlar', icon: Settings },
-                { title: 'E-Posta Merkezi', href: '/admin/eposta-merkezi', icon: Mail },
-                { title: 'E-Posta Şablonları', href: '/admin/eposta-sablonlari', icon: Mail },
-                { title: 'Audit Log (Denetim)', href: '/admin/audit-log', icon: History },
-                { title: 'SEO & Redirects', href: '/admin/seo-redirects', icon: Globe },
-                { title: 'Terim & Etiketler', href: '/admin/terimler', icon: Sparkles },
-                { title: 'Özel Alanlar', href: '/admin/ozel-alanlar', icon: Folder },
-            ],
-        },
+        ...(isSuper ? [
+            {
+                id: 'system',
+                title: 'SİSTEM & GÜVENLİK',
+                items: [
+                    { title: 'Kullanıcı & Roller', href: '/admin/kullanicilar', icon: Users },
+                    { title: 'Roller & İzinler', href: '/admin/roller', icon: Shield },
+                    { title: 'Güvenlik Merkezi', href: '/admin/guvenlik', icon: ShieldAlert },
+                    { title: 'Sistem Durumu', href: '/admin/sistem-durumu', icon: Activity },
+                    { title: 'Site Ayarları', href: '/admin/ayarlar', icon: Settings },
+                    { title: 'E-Posta Merkezi', href: '/admin/eposta-merkezi', icon: Mail },
+                    { title: 'E-Posta Şablonları', href: '/admin/eposta-sablonlari', icon: Mail },
+                    { title: 'Audit Log (Denetim)', href: '/admin/audit-log', icon: History },
+                    { title: 'SEO & Redirects', href: '/admin/seo-redirects', icon: Globe },
+                    { title: 'Terim & Etiketler', href: '/admin/terimler', icon: Sparkles },
+                    { title: 'Özel Alanlar', href: '/admin/ozel-alanlar', icon: Folder },
+                ],
+            }
+        ] : []),
     ];
+
+    const navSections = rawNavSections.filter(section => section.items.length > 0);
 
     // Find all items for search or favorites
     const allItems = navSections.flatMap(s => s.items);
