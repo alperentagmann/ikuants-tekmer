@@ -16,6 +16,21 @@ const defaultSlideImages = [
     "/images/hero-slide-6.jpg",
     "/images/hero-slide-7.jpg",
     "/images/hero-slide-8.jpg",
+    "/images/hero-slide-9.jpg",
+    "/images/hero-slide-10.jpg",
+    "/images/hero-slide-11.jpg",
+    "/images/hero-3.jpg",
+    "/images/hero-4.jpg",
+    "/images/hero-5.jpg",
+    "/images/hero-7.jpg",
+    "/images/06.jpeg",
+    "/images/07.JPG",
+    "/images/08.JPG",
+    "/images/09.JPG",
+    "/images/10.JPG",
+    "/images/11.jpeg",
+    "/images/12.JPG",
+    "/images/slider-1.png",
 ];
 
 interface DynamicSlide {
