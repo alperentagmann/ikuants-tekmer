@@ -4,7 +4,7 @@ export interface AuditLogOptions {
     actorId?: string | null;
     actorEmail?: string | null;
     actorName?: string | null;
-    action: 'CREATE' | 'UPDATE' | 'DELETE' | 'RESTORE' | 'LOGIN' | 'LOGOUT' | 'PUBLISH' | 'UNPUBLISH' | 'EXPORT' | 'PII_ACCESS' | 'SETTINGS_CHANGE';
+    action: 'CREATE' | 'UPDATE' | 'DELETE' | 'RESTORE' | 'LOGIN' | 'LOGOUT' | 'PUBLISH' | 'UNPUBLISH' | 'EXPORT' | 'PII_ACCESS' | 'SETTINGS_CHANGE' | 'ASSIGN' | 'APPROVE' | 'REJECT' | (string & {});
     entityType: string;
     entityId?: string | null;
     fieldName?: string | null;

@@ -93,7 +93,7 @@ export class ContractService {
 
         await logAuditEvent({
             actorId,
-            action: 'CREATE_CONTRACT',
+            action: 'CREATE',
             entityType: 'Contract',
             entityId: contract.id,
             diff: JSON.stringify({ number: contract.contractNumber, partyB: contract.partyB }),
@@ -140,7 +140,7 @@ export class ContractService {
 
         await logAuditEvent({
             actorId: params.actorId,
-            action: 'ATTACH_CONTRACT_DOCUMENT',
+            action: 'CREATE',
             entityType: 'ContractDocument',
             entityId: newDoc.id,
             diff: `Added document version v${nextVersion}: ${params.title}`,

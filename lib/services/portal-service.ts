@@ -120,8 +120,8 @@ export class PortalService {
                 sessionDate: data.sessionDate,
                 durationMinutes: data.durationMinutes,
                 topic: data.topic,
-                summaryNotes: data.summaryNotes,
-                rating: data.rating,
+                notes: data.summaryNotes,
+                feedbackRating: data.rating,
                 status: 'COMPLETED',
             },
             include: { entrepreneur: true },
@@ -136,10 +136,10 @@ export class PortalService {
 
         await logAuditEvent({
             actorId: userId,
-            action: 'PORTAL_SUBMIT_MENTOR_SESSION',
+            action: 'CREATE',
             entityType: 'MentorSession',
             entityId: session.id,
-            diff: `Recorded session with ${session.entrepreneur.name} (${data.durationMinutes} min)`,
+            diff: `Recorded session with ${session.entrepreneur?.name || 'Girişimci'} (${data.durationMinutes} min)`,
         });
 
         return session;
