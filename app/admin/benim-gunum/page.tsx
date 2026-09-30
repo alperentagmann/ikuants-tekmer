@@ -23,7 +23,24 @@ import {
 export default function BenimGunumPage() {
     const [loading, setLoading] = useState(true);
     const [summary, setSummary] = useState<any>(null);
-    const [activeTab, setActiveTab] = useState<'TODOS' | 'NOTES' | 'REMINDERS' | 'RECENTS'>('TODOS');
+    const [activeTab, setActiveTab] = useState<'TODOS' | 'INTERACTIONS' | 'NOTES' | 'REMINDERS'>('TODOS');
+    const [todayInteractions, setTodayInteractions] = useState<any[]>([]);
+
+    const fetchInteractionsData = async () => {
+        try {
+            const res = await fetch('/api/admin/interactions');
+            const data = await res.json();
+            if (Array.isArray(data)) {
+                setTodayInteractions(data);
+            }
+        } catch {
+            // handle
+        }
+    };
+
+    useEffect(() => {
+        fetchInteractionsData();
+    }, []);
 
     // To-Do Form State
     const [newTodoTitle, setNewTodoTitle] = useState('');
@@ -248,6 +265,13 @@ export default function BenimGunumPage() {
                             <span>Kişisel To-Do</span>
                         </button>
                         <button
+                            onClick={() => setActiveTab('INTERACTIONS')}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 ${activeTab === 'INTERACTIONS' ? 'bg-emerald-600/20 text-emerald-400 border border-emerald-500/30' : 'text-slate-400 hover:text-white'}`}
+                        >
+                            <Share2 className="w-3.5 h-3.5" />
+                            <span>Görüşmeler & Ziyaretler ({todayInteractions.length})</span>
+                        </button>
+                        <button
                             onClick={() => setActiveTab('NOTES')}
                             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 ${activeTab === 'NOTES' ? 'bg-amber-600/20 text-amber-400 border border-amber-500/30' : 'text-slate-400 hover:text-white'}`}
                         >
@@ -325,7 +349,69 @@ export default function BenimGunumPage() {
                         </div>
                     )}
 
-                    {/* Tab: Hızlı Notlar */}
+                    {/* Tab: Görüşmeler & Ziyaretler */}
+                    {activeTab === 'INTERACTIONS' && (
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                                <span className="text-xs text-slate-400">Bugünkü Görüşmeler & Ziyaretçi Kayıtları</span>
+                                <Link
+                                    href="/admin/gorusmeler"
+                                    className="text-xs text-cyan-400 hover:underline flex items-center gap-1 font-semibold"
+                                >
+                                    <span>Tüm Görüşmeleri Aç</span>
+                                    <ArrowRight className="w-3 h-3" />
+                                </Link>
+                            </div>
+
+                            <div className="space-y-2">
+                                {todayInteractions.map((item: any) => (
+                                    <div
+                                        key={item.id}
+                                        className="bg-slate-900/60 border border-slate-800 rounded-xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:border-slate-700 transition-colors"
+                                    >
+                                        <div>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-xs font-semibold text-white">{item.personName}</span>
+                                                {item.organizationName && (
+                                                    <span className="text-xs text-slate-400">• {item.organizationName}</span>
+                                                )}
+                                                <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                                                    {item.type}
+                                                </span>
+                                            </div>
+                                            <p className="text-xs text-slate-300 mt-1">{item.subject}</p>
+                                        </div>
+
+                                        <div className="flex items-center gap-2">
+                                            {item.followUpDate && (
+                                                <span className="text-[10px] text-amber-400 font-medium">
+                                                    Takip: {new Date(item.followUpDate).toLocaleDateString('tr-TR')}
+                                                </span>
+                                            )}
+                                            <Link
+                                                href="/admin/gorusmeler"
+                                                className="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium"
+                                            >
+                                                Detay
+                                            </Link>
+                                        </div>
+                                    </div>
+                                ))}
+
+                                {todayInteractions.length === 0 && (
+                                    <div className="text-center py-8 bg-slate-900/30 rounded-xl border border-dashed border-slate-800">
+                                        <p className="text-slate-500 text-xs">Bugün için kaydedilmiş görüşme veya ziyaret bulunmuyor.</p>
+                                        <Link
+                                            href="/admin/gorusmeler"
+                                            className="inline-block mt-2 text-xs text-cyan-400 hover:underline font-semibold"
+                                        >
+                                            + Yeni Görüşme Kaydı Oluştur
+                                        </Link>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
                     {activeTab === 'NOTES' && (
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             {summary?.personalNotes?.map((note: any) => (

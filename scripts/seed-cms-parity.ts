@@ -49,7 +49,7 @@ async function main() {
                 data: {
                     fullName: b.name,
                     title: b.title,
-                    organization: b.organization || 'İKÜANTS TEKMER',
+                    organization: (b as any).organization || 'İKÜANTS TEKMER',
                     duty: b.duty,
                     boardType: b.boardType,
                     imageUrl: b.imageUrl,

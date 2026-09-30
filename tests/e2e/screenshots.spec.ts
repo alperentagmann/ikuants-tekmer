@@ -86,5 +86,56 @@ test.describe('16. SCREENSHOT QA & KANIT ÜRETİMİ', () => {
         }
         await page.screenshot({ path: path.join(screenshotDir, 'program-editor-full.png'), fullPage: false });
         await page.screenshot({ path: path.join(screenshotDir, 'program-editor.png'), fullPage: false });
+
+        // 12. Benim Günüm (/admin/benim-gunum)
+        await page.goto('/admin/benim-gunum');
+        await page.waitForLoadState('networkidle');
+        await page.screenshot({ path: path.join(screenshotDir, 'benim-gunum.png'), fullPage: false });
+
+        // 13. Günlük Görüşmeler (/admin/gorusmeler)
+        await page.goto('/admin/gorusmeler');
+        await page.waitForLoadState('networkidle');
+        await page.screenshot({ path: path.join(screenshotDir, 'gorusmeler.png'), fullPage: false });
+
+        // 14. KVKK & İzin Yönetim Merkezi (/admin/kvkk)
+        await page.goto('/admin/kvkk');
+        await page.waitForLoadState('networkidle');
+        await page.screenshot({ path: path.join(screenshotDir, 'kvkk-center.png'), fullPage: false });
+
+        // 15. Kira Yönetim Merkezi (/admin/finans/kiralar)
+        await page.goto('/admin/finans/kiralar');
+        await page.waitForLoadState('networkidle');
+        await page.screenshot({ path: path.join(screenshotDir, 'rent-dashboard.png'), fullPage: false });
+
+        // 16. Girişimci Detayı - Programlar & Finans/Kira Tabları
+        const testEntrepreneur = await (await import('../../lib/prisma')).prisma.entrepreneur.findFirst();
+        if (testEntrepreneur) {
+            await page.goto(`/admin/girisimciler/${testEntrepreneur.id}`);
+            await page.waitForLoadState('networkidle');
+
+            // Program Tab Screenshot
+            const progTab = page.locator('#tab-programlar');
+            if (await progTab.isVisible()) {
+                await progTab.click();
+                await page.waitForTimeout(400);
+                await page.screenshot({ path: path.join(screenshotDir, 'entrepreneur-programs.png'), fullPage: false });
+            }
+
+            // Finans & Kira Tab Screenshot
+            const finTab = page.locator('#tab-finans-kira');
+            if (await finTab.isVisible()) {
+                await finTab.click();
+                await page.waitForTimeout(400);
+                await page.screenshot({ path: path.join(screenshotDir, 'entrepreneur-finance-rent.png'), fullPage: false });
+            }
+        }
+
+        // 17. Proje Finans Ekranı (/admin/projeler/[id]/finans)
+        const testProject = await (await import('../../lib/prisma')).prisma.project.findFirst();
+        if (testProject) {
+            await page.goto(`/admin/projeler/${testProject.id}/finans`);
+            await page.waitForLoadState('networkidle');
+            await page.screenshot({ path: path.join(screenshotDir, 'project-finance.png'), fullPage: false });
+        }
     });
 });

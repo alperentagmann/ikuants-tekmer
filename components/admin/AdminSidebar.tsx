@@ -7,7 +7,8 @@ import {
     HelpCircle, Mail, Folder, Shield, Settings, Activity, History,
     LogOut, ChevronLeft, ChevronRight, Sparkles, Navigation, Globe,
     Calendar, Building2, CheckSquare, Layers, ShieldAlert, Sun,
-    BarChart3, MessageSquare, Send, Inbox, Star, Search, ChevronDown
+    BarChart3, MessageSquare, Send, Inbox, Star, Search, ChevronDown,
+    DollarSign, Receipt, ShieldCheck
 } from 'lucide-react';
 
 interface AdminSidebarProps {
@@ -42,13 +43,16 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ isCollapsed, onToggl
     const [favorites, setFavorites] = useState<string[]>([]);
 
     useEffect(() => {
-        try {
-            const savedCollapsed = localStorage.getItem('admin_sidebar_collapsed_groups');
-            if (savedCollapsed) setCollapsedGroups(JSON.parse(savedCollapsed));
+        const timer = setTimeout(() => {
+            try {
+                const savedCollapsed = localStorage.getItem('admin_sidebar_collapsed_groups');
+                if (savedCollapsed) setCollapsedGroups(JSON.parse(savedCollapsed));
 
-            const savedFavs = localStorage.getItem('admin_sidebar_favorites');
-            if (savedFavs) setFavorites(JSON.parse(savedFavs));
-        } catch {}
+                const savedFavs = localStorage.getItem('admin_sidebar_favorites');
+                if (savedFavs) setFavorites(JSON.parse(savedFavs));
+            } catch {}
+        }, 0);
+        return () => clearTimeout(timer);
     }, []);
 
     const toggleGroup = (groupId: string) => {
@@ -92,6 +96,16 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ isCollapsed, onToggl
             items: [
                 { title: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
                 { title: 'Benim Günüm', href: '/admin/benim-gunum', icon: Sun },
+                { title: 'Günlük Görüşmeler', href: '/admin/gorusmeler', icon: MessageSquare },
+            ],
+        },
+        {
+            id: 'finance',
+            title: 'FİNANS & TAHSİLAT',
+            items: [
+                { title: 'Finans Dashboard', href: '/admin/finans', icon: DollarSign },
+                { title: 'Kira Yönetimi', href: '/admin/finans/kiralar', icon: Receipt },
+                { title: 'Kira Hatırlatma Ayarları', href: '/admin/finans/kira-ayarlari', icon: Settings },
             ],
         },
         {
@@ -114,6 +128,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ isCollapsed, onToggl
                 { title: 'Mentörler', href: '/admin/mentorler', icon: UserCheck },
                 { title: 'Paydaş & Kişi Rehberi', href: '/admin/rehber', icon: Users },
                 { title: 'İletişim & Randevular', href: '/admin/iletisim', icon: Mail },
+                { title: 'KVKK & Veri İzinleri', href: '/admin/kvkk', icon: ShieldCheck },
             ],
         },
         {

@@ -7,7 +7,6 @@ export interface FacilityData {
     facilityType?: 'STUDIO' | 'WORK_AREA' | 'FEATURE';
     featuresJson?: string; // JSON array of features
     iconName?: string;
-    imageUrl?: string;
     sortOrder?: number;
     isActive?: boolean;
 }
@@ -50,7 +49,6 @@ export const FacilityService = {
                 facilityType: data.facilityType || 'STUDIO',
                 featuresJson: data.featuresJson,
                 iconName: data.iconName || 'Building2',
-                imageUrl: data.imageUrl,
                 sortOrder: data.sortOrder ?? 0,
                 isActive: data.isActive ?? true,
             },

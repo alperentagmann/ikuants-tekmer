@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ success: false, error: 'Soru ve Cevap zorunludur.' }, { status: 400 });
         }
 
-        const faq = await FaqService.createFaq(body, auth.user);
+        const faq = await FaqService.createFaq(body, auth);
         return NextResponse.json({ success: true, faq });
     } catch (error: any) {
         return NextResponse.json({ success: false, error: error.message }, { status: 500 });

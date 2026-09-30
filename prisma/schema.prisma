@@ -79,6 +79,10 @@ model User {
   widgetConfigs          DashboardWidgetConfig[]
   authoredReports        OperationalReport[] @relation("ReportAuthor")
   approvedReports        OperationalReport[] @relation("ReportApprover")
+  
+  // Operations & Finance relations
+  hostedInteractions     DailyInteraction[]  @relation("InteractionHost")
+  assignedPrograms       EntrepreneurProgram[] @relation("ProgramAssigner")
 }
 
 model Role {
@@ -342,6 +346,15 @@ model Entrepreneur {
   portalAccounts PortalAccount[]
   caseStudies    CaseStudy[]
 
+  // Operations & Finance relations
+  programAssignments EntrepreneurProgram[]
+  dailyInteractions  DailyInteraction[]
+  kvkkConsents       KvkkConsent[]
+  rentContracts      RentContract[]
+  rentAccruals       RentAccrual[]
+  rentPayments       RentPayment[]
+  invoices           InvoiceRecord[]
+
   @@index([status])
   @@index([sector])
   @@index([sortOrder])
@@ -508,6 +521,10 @@ model Mentor {
   activities      CorporateActivity[]
   portalAccounts  PortalAccount[]
 
+  // Operations relations
+  dailyInteractions DailyInteraction[]
+  kvkkConsents      KvkkConsent[]
+
   @@index([isActive])
   @@index([sortOrder])
 }
@@ -612,6 +629,10 @@ model Program {
   tasks          Task[]
   activities     CorporateActivity[]
   caseStudies    CaseStudy[]
+
+  // Operations relations
+  entrepreneurPrograms EntrepreneurProgram[]
+  dailyInteractions    DailyInteraction[]
 
   @@index([applyStatus])
   @@index([sortOrder])
@@ -1190,6 +1211,13 @@ model Project {
   milestones       ProjectMilestone[]
   risks            ProjectRisk[]
   budgetItems      ProjectBudget[]
+
+  // Finance & Operations relations
+  fundingSources   FundingSource[]
+  budgetLines      ProjectBudgetLine[]
+  expenses         ProjectExpense[]
+  invoices         InvoiceRecord[]
+  dailyInteractions DailyInteraction[]
 
   @@index([projectType])
   @@index([status])
@@ -2375,11 +2403,12 @@ model Facility {
   facilityType String   @default("STUDIO") // STUDIO, WORK_AREA, FEATURE
   featuresJson String?  // JSON array of strings
   iconName     String?  // Lucide icon name
-  imageUrl     String?
   sortOrder    Int      @default(0)
   isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+
+  rentContracts RentContract[]
 
   @@index([facilityType])
   @@index([isActive])
@@ -2758,6 +2787,401 @@ model ReportSchedule {
   updatedAt          DateTime  @updatedAt
 
   @@index([isActive])
+}
+
+// ----------------------------------------------------------------------------
+// OPERATIONS SUITE: DAILY INTERACTIONS, PROGRAM ASSIGNMENTS & KVKK
+// ----------------------------------------------------------------------------
+
+model DailyInteraction {
+  id                String    @id @default(uuid())
+  date              DateTime  @default(now())
+  startTime         String?   // e.g. "10:30"
+  endTime           String?   // e.g. "11:30"
+  interactionType   String    @default("MEETING") // VISIT, IN_PERSON, ONLINE, PHONE, MENTOR_SESSION, ENTREPRENEUR_MEETING, INVESTOR_MEETING, PARTNERSHIP, OTHER
+  contactName       String    // Gelen/Görüşülen kişi
+  organizationName  String?   // Firma / Kurum
+  phone             String?
+  email             String?
+  hostUserId        String?   // Görüşmeyi gerçekleştiren kullanıcı / personel
+  otherAttendees    String?   // Diğer katılımcılar
+  subject           String    // Görüşme konusu
+  notes             String?   @db.Text // Toplantı / görüşme notu
+  decisions         String?   @db.Text // Alınan kararlar
+  nextSteps         String?   @db.Text // Sonraki adımlar
+  followUpDate      DateTime? // Takip tarihi
+  status            String    @default("COMPLETED") // SCHEDULED, IN_PROGRESS, COMPLETED, CANCELLED, FOLLOW_UP_NEEDED
+  tags              String?   // JSON array of strings
+  attachments       String?   // JSON array of { name, url, size }
+  
+  // Polymorphic / Relational Links
+  entrepreneurId    String?
+  mentorId          String?
+  programId         String?
+  applicationId     String?
+  projectId         String?
+  eventId           String?
+  createdTaskId     String?   // Link if converted to task
+  createdActivityId String?   // Link if converted to activity
+  hasKvkkConsent    Boolean   @default(false)
+  kvkkConsentId     String?
+
+  createdById       String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  hostUser          User?         @relation("InteractionHost", fields: [hostUserId], references: [id], onDelete: SetNull)
+  entrepreneur      Entrepreneur? @relation(fields: [entrepreneurId], references: [id], onDelete: SetNull)
+  mentor            Mentor?       @relation(fields: [mentorId], references: [id], onDelete: SetNull)
+  program           Program?      @relation(fields: [programId], references: [id], onDelete: SetNull)
+  project           Project?      @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  kvkkConsent       KvkkConsent?  @relation(fields: [kvkkConsentId], references: [id], onDelete: SetNull)
+
+  @@index([date])
+  @@index([interactionType])
+  @@index([status])
+  @@index([hostUserId])
+  @@index([entrepreneurId])
+  @@index([followUpDate])
+}
+
+model EntrepreneurProgram {
+  id             String       @id @default(uuid())
+  entrepreneurId String
+  programId      String
+  cohort         String?      // e.g. "2026-Q3", "1. Dönem"
+  status         String       @default("ACTIVE") // ASSIGNED, APPLIED, ACCEPTED, ACTIVE, COMPLETED, WITHDRAWN, REJECTED
+  joinedAt       DateTime     @default(now())
+  completedAt    DateTime?
+  leftAt         DateTime?
+  notes          String?      @db.Text
+  assignedById   String?
+  isPublic       Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  entrepreneur   Entrepreneur @relation(fields: [entrepreneurId], references: [id], onDelete: Cascade)
+  program        Program      @relation(fields: [programId], references: [id], onDelete: Cascade)
+  assignedBy     User?        @relation("ProgramAssigner", fields: [assignedById], references: [id], onDelete: SetNull)
+
+  @@index([entrepreneurId])
+  @@index([programId])
+  @@index([status])
+}
+
+model KvkkTextVersion {
+  id           String        @id @default(uuid())
+  title        String        // e.g. "İKÜANTS TEKMER Aydınlatma ve Açık Rıza Metni"
+  version      String        // e.g. "v1.0", "v2.0"
+  content      String        @db.Text
+  summary      String?       @db.Text
+  consentTypes String        // JSON array of ["DATA_PROCESSING", "MARKETING_COMMUNICATION", "PHOTO_VIDEO_USE", "ABROAD_TRANSFER"]
+  isPublished  Boolean       @default(true)
+  publishedAt  DateTime      @default(now())
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  consents     KvkkConsent[]
+
+  @@unique([title, version])
+}
+
+model KvkkConsent {
+  id                  String           @id @default(uuid())
+  subjectType         String           // APPLICANT, ENTREPRENEUR, FOUNDER, MENTOR, INSTRUCTOR, EVENT_ATTENDEE, VISITOR, STAKEHOLDER, OTHER
+  fullName            String
+  email               String?
+  phone               String?
+  tcNumberMasked      String?
+  organizationName    String?
+  sourceChannel       String           @default("FORM") // FORM, APPLICATION, EVENT, IN_PERSON_VISIT, MANUAL, CONTRACT
+  sourceFormId        String?
+  sourceSubmissionId  String?
+  
+  textVersionId       String?
+  isExplicitConsent   Boolean          @default(true)
+  allowCommunication  Boolean          @default(false)
+  allowMediaUse       Boolean          @default(false)
+  allowMarketing      Boolean          @default(false)
+  
+  status              String           @default("ACTIVE") // ACTIVE, WITHDRAWN, EXPIRED, SUPERSEDED, NEEDS_REVIEW
+  consentedAt         DateTime         @default(now())
+  withdrawnAt         DateTime?
+  evidenceDocumentUrl String?
+  notes               String?          @db.Text
+  
+  // Relations
+  entrepreneurId      String?
+  mentorId            String?
+  applicationId       String?
+  userId              String?
+  
+  createdById         String?
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+
+  textVersion         KvkkTextVersion? @relation(fields: [textVersionId], references: [id], onDelete: SetNull)
+  entrepreneur        Entrepreneur?    @relation(fields: [entrepreneurId], references: [id], onDelete: SetNull)
+  mentor              Mentor?          @relation(fields: [mentorId], references: [id], onDelete: SetNull)
+  dailyInteractions   DailyInteraction[]
+
+  @@index([subjectType])
+  @@index([status])
+  @@index([email])
+  @@index([consentedAt])
+}
+
+// ----------------------------------------------------------------------------
+// FINANCE, PROJECT BUDGET, EXPENSE & INVOICES
+// ----------------------------------------------------------------------------
+
+model FundingSource {
+  id                String           @id @default(uuid())
+  projectId         String
+  organizationName  String           // TÜBİTAK, KOSGEB, İSTKA, AB, Üniversite, Sponsor, Yatırımcı, Özel Şirket, vb.
+  programGrantName  String           // e.g. "KOSGEB TEKMER Destek Programı"
+  awardedAmount     Float
+  currency          String           @default("TRY") // TRY, USD, EUR, GBP
+  agreementNo       String?
+  agreementDate     DateTime?
+  expectedStartDate DateTime?
+  expectedEndDate   DateTime?
+  description       String?          @db.Text
+  documentUrl       String?
+  status            String           @default("ACTIVE") // ACTIVE, COMPLETED, SUSPENDED, CANCELLED
+  createdById       String?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  project           Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  receipts          FundingReceipt[]
+  expenses          ProjectExpense[]
+
+  @@index([projectId])
+  @@index([status])
+}
+
+model FundingReceipt {
+  id              String        @id @default(uuid())
+  fundingSourceId String
+  installmentNo   String?       // "1. Dilim", "2. Dilim", "Hakediş 1"
+  amount          Float
+  currency        String        @default("TRY")
+  expectedDate    DateTime
+  receivedDate    DateTime?
+  status          String        @default("EXPECTED") // EXPECTED, RECEIVED, PARTIALLY_RECEIVED, DELAYED, CANCELLED
+  bankReferenceNo String?
+  description     String?
+  receiptDocUrl   String?
+  receivedById    String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  fundingSource   FundingSource @relation(fields: [fundingSourceId], references: [id], onDelete: Cascade)
+
+  @@index([fundingSourceId])
+  @@index([status])
+  @@index([expectedDate])
+}
+
+model ProjectBudgetLine {
+  id              String           @id @default(uuid())
+  projectId       String
+  code            String?          // e.g. "1.1", "2.1"
+  title           String           // e.g. "Personel Giderleri", "Yazılım & Lisans", "Danışmanlık", "Eğitim"
+  category        String           @default("PERSONNEL") // PERSONNEL, SOFTWARE, HARDWARE, TRAINING, EVENT, CONSULTING, TRAVEL, ACCOMMODATION, OFFICE, SUPPLIES, SERVICE_PURCHASE, OTHER
+  allocatedAmount Float
+  currency        String           @default("TRY")
+  notes           String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  project         Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  expenses        ProjectExpense[]
+
+  @@index([projectId])
+}
+
+model ProjectExpense {
+  id                String             @id @default(uuid())
+  projectId         String
+  fundingSourceId   String?
+  budgetLineId      String?
+  expenseDate       DateTime           @default(now())
+  category          String             @default("OTHER") // PERSONNEL, TRAINING, EVENT, CONSULTING, SOFTWARE, HARDWARE, TRAVEL, ACCOMMODATION, ORGANIZATION, PROMOTION, OFFICE, SUPPLIES, SERVICE_PURCHASE, OTHER
+  supplierVendor    String             // Satıcı / Tedarikçi Firma veya Kişi
+  description       String
+  amount            Float              // Net Tutar
+  vatAmount         Float              @default(0) // KDV
+  totalAmount       Float              // Toplam Tutar (Net + KDV)
+  currency          String             @default("TRY")
+  
+  paymentStatus     String             @default("PENDING") // DRAFT, SUBMITTED, APPROVED, REJECTED, PENDING, PAID, CANCELLED
+  paymentDate       DateTime?
+  paymentMethod     String?            // BANK_TRANSFER, CREDIT_CARD, CASH, EFT
+  
+  invoiceNumber     String?
+  invoiceDate       DateTime?
+  invoiceDocUrl     String?
+  receiptDocUrl     String?
+  
+  relatedActivityId String?
+  relatedTaskId     String?
+  notes             String?            @db.Text
+  
+  createdById       String?
+  approvedById      String?
+  approvedAt        DateTime?
+  isArchived        Boolean            @default(false)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  project           Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  fundingSource     FundingSource?     @relation(fields: [fundingSourceId], references: [id], onDelete: SetNull)
+  budgetLine        ProjectBudgetLine? @relation(fields: [budgetLineId], references: [id], onDelete: SetNull)
+  invoices          InvoiceRecord[]
+
+  @@index([projectId])
+  @@index([fundingSourceId])
+  @@index([budgetLineId])
+  @@index([paymentStatus])
+  @@index([expenseDate])
+}
+
+model InvoiceRecord {
+  id             String          @id @default(uuid())
+  expenseId      String?
+  projectId      String?
+  entrepreneurId String?
+  vendorName     String
+  invoiceNumber  String
+  invoiceDate    DateTime
+  netAmount      Float
+  taxVatAmount   Float           @default(0)
+  grossAmount    Float
+  currency       String          @default("TRY")
+  status         String          @default("RECORDED") // RECORDED, APPROVED, PAID, CANCELLED
+  paymentDate    DateTime?
+  documentUrl    String?
+  notes          String?
+  createdById    String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  expense        ProjectExpense? @relation(fields: [expenseId], references: [id], onDelete: SetNull)
+  project        Project?        @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  entrepreneur   Entrepreneur?   @relation(fields: [entrepreneurId], references: [id], onDelete: SetNull)
+
+  @@index([vendorName, invoiceNumber])
+  @@index([projectId])
+  @@index([entrepreneurId])
+}
+
+// ----------------------------------------------------------------------------
+// RENT CONTRACT, ACCRUAL, PARTIAL PAYMENT & REMINDERS
+// ----------------------------------------------------------------------------
+
+model RentContract {
+  id              String        @id @default(uuid())
+  entrepreneurId  String
+  spaceFacilityId String?       // Facility / Room / Desk ID
+  spaceName       String        // e.g. "Ofis 204", "Ortak Çalışma Masası 12"
+  contractNo      String        @unique
+  startDate       DateTime
+  endDate         DateTime
+  monthlyRent     Float
+  currency        String        @default("TRY")
+  vatRate         Float         @default(20) // %20 KDV
+  dueDay          Int           @default(5) // Her ayın 5. günü
+  depositAmount   Float         @default(0)
+  
+  isWaived        Boolean       @default(false) // Kira Muaf
+  freePeriodStart DateTime?
+  freePeriodEnd   DateTime?
+  
+  status          String        @default("ACTIVE") // ACTIVE, EXPIRED, TERMINATED, SUSPENDED, WAIVED
+  contractDocUrl  String?
+  notes           String?       @db.Text
+  
+  createdById     String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  entrepreneur    Entrepreneur  @relation(fields: [entrepreneurId], references: [id], onDelete: Cascade)
+  facility        Facility?     @relation(fields: [spaceFacilityId], references: [id], onDelete: SetNull)
+  accruals        RentAccrual[]
+
+  @@index([entrepreneurId])
+  @@index([status])
+}
+
+model RentAccrual {
+  id                 String        @id @default(uuid())
+  contractId         String
+  entrepreneurId     String
+  year               Int           // 2026
+  month              Int           // 1-12
+  periodLabel        String        // "Eylül 2026"
+  baseAmount         Float         // Aylık net kira
+  vatAmount          Float         // KDV tutarı
+  totalDue           Float         // Tahakkuk eden toplam tutar
+  paidAmount         Float         @default(0) // Toplam ödenen
+  remainingAmount    Float         // Kalan borç
+  currency           String        @default("TRY")
+  
+  dueDate            DateTime      // Son ödeme tarihi (örn 05.09.2026)
+  status             String        @default("UPCOMING") // UPCOMING, DUE, PARTIALLY_PAID, PAID, OVERDUE, WAIVED, CANCELLED
+  daysOverdue        Int           @default(0)
+  lastReminderSentAt DateTime?
+  reminderCount      Int           @default(0)
+  notes              String?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  contract           RentContract  @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  entrepreneur       Entrepreneur  @relation(fields: [entrepreneurId], references: [id], onDelete: Cascade)
+  payments           RentPayment[]
+
+  @@unique([contractId, year, month])
+  @@index([entrepreneurId])
+  @@index([status])
+  @@index([dueDate])
+  @@index([year, month])
+}
+
+model RentPayment {
+  id             String       @id @default(uuid())
+  accrualId      String
+  entrepreneurId String
+  amount         Float
+  currency       String       @default("TRY")
+  paymentDate    DateTime     @default(now())
+  paymentMethod  String       @default("BANK_TRANSFER") // BANK_TRANSFER, EFT, CREDIT_CARD, CASH
+  bankReceiptNo  String?
+  receiptDocUrl  String?
+  description    String?
+  receivedById   String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  accrual        RentAccrual  @relation(fields: [accrualId], references: [id], onDelete: Cascade)
+  entrepreneur   Entrepreneur @relation(fields: [entrepreneurId], references: [id], onDelete: Cascade)
+
+  @@index([accrualId])
+  @@index([entrepreneurId])
+  @@index([paymentDate])
+}
+
+model RentReminderRule {
+  id                String   @id @default(uuid())
+  ruleName          String   // e.g. "Vadeden 3 gün önce", "Vade Günü", "3 Gün Gecikme", "7 Gün Gecikme"
+  daysOffset        Int      // -3: 3 gün önce, 0: vade günü, 3: 3 gün sonra, 7: 7 gün sonra
+  triggerType       String   // BEFORE_DUE, ON_DUE, OVERDUE
+  emailSubject      String
+  emailTemplateBody String   @db.Text
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 }
 
 

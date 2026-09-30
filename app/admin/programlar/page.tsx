@@ -977,11 +977,7 @@ export default function AdminProgramlarPage() {
                 <DataTable
                     columns={columns}
                     data={programs}
-                    keyField="id"
-                    loading={loading}
                     searchPlaceholder="Program ara..."
-                    pagination={true}
-                    pageSize={10}
                 />
             )}
 

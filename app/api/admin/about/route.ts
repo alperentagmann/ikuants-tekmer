@@ -20,7 +20,7 @@ export async function PUT(request: NextRequest) {
 
     try {
         const body = await request.json();
-        const content = await AboutService.updateAboutContent(body, auth.user);
+        const content = await AboutService.updateAboutContent(body, auth);
         return NextResponse.json({ success: true, content });
     } catch (error: any) {
         return NextResponse.json({ success: false, error: error.message }, { status: 500 });

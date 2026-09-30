@@ -239,6 +239,41 @@ export const SYSTEM_PERMISSIONS = [
     { action: 'view', resource: 'audit_logs', description: 'Güvenlik ve denetim loglarını görüntüleme' },
     { action: 'view', resource: 'system_health', description: 'Sistem durumu ve hata loglarını görme' },
     { action: 'view', resource: 'security_center', description: 'Güvenlik merkezini görüntüleme ve olayları yönetme' },
+
+    // Daily Interactions & Meetings
+    { action: 'view', resource: 'interactions', description: 'Günlük görüşmeleri ve ziyaretleri görüntüleme' },
+    { action: 'create', resource: 'interactions', description: 'Yeni görüşme veya ziyaret kaydı oluşturma' },
+    { action: 'update', resource: 'interactions', description: 'Görüşme ve ziyaret detaylarını düzenleme' },
+    { action: 'delete', resource: 'interactions', description: 'Görüşme veya ziyaret kaydı silme' },
+    { action: 'export', resource: 'interactions', description: 'Görüşme ve ziyaret listesini dışa aktarma' },
+
+    // KVKK & Consent Management
+    { action: 'view', resource: 'kvkk', description: 'KVKK ve veri izinleri merkezini görüntüleme' },
+    { action: 'create', resource: 'kvkk', description: 'Yeni KVKK açık rıza kaydı oluşturma' },
+    { action: 'update', resource: 'kvkk', description: 'KVKK izni durumunu güncelleme veya geri çekme' },
+    { action: 'export', resource: 'kvkk', description: 'KVKK ve veri izinleri listesini dışa aktarma' },
+    { action: 'view_sensitive', resource: 'kvkk', description: 'KVKK hassas kişisel verileri maskesiz görüntüleme' },
+
+    // Finance & Project Budget Center
+    { action: 'view', resource: 'finance', description: 'Finans merkezini ve genel göstergeleri görüntüleme' },
+    { action: 'create', resource: 'finance', description: 'Yeni finansman kaynağı veya harcama ekleme' },
+    { action: 'update', resource: 'finance', description: 'Finansal kayıtları düzenleme' },
+    { action: 'approve', resource: 'finance', description: 'Finansal harcama ve bütçe onaylama' },
+    { action: 'export', resource: 'finance', description: 'Finansal rapor ve dökümleri dışa aktarma' },
+    { action: 'view', resource: 'finance_project', description: 'Proje bütçe ve harcama detaylarını görme' },
+    { action: 'update', resource: 'finance_project', description: 'Proje bütçesini ve finansmanını güncelleme' },
+
+    // Rent & Collection Management
+    { action: 'view', resource: 'rent', description: 'Kira sözleşmeleri ve tahakkukları görüntüleme' },
+    { action: 'create', resource: 'rent', description: 'Yeni kira sözleşmesi ve tahakkuk oluşturma' },
+    { action: 'update', resource: 'rent', description: 'Kira sözleşmesi ve ayarlarını düzenleme' },
+    { action: 'payment', resource: 'rent', description: 'Kira tahsilatı ve kısmi ödeme kaydetme' },
+    { action: 'reminder', resource: 'rent', description: 'Otomatik ve manuel kira hatırlatma gönderme' },
+
+    // Invoice Management
+    { action: 'view', resource: 'invoice', description: 'Fatura ve finansal belgeleri görüntüleme' },
+    { action: 'create', resource: 'invoice', description: 'Yeni fatura kaydı ve belge bağlama' },
+    { action: 'view_sensitive', resource: 'invoice', description: 'Hassas fatura ve banka dekontlarını görüntüleme' },
 ];
 
 export const DEFAULT_ROLES = [
