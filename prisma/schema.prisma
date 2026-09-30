@@ -354,6 +354,7 @@ model Entrepreneur {
   rentAccruals       RentAccrual[]
   rentPayments       RentPayment[]
   invoices           InvoiceRecord[]
+  receivables        Receivable[]
 
   @@index([status])
   @@index([sector])
@@ -1174,6 +1175,7 @@ model Organization {
 
   contacts    StakeholderContact[]
   projects    Project[]
+  receivables Receivable[]
 
   @@index([name])
 }
@@ -1217,6 +1219,7 @@ model Project {
   budgetLines      ProjectBudgetLine[]
   expenses         ProjectExpense[]
   invoices         InvoiceRecord[]
+  receivables      Receivable[]
   dailyInteractions DailyInteraction[]
 
   @@index([projectType])
@@ -3183,6 +3186,74 @@ model RentReminderRule {
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 }
+
+// ----------------------------------------------------------------------------
+// GENERIC RECEIVABLES & MULTI-CURRENCY CONVERSION
+// ----------------------------------------------------------------------------
+
+model Receivable {
+  id                   String        @id @default(uuid())
+  debtor               String        // Borçlu Kişi / Kurum / Girişim
+  source               String        @default("OTHER") // RENT, PROJECT_PAYMENT, SERVICE_FEE, SPONSORSHIP, EVENT, OTHER
+  description          String?       @db.Text
+  amount               Float         // Toplam Alacak Tutarı
+  currency             String        @default("TRY") // TRY, USD, EUR, GBP
+  dueDate              DateTime      // Vade Tarihi
+  paid                 Float         @default(0) // Tahsil Edilen Tutar
+  remaining            Float         // Kalan Alacak (amount - paid)
+  status               String        @default("PENDING") // PENDING, PARTIALLY_PAID, PAID, OVERDUE, CANCELLED, WRITTEN_OFF
+  
+  // Multi-currency tracking
+  exchangeRate         Float?        // e.g. 38.5
+  exchangeRateDate     DateTime?
+  sourceCurrency       String?       // e.g. USD
+  targetCurrency       String?       // e.g. TRY
+  baseCurrencyAmount   Float?        // Base currency equivalent if exchangeRate is known
+  
+  invoiceNumber        String?
+  paymentDate          DateTime?
+  paymentMethod        String?       // BANK_TRANSFER, EFT, CREDIT_CARD, CASH
+  bankReceiptNo        String?
+  documentUrl          String?
+  notes                String?       @db.Text
+  
+  // Relational links
+  relatedProjectId     String?
+  relatedEntrepreneurId String?
+  relatedOrganizationId String?
+  
+  createdById          String?
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+
+  relatedProject       Project?      @relation(fields: [relatedProjectId], references: [id], onDelete: SetNull)
+  relatedEntrepreneur  Entrepreneur? @relation(fields: [relatedEntrepreneurId], references: [id], onDelete: SetNull)
+  relatedOrganization  Organization? @relation(fields: [relatedOrganizationId], references: [id], onDelete: SetNull)
+
+  @@index([source])
+  @@index([status])
+  @@index([dueDate])
+  @@index([currency])
+  @@index([relatedProjectId])
+  @@index([relatedEntrepreneurId])
+  @@index([relatedOrganizationId])
+}
+
+model ExchangeRate {
+  id             String    @id @default(uuid())
+  sourceCurrency String    // USD, EUR, GBP, TRY
+  targetCurrency String    @default("TRY") // TRY
+  rate           Float     // 1 USD = 38.5 TRY
+  rateDate       DateTime  @default(now())
+  source         String?   @default("MANUAL") // TCMB, MANUAL, SYSTEM
+  createdById    String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@unique([sourceCurrency, targetCurrency, rateDate])
+  @@index([sourceCurrency, targetCurrency])
+}
+
 
 
 

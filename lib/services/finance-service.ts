@@ -417,4 +417,498 @@ export class FinanceService {
             recentExpenses,
         };
     }
+
+    static async getComprehensiveFinanceReport(filters?: {
+        startDate?: Date | string;
+        endDate?: Date | string;
+        projectId?: string;
+        currency?: string;
+        category?: string;
+        fundingSourceId?: string;
+    }) {
+        const whereProject: any = {};
+        if (filters?.projectId && filters.projectId !== 'ALL') {
+            whereProject.id = filters.projectId;
+        }
+
+        const projects = await prisma.project.findMany({
+            where: whereProject,
+            include: {
+                fundingSources: {
+                    include: {
+                        receipts: true,
+                    },
+                },
+                budgetLines: {
+                    include: {
+                        expenses: true,
+                    },
+                },
+                expenses: {
+                    include: {
+                        fundingSource: true,
+                        budgetLine: true,
+                        invoices: true,
+                    },
+                    orderBy: { expenseDate: 'asc' },
+                },
+                invoices: {
+                    orderBy: { invoiceDate: 'desc' },
+                },
+            },
+            orderBy: { createdAt: 'desc' },
+        });
+
+        const start = filters?.startDate ? new Date(filters.startDate) : null;
+        const end = filters?.endDate ? new Date(filters.endDate) : null;
+
+        // Currencies accumulator
+        const totalsByCurrency: Record<string, {
+            currency: string;
+            totalBudget: number;
+            awardedFunding: number;
+            receivedFunding: number;
+            expectedFunding: number;
+            outstandingFunding: number;
+            spentExpenses: number;
+            committedExpenses: number;
+            paidExpenses: number;
+            pendingPayments: number;
+            remainingBudget: number;
+            availableCash: number;
+            utilizationRate: number;
+        }> = {};
+
+        const getOrCreateCurrency = (cur: string = 'TRY') => {
+            if (!totalsByCurrency[cur]) {
+                totalsByCurrency[cur] = {
+                    currency: cur,
+                    totalBudget: 0,
+                    awardedFunding: 0,
+                    receivedFunding: 0,
+                    expectedFunding: 0,
+                    outstandingFunding: 0,
+                    spentExpenses: 0,
+                    committedExpenses: 0,
+                    paidExpenses: 0,
+                    pendingPayments: 0,
+                    remainingBudget: 0,
+                    availableCash: 0,
+                    utilizationRate: 0,
+                };
+            }
+            return totalsByCurrency[cur];
+        };
+
+        const projectSummaries: any[] = [];
+        const monthlyCashFlowMap: Record<string, {
+            monthKey: string;
+            monthLabel: string;
+            inflow: Record<string, number>;
+            outflow: Record<string, number>;
+            net: Record<string, number>;
+        }> = {};
+
+        const categoryBreakdownMap: Record<string, {
+            category: string;
+            label: string;
+            amountByCurrency: Record<string, number>;
+            count: number;
+        }> = {};
+
+        const fundingSourceMap: Record<string, {
+            id: string;
+            organizationName: string;
+            programGrantName: string;
+            awardedByCurrency: Record<string, number>;
+            receivedByCurrency: Record<string, number>;
+            spentByCurrency: Record<string, number>;
+        }> = {};
+
+        const missingDocuments: any[] = [];
+
+        const categoryLabels: Record<string, string> = {
+            PERSONNEL: 'Personel & Danışmanlık',
+            SOFTWARE: 'Yazılım & Lisanslar',
+            HARDWARE: 'Donanım & Teçhizat',
+            TRAINING: 'Eğitim & Mentorluk',
+            EVENT: 'Etkinlik & Tanıtım',
+            CONSULTING: 'Danışmanlık & Hizmet',
+            TRAVEL: 'Seyahat & Konaklama',
+            ACCOMMODATION: 'Konaklama',
+            OFFICE: 'Ofis & Ortak Alan',
+            SUPPLIES: 'Sarf Malzeme',
+            SERVICE_PURCHASE: 'Hizmet Alımı',
+            OTHER: 'Diğer / Genel Giderler',
+        };
+
+        for (const project of projects) {
+            const pCur = project.currency || 'TRY';
+            const curBucket = getOrCreateCurrency(pCur);
+
+            const budgetLinesAllocated = project.budgetLines.reduce((acc, bl) => acc + bl.allocatedAmount, 0);
+            const projectBudget = project.budgetAmount && project.budgetAmount > 0 ? project.budgetAmount : budgetLinesAllocated;
+            curBucket.totalBudget += projectBudget;
+
+            let pAwarded = 0;
+            let pReceived = 0;
+            let pExpected = 0;
+
+            for (const fs of project.fundingSources) {
+                const fsCur = fs.currency || pCur;
+                const fsCurBucket = getOrCreateCurrency(fsCur);
+                fsCurBucket.awardedFunding += fs.awardedAmount;
+                pAwarded += fs.awardedAmount;
+
+                const fsKey = `${fs.organizationName} - ${fs.programGrantName}`;
+                if (!fundingSourceMap[fsKey]) {
+                    fundingSourceMap[fsKey] = {
+                        id: fs.id,
+                        organizationName: fs.organizationName,
+                        programGrantName: fs.programGrantName,
+                        awardedByCurrency: {},
+                        receivedByCurrency: {},
+                        spentByCurrency: {},
+                    };
+                }
+                fundingSourceMap[fsKey].awardedByCurrency[fsCur] = (fundingSourceMap[fsKey].awardedByCurrency[fsCur] || 0) + fs.awardedAmount;
+
+                for (const r of fs.receipts) {
+                    const rCur = r.currency || fsCur;
+                    const rCurBucket = getOrCreateCurrency(rCur);
+
+                    if (r.status === 'RECEIVED') {
+                        rCurBucket.receivedFunding += r.amount;
+                        pReceived += r.amount;
+                        fundingSourceMap[fsKey].receivedByCurrency[rCur] = (fundingSourceMap[fsKey].receivedByCurrency[rCur] || 0) + r.amount;
+
+                        // Monthly Cash Flow - Inflow
+                        const dateToUse = r.receivedDate || r.expectedDate;
+                        if (!start || !end || (dateToUse >= start && dateToUse <= end)) {
+                            const d = new Date(dateToUse);
+                            const mKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+                            const mLabel = d.toLocaleDateString('tr-TR', { month: 'short', year: 'numeric' });
+                            if (!monthlyCashFlowMap[mKey]) {
+                                monthlyCashFlowMap[mKey] = { monthKey: mKey, monthLabel: mLabel, inflow: {}, outflow: {}, net: {} };
+                            }
+                            monthlyCashFlowMap[mKey].inflow[rCur] = (monthlyCashFlowMap[mKey].inflow[rCur] || 0) + r.amount;
+                        }
+                    } else if (r.status === 'EXPECTED' || r.status === 'DELAYED') {
+                        rCurBucket.expectedFunding += r.amount;
+                        pExpected += r.amount;
+                    }
+                }
+            }
+
+            let pSpent = 0;
+            let pCommitted = 0;
+            let pPaid = 0;
+
+            const budgetLinesSummary = project.budgetLines.map(bl => {
+                let blSpent = 0;
+                let blCommitted = 0;
+                let blPaid = 0;
+
+                for (const exp of bl.expenses) {
+                    if (exp.paymentStatus !== 'REJECTED' && exp.paymentStatus !== 'CANCELLED') {
+                        blSpent += exp.totalAmount;
+                        if (exp.paymentStatus === 'PAID') {
+                            blPaid += exp.totalAmount;
+                        } else {
+                            blCommitted += exp.totalAmount;
+                        }
+                    }
+                }
+
+                const blRemaining = Math.max(0, bl.allocatedAmount - blSpent);
+                const blUtil = bl.allocatedAmount > 0 ? (blSpent / bl.allocatedAmount) * 100 : 0;
+
+                return {
+                    id: bl.id,
+                    code: bl.code || '-',
+                    title: bl.title,
+                    category: bl.category,
+                    categoryLabel: categoryLabels[bl.category] || bl.category,
+                    allocated: bl.allocatedAmount,
+                    committed: blCommitted,
+                    spent: blSpent,
+                    paid: blPaid,
+                    remaining: blRemaining,
+                    utilizationRate: Number(blUtil.toFixed(1)),
+                    currency: bl.currency || pCur,
+                };
+            });
+
+            for (const exp of project.expenses) {
+                if (exp.paymentStatus === 'REJECTED' || exp.paymentStatus === 'CANCELLED') continue;
+
+                // Date filter check on expense
+                if (start && exp.expenseDate < start) continue;
+                if (end && exp.expenseDate > end) continue;
+
+                const eCur = exp.currency || pCur;
+                const eCurBucket = getOrCreateCurrency(eCur);
+
+                eCurBucket.spentExpenses += exp.totalAmount;
+                pSpent += exp.totalAmount;
+
+                if (exp.paymentStatus === 'PAID') {
+                    eCurBucket.paidExpenses += exp.totalAmount;
+                    pPaid += exp.totalAmount;
+
+                    // Monthly Cash Flow - Outflow
+                    const pDate = exp.paymentDate || exp.expenseDate;
+                    const d = new Date(pDate);
+                    const mKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+                    const mLabel = d.toLocaleDateString('tr-TR', { month: 'short', year: 'numeric' });
+                    if (!monthlyCashFlowMap[mKey]) {
+                        monthlyCashFlowMap[mKey] = { monthKey: mKey, monthLabel: mLabel, inflow: {}, outflow: {}, net: {} };
+                    }
+                    monthlyCashFlowMap[mKey].outflow[eCur] = (monthlyCashFlowMap[mKey].outflow[eCur] || 0) + exp.totalAmount;
+                } else {
+                    eCurBucket.committedExpenses += exp.totalAmount;
+                    eCurBucket.pendingPayments += exp.totalAmount;
+                    pCommitted += exp.totalAmount;
+                }
+
+                // Category breakdown
+                const cat = exp.category || 'OTHER';
+                if (!categoryBreakdownMap[cat]) {
+                    categoryBreakdownMap[cat] = {
+                        category: cat,
+                        label: categoryLabels[cat] || cat,
+                        amountByCurrency: {},
+                        count: 0,
+                    };
+                }
+                categoryBreakdownMap[cat].amountByCurrency[eCur] = (categoryBreakdownMap[cat].amountByCurrency[eCur] || 0) + exp.totalAmount;
+                categoryBreakdownMap[cat].count += 1;
+
+                // Check missing documents
+                const missingItems: string[] = [];
+                if (!exp.invoiceDocUrl && !exp.receiptDocUrl) missingItems.push('Fatura / Fiş Belgesi Eksik');
+                if (!exp.invoiceNumber && exp.totalAmount > 500) missingItems.push('Fatura No Girilmemiş');
+                if (exp.paymentStatus === 'PAID' && !exp.paymentDate) missingItems.push('Ödeme Tarihi Eksik');
+
+                if (missingItems.length > 0) {
+                    missingDocuments.push({
+                        id: exp.id,
+                        type: 'EXPENSE',
+                        vendor: exp.supplierVendor,
+                        description: exp.description,
+                        projectTitle: project.title,
+                        amount: exp.totalAmount,
+                        currency: eCur,
+                        paymentStatus: exp.paymentStatus,
+                        date: exp.expenseDate,
+                        missingItems,
+                    });
+                }
+            }
+
+            const pRemaining = Math.max(0, projectBudget - pSpent);
+            const pAvailableCash = pReceived - pPaid;
+            const pUtil = projectBudget > 0 ? (pSpent / projectBudget) * 100 : 0;
+
+            projectSummaries.push({
+                projectId: project.id,
+                projectTitle: project.title,
+                projectCode: project.code || '-',
+                currency: pCur,
+                totalBudget: projectBudget,
+                awardedFunding: pAwarded,
+                receivedFunding: pReceived,
+                expectedFunding: pExpected,
+                outstandingFunding: Math.max(0, pAwarded - pReceived),
+                spent: pSpent,
+                committed: pCommitted,
+                paid: pPaid,
+                pendingPayment: pCommitted,
+                remainingBudget: pRemaining,
+                availableCash: pAvailableCash,
+                utilizationRate: Number(pUtil.toFixed(1)),
+                budgetLines: budgetLinesSummary,
+            });
+        }
+
+        // Finalize currency totals
+        for (const cur of Object.keys(totalsByCurrency)) {
+            const b = totalsByCurrency[cur];
+            b.outstandingFunding = Math.max(0, b.awardedFunding - b.receivedFunding);
+            b.remainingBudget = Math.max(0, b.totalBudget - b.spentExpenses);
+            b.availableCash = b.receivedFunding - b.paidExpenses;
+            b.utilizationRate = b.totalBudget > 0 ? Number(((b.spentExpenses / b.totalBudget) * 100).toFixed(1)) : 0;
+        }
+
+        // Finalize Cash Flow
+        const sortedCashFlow = Object.values(monthlyCashFlowMap).sort((a, b) => a.monthKey.localeCompare(b.monthKey));
+        for (const cf of sortedCashFlow) {
+            const allCurs = new Set([...Object.keys(cf.inflow), ...Object.keys(cf.outflow)]);
+            for (const c of allCurs) {
+                const inf = cf.inflow[c] || 0;
+                const outf = cf.outflow[c] || 0;
+                cf.net[c] = inf - outf;
+            }
+        }
+
+        // Fetch Exchange Rates
+        const exchangeRates = await prisma.exchangeRate.findMany({
+            orderBy: { rateDate: 'desc' },
+            take: 20,
+        });
+
+        return {
+            totalsByCurrency,
+            budgetVsActual: projectSummaries.map(p => ({
+                projectId: p.projectId,
+                title: p.projectTitle,
+                code: p.projectCode,
+                currency: p.currency,
+                budget: p.totalBudget,
+                spent: p.spent,
+                paid: p.paid,
+                committed: p.committed,
+                remaining: p.remainingBudget,
+                utilizationRate: p.utilizationRate,
+            })),
+            monthlyCashFlow: sortedCashFlow,
+            expenseByCategory: Object.values(categoryBreakdownMap).sort((a, b) => {
+                const sumA = Object.values(a.amountByCurrency).reduce((x, y) => x + y, 0);
+                const sumB = Object.values(b.amountByCurrency).reduce((x, y) => x + y, 0);
+                return sumB - sumA;
+            }),
+            fundingSourcesBreakdown: Object.values(fundingSourceMap),
+            projectFinancialSummaries: projectSummaries,
+            missingDocuments,
+            exchangeRates,
+            meta: {
+                totalProjects: projects.length,
+                generatedAt: new Date().toISOString(),
+                filtersApplied: filters || {},
+            }
+        };
+    }
+
+    static async getInvoiceRegister(filters?: {
+        startDate?: Date | string;
+        endDate?: Date | string;
+        projectId?: string;
+        vendorName?: string;
+        paymentStatus?: string;
+        currency?: string;
+        documentStatus?: string;
+        search?: string;
+    }) {
+        const where: any = {};
+
+        if (filters?.projectId && filters.projectId !== 'ALL') {
+            where.projectId = filters.projectId;
+        }
+        if (filters?.vendorName) {
+            where.vendorName = { contains: filters.vendorName, mode: 'insensitive' };
+        }
+        if (filters?.paymentStatus && filters.paymentStatus !== 'ALL') {
+            where.status = filters.paymentStatus;
+        }
+        if (filters?.currency && filters.currency !== 'ALL') {
+            where.currency = filters.currency;
+        }
+        if (filters?.startDate || filters?.endDate) {
+            where.invoiceDate = {};
+            if (filters?.startDate) where.invoiceDate.gte = new Date(filters.startDate);
+            if (filters?.endDate) where.invoiceDate.lte = new Date(filters.endDate);
+        }
+        if (filters?.search) {
+            where.OR = [
+                { vendorName: { contains: filters.search, mode: 'insensitive' } },
+                { invoiceNumber: { contains: filters.search, mode: 'insensitive' } },
+                { notes: { contains: filters.search, mode: 'insensitive' } },
+            ];
+        }
+
+        const invoices = await prisma.invoiceRecord.findMany({
+            where,
+            include: {
+                project: {
+                    select: {
+                        id: true,
+                        title: true,
+                        code: true,
+                    },
+                },
+                expense: {
+                    include: {
+                        fundingSource: {
+                            select: {
+                                id: true,
+                                organizationName: true,
+                                programGrantName: true,
+                            },
+                        },
+                        budgetLine: {
+                            select: {
+                                id: true,
+                                title: true,
+                                code: true,
+                            },
+                        },
+                    },
+                },
+                entrepreneur: {
+                    select: {
+                        id: true,
+                        name: true,
+                    },
+                },
+            },
+            orderBy: { invoiceDate: 'desc' },
+        });
+
+        // Filter documentStatus if requested (HAS_DOCUMENT, MISSING_DOCUMENT)
+        let filteredInvoices = invoices;
+        if (filters?.documentStatus === 'HAS_DOCUMENT') {
+            filteredInvoices = invoices.filter(inv => !!inv.documentUrl);
+        } else if (filters?.documentStatus === 'MISSING_DOCUMENT') {
+            filteredInvoices = invoices.filter(inv => !inv.documentUrl);
+        }
+
+        // Totals per currency
+        const totalsByCurrency: Record<string, { net: number; vat: number; gross: number; count: number }> = {};
+        for (const inv of filteredInvoices) {
+            const cur = inv.currency || 'TRY';
+            if (!totalsByCurrency[cur]) {
+                totalsByCurrency[cur] = { net: 0, vat: 0, gross: 0, count: 0 };
+            }
+            totalsByCurrency[cur].net += inv.netAmount;
+            totalsByCurrency[cur].vat += inv.taxVatAmount;
+            totalsByCurrency[cur].gross += inv.grossAmount;
+            totalsByCurrency[cur].count += 1;
+        }
+
+        return {
+            invoices: filteredInvoices.map(inv => ({
+                id: inv.id,
+                expenseId: inv.expenseId,
+                supplier: inv.vendorName,
+                invoiceNo: inv.invoiceNumber,
+                invoiceDate: inv.invoiceDate,
+                projectTitle: inv.project?.title || '-',
+                projectCode: inv.project?.code || '-',
+                fundingSource: inv.expense?.fundingSource ? `${inv.expense.fundingSource.organizationName} - ${inv.expense.fundingSource.programGrantName}` : '-',
+                budgetLine: inv.expense?.budgetLine?.title || '-',
+                net: inv.netAmount,
+                VAT: inv.taxVatAmount,
+                gross: inv.grossAmount,
+                currency: inv.currency,
+                paymentStatus: inv.status,
+                paymentDate: inv.paymentDate,
+                documentUrl: inv.documentUrl,
+                documentStatus: inv.documentUrl ? 'HAS_DOCUMENT' : 'MISSING_DOCUMENT',
+                notes: inv.notes,
+            })),
+            totalsByCurrency,
+            totalCount: filteredInvoices.length,
+        };
+    }
 }
+

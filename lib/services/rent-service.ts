@@ -535,4 +535,426 @@ export class RentService {
 
         return { count: dispatchedReminders.length, reminders: dispatchedReminders };
     }
+
+    static async getRentReport(filters?: {
+        startDate?: Date | string;
+        endDate?: Date | string;
+        year?: number;
+        month?: number;
+        currency?: string;
+        entrepreneurId?: string;
+    }) {
+        const whereAccrual: any = {};
+        if (filters?.year) whereAccrual.year = Number(filters.year);
+        if (filters?.month) whereAccrual.month = Number(filters.month);
+        if (filters?.entrepreneurId && filters.entrepreneurId !== 'ALL') {
+            whereAccrual.entrepreneurId = filters.entrepreneurId;
+        }
+        if (filters?.currency && filters.currency !== 'ALL') {
+            whereAccrual.currency = filters.currency;
+        }
+        if (filters?.startDate || filters?.endDate) {
+            whereAccrual.dueDate = {};
+            if (filters?.startDate) whereAccrual.dueDate.gte = new Date(filters.startDate);
+            if (filters?.endDate) whereAccrual.dueDate.lte = new Date(filters.endDate);
+        }
+
+        const now = new Date();
+
+        const [contracts, accruals, payments] = await Promise.all([
+            prisma.rentContract.findMany({
+                include: {
+                    entrepreneur: { select: { id: true, name: true, logoUrl: true, email: true, phone: true } },
+                    facility: { select: { id: true, title: true } },
+                },
+                orderBy: { startDate: 'desc' },
+            }),
+            prisma.rentAccrual.findMany({
+                where: whereAccrual,
+                include: {
+                    contract: { select: { id: true, contractNo: true, spaceName: true, monthlyRent: true, dueDay: true } },
+                    entrepreneur: { select: { id: true, name: true, email: true, phone: true } },
+                    payments: true,
+                },
+                orderBy: [{ year: 'desc' }, { month: 'desc' }, { dueDate: 'asc' }],
+            }),
+            prisma.rentPayment.findMany({
+                include: {
+                    accrual: { select: { periodLabel: true, contractId: true } },
+                    entrepreneur: { select: { id: true, name: true } },
+                },
+                orderBy: { paymentDate: 'desc' },
+            }),
+        ]);
+
+        // Totals per currency
+        const totalsByCurrency: Record<string, {
+            currency: string;
+            totalAccrued: number;
+            totalCollected: number;
+            remainingDue: number;
+            overdueDue: number;
+            collectionRate: number;
+            partialPaidAmount: number;
+            waivedAmount: number;
+        }> = {};
+
+        const getOrCreateCur = (cur: string = 'TRY') => {
+            if (!totalsByCurrency[cur]) {
+                totalsByCurrency[cur] = {
+                    currency: cur,
+                    totalAccrued: 0,
+                    totalCollected: 0,
+                    remainingDue: 0,
+                    overdueDue: 0,
+                    collectionRate: 0,
+                    partialPaidAmount: 0,
+                    waivedAmount: 0,
+                };
+            }
+            return totalsByCurrency[cur];
+        };
+
+        // Aging buckets
+        // 1: Vadesi Gelmemiş (due > now || daysOverdue <= 0)
+        // 2: 1-7 Gün (1 <= days <= 7)
+        // 3: 8-30 Gün (8 <= days <= 30)
+        // 4: 31-60 Gün (31 <= days <= 60)
+        // 5: 61-90 Gün (61 <= days <= 90)
+        // 6: 90+ Gün (days > 90)
+        const agingBuckets = {
+            NOT_DUE: { key: 'NOT_DUE', label: 'Vadesi Gelmemiş', entrepreneurs: new Set<string>(), amountByCurrency: {} as Record<string, number>, count: 0 },
+            DAYS_1_7: { key: 'DAYS_1_7', label: '1–7 Gün', entrepreneurs: new Set<string>(), amountByCurrency: {} as Record<string, number>, count: 0 },
+            DAYS_8_30: { key: 'DAYS_8_30', label: '8–30 Gün', entrepreneurs: new Set<string>(), amountByCurrency: {} as Record<string, number>, count: 0 },
+            DAYS_31_60: { key: 'DAYS_31_60', label: '31–60 Gün', entrepreneurs: new Set<string>(), amountByCurrency: {} as Record<string, number>, count: 0 },
+            DAYS_61_90: { key: 'DAYS_61_90', label: '61–90 Gün', entrepreneurs: new Set<string>(), amountByCurrency: {} as Record<string, number>, count: 0 },
+            DAYS_90_PLUS: { key: 'DAYS_90_PLUS', label: '90+ Gün', entrepreneurs: new Set<string>(), amountByCurrency: {} as Record<string, number>, count: 0 },
+        };
+
+        let partialPaymentsCount = 0;
+        let upcomingDueCount = 0;
+        const upcomingDueDateLimit = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+        const monthlyTrendMap: Record<string, {
+            monthKey: string;
+            monthLabel: string;
+            accrualByCurrency: Record<string, number>;
+            collectionByCurrency: Record<string, number>;
+        }> = {};
+
+        const processedAccruals = accruals.map(acc => {
+            const cur = acc.currency || 'TRY';
+            const curBucket = getOrCreateCur(cur);
+
+            curBucket.totalAccrued += acc.totalDue;
+            curBucket.totalCollected += acc.paidAmount;
+            curBucket.remainingDue += acc.remainingAmount;
+
+            if (acc.status === 'WAIVED') {
+                curBucket.waivedAmount += acc.baseAmount;
+            }
+
+            let daysOverdue = 0;
+            let status = acc.status;
+
+            if (acc.remainingAmount > 0 && acc.status !== 'WAIVED' && acc.status !== 'CANCELLED') {
+                if (now > acc.dueDate) {
+                    const diffTime = Math.abs(now.getTime() - acc.dueDate.getTime());
+                    daysOverdue = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                    curBucket.overdueDue += acc.remainingAmount;
+                    if (status !== 'PARTIALLY_PAID') {
+                        status = 'OVERDUE';
+                    }
+                } else if (acc.dueDate <= upcomingDueDateLimit) {
+                    upcomingDueCount += 1;
+                }
+
+                // Categorize into aging bucket
+                let bucketKey: keyof typeof agingBuckets = 'NOT_DUE';
+                if (daysOverdue <= 0) {
+                    bucketKey = 'NOT_DUE';
+                } else if (daysOverdue <= 7) {
+                    bucketKey = 'DAYS_1_7';
+                } else if (daysOverdue <= 30) {
+                    bucketKey = 'DAYS_8_30';
+                } else if (daysOverdue <= 60) {
+                    bucketKey = 'DAYS_31_60';
+                } else if (daysOverdue <= 90) {
+                    bucketKey = 'DAYS_61_90';
+                } else {
+                    bucketKey = 'DAYS_90_PLUS';
+                }
+
+                agingBuckets[bucketKey].entrepreneurs.add(acc.entrepreneurId);
+                agingBuckets[bucketKey].amountByCurrency[cur] = (agingBuckets[bucketKey].amountByCurrency[cur] || 0) + acc.remainingAmount;
+                agingBuckets[bucketKey].count += 1;
+            }
+
+            if (acc.status === 'PARTIALLY_PAID' || (acc.paidAmount > 0 && acc.remainingAmount > 0)) {
+                partialPaymentsCount += 1;
+                curBucket.partialPaidAmount += acc.paidAmount;
+            }
+
+            // Monthly Trend data
+            const mKey = `${acc.year}-${String(acc.month).padStart(2, '0')}`;
+            if (!monthlyTrendMap[mKey]) {
+                monthlyTrendMap[mKey] = {
+                    monthKey: mKey,
+                    monthLabel: acc.periodLabel,
+                    accrualByCurrency: {},
+                    collectionByCurrency: {},
+                };
+            }
+            monthlyTrendMap[mKey].accrualByCurrency[cur] = (monthlyTrendMap[mKey].accrualByCurrency[cur] || 0) + acc.totalDue;
+            monthlyTrendMap[mKey].collectionByCurrency[cur] = (monthlyTrendMap[mKey].collectionByCurrency[cur] || 0) + acc.paidAmount;
+
+            return {
+                id: acc.id,
+                contractId: acc.contractId,
+                contractNo: acc.contract.contractNo,
+                spaceName: acc.contract.spaceName,
+                entrepreneurId: acc.entrepreneurId,
+                entrepreneurName: acc.entrepreneur.name,
+                year: acc.year,
+                month: acc.month,
+                periodLabel: acc.periodLabel,
+                baseAmount: acc.baseAmount,
+                vatAmount: acc.vatAmount,
+                totalDue: acc.totalDue,
+                paidAmount: acc.paidAmount,
+                remainingAmount: acc.remainingAmount,
+                currency: acc.currency,
+                dueDate: acc.dueDate,
+                status,
+                daysOverdue,
+                reminderCount: acc.reminderCount,
+                lastReminderSentAt: acc.lastReminderSentAt,
+            };
+        });
+
+        // Compute Collection Rates
+        for (const cur of Object.keys(totalsByCurrency)) {
+            const b = totalsByCurrency[cur];
+            b.collectionRate = b.totalAccrued > 0 ? Number(((b.totalCollected / b.totalAccrued) * 100).toFixed(1)) : 0;
+        }
+
+        // Contract Stats
+        const activeContracts = contracts.filter(c => c.status === 'ACTIVE');
+        const waivedContracts = contracts.filter(c => c.isWaived || c.status === 'WAIVED');
+        const freePeriodContracts = contracts.filter(c => {
+            if (!c.freePeriodStart || !c.freePeriodEnd) return false;
+            return now >= c.freePeriodStart && now <= c.freePeriodEnd;
+        });
+
+        // Contracts expiring in 60 days
+        const expiringLimitDate = new Date(now.getTime() + 60 * 24 * 60 * 60 * 1000);
+        const expiringContracts = activeContracts.filter(c => {
+            return c.endDate >= now && c.endDate <= expiringLimitDate;
+        }).map(c => ({
+            id: c.id,
+            contractNo: c.contractNo,
+            entrepreneurName: c.entrepreneur.name,
+            spaceName: c.spaceName,
+            endDate: c.endDate,
+            daysLeft: Math.ceil((c.endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)),
+            monthlyRent: c.monthlyRent,
+            currency: c.currency,
+        }));
+
+        // Format Aging Report
+        const formattedAging = Object.values(agingBuckets).map(b => ({
+            key: b.key,
+            label: b.label,
+            entrepreneurCount: b.entrepreneurs.size,
+            itemCount: b.count,
+            amountByCurrency: b.amountByCurrency,
+        }));
+
+        const sortedTrend = Object.values(monthlyTrendMap).sort((a, b) => a.monthKey.localeCompare(b.monthKey));
+
+        return {
+            totalsByCurrency,
+            activeContractsCount: activeContracts.length,
+            waivedContractsCount: waivedContracts.length,
+            freePeriodContractsCount: freePeriodContracts.length,
+            partialPaymentsCount,
+            upcomingDueCount,
+            expiringContractsCount: expiringContracts.length,
+            expiringContracts,
+            agingReport: formattedAging,
+            monthlyTrend: sortedTrend,
+            accruals: processedAccruals,
+            contractsSummary: contracts.map(c => ({
+                id: c.id,
+                contractNo: c.contractNo,
+                entrepreneurId: c.entrepreneurId,
+                entrepreneurName: c.entrepreneur.name,
+                spaceName: c.spaceName,
+                monthlyRent: c.monthlyRent,
+                currency: c.currency,
+                vatRate: c.vatRate,
+                dueDay: c.dueDay,
+                isWaived: c.isWaived,
+                status: c.status,
+                startDate: c.startDate,
+                endDate: c.endDate,
+            })),
+            meta: {
+                totalAccruals: accruals.length,
+                totalPayments: payments.length,
+                generatedAt: new Date().toISOString(),
+            }
+        };
+    }
+
+    static async getEntrepreneurStatement(entrepreneurId: string) {
+        const entrepreneur = await prisma.entrepreneur.findUnique({
+            where: { id: entrepreneurId },
+            include: {
+                rentContracts: {
+                    orderBy: { startDate: 'desc' },
+                },
+                rentAccruals: {
+                    include: {
+                        contract: true,
+                        payments: true,
+                    },
+                    orderBy: [{ year: 'asc' }, { month: 'asc' }, { dueDate: 'asc' }],
+                },
+                rentPayments: {
+                    include: {
+                        accrual: true,
+                    },
+                    orderBy: { paymentDate: 'asc' },
+                },
+                invoices: {
+                    orderBy: { invoiceDate: 'desc' },
+                },
+            },
+        });
+
+        if (!entrepreneur) throw new Error('Girişimci bulunamadı');
+
+        const now = new Date();
+
+        // Build Chronological Ledger Items (DEBIT: Accrual, CREDIT: Payment)
+        type StatementItem = {
+            id: string;
+            date: Date;
+            type: 'ACCRUAL' | 'PAYMENT' | 'WAIVER';
+            description: string;
+            referenceNo?: string;
+            debitAmount: number; // Borç
+            creditAmount: number; // Alacak / Tahsilat
+            balance: number; // Bakiye
+            currency: string;
+            status: string;
+            daysOverdue?: number;
+            documentUrl?: string;
+        };
+
+        const rawTransactions: Array<{
+            id: string;
+            date: Date;
+            type: 'ACCRUAL' | 'PAYMENT' | 'WAIVER';
+            description: string;
+            referenceNo?: string;
+            debitAmount: number;
+            creditAmount: number;
+            currency: string;
+            status: string;
+            daysOverdue?: number;
+            documentUrl?: string;
+        }> = [];
+
+        // 1. Accruals
+        for (const acc of entrepreneur.rentAccruals) {
+            let daysOverdue = 0;
+            if (acc.remainingAmount > 0 && acc.status !== 'WAIVED' && acc.status !== 'CANCELLED') {
+                if (now > acc.dueDate) {
+                    const diffTime = Math.abs(now.getTime() - acc.dueDate.getTime());
+                    daysOverdue = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                }
+            }
+
+            rawTransactions.push({
+                id: `acc-${acc.id}`,
+                date: acc.dueDate,
+                type: acc.status === 'WAIVED' ? 'WAIVER' : 'ACCRUAL',
+                description: `${acc.periodLabel} Kira Tahakkuku (${acc.contract.spaceName})`,
+                referenceNo: acc.contract.contractNo,
+                debitAmount: acc.status === 'WAIVED' ? 0 : acc.totalDue,
+                creditAmount: 0,
+                currency: acc.currency,
+                status: acc.status,
+                daysOverdue,
+            });
+        }
+
+        // 2. Payments
+        for (const p of entrepreneur.rentPayments) {
+            rawTransactions.push({
+                id: `pay-${p.id}`,
+                date: p.paymentDate,
+                type: 'PAYMENT',
+                description: `${p.accrual?.periodLabel || 'Kira'} Tahsilatı (${p.paymentMethod || 'BANK'})`,
+                referenceNo: p.bankReceiptNo || '-',
+                debitAmount: 0,
+                creditAmount: p.amount,
+                currency: p.currency,
+                status: 'COMPLETED',
+                documentUrl: p.receiptDocUrl || undefined,
+            });
+        }
+
+        // Sort chronologically
+        rawTransactions.sort((a, b) => a.date.getTime() - b.date.getTime());
+
+        // Calculate running balance per currency
+        const balancesByCurrency: Record<string, number> = {};
+        const statementItems: StatementItem[] = [];
+
+        for (const tx of rawTransactions) {
+            const cur = tx.currency || 'TRY';
+            if (balancesByCurrency[cur] === undefined) {
+                balancesByCurrency[cur] = 0;
+            }
+
+            // Running balance = previous balance + debit (borç artar) - credit (ödenince azalır)
+            balancesByCurrency[cur] = balancesByCurrency[cur] + tx.debitAmount - tx.creditAmount;
+
+            statementItems.push({
+                ...tx,
+                balance: balancesByCurrency[cur],
+            });
+        }
+
+        // Totals per currency
+        const summaryByCurrency: Record<string, { totalAccrued: number; totalPaid: number; balanceDue: number }> = {};
+        for (const acc of entrepreneur.rentAccruals) {
+            const cur = acc.currency || 'TRY';
+            if (!summaryByCurrency[cur]) {
+                summaryByCurrency[cur] = { totalAccrued: 0, totalPaid: 0, balanceDue: 0 };
+            }
+            summaryByCurrency[cur].totalAccrued += acc.totalDue;
+            summaryByCurrency[cur].totalPaid += acc.paidAmount;
+            summaryByCurrency[cur].balanceDue += acc.remainingAmount;
+        }
+
+        return {
+            entrepreneur: {
+                id: entrepreneur.id,
+                name: entrepreneur.name,
+                logoUrl: entrepreneur.logoUrl,
+                sector: entrepreneur.sector,
+                email: entrepreneur.email,
+                phone: entrepreneur.phone,
+            },
+            contracts: entrepreneur.rentContracts,
+            summaryByCurrency,
+            statementItems: statementItems.reverse(), // latest first for display, with running balance computed
+            invoices: entrepreneur.invoices,
+        };
+    }
 }
+

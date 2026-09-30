@@ -88,8 +88,12 @@ test.describe('1. HAKKIMIZDA — KURUL ÜYESİ E2E CRUD', () => {
         // İsmi güncelle
         const editModal = page.locator('div.fixed');
         await editModal.locator('input[type="text"]').nth(0).fill(UPDATED_NAME);
-        await editModal.getByRole('button', { name: 'Kaydet' }).click();
-        await page.waitForTimeout(1000);
+        const [putResponse] = await Promise.all([
+            page.waitForResponse(r => r.url().includes('/api/admin/board-members') && r.request().method() === 'PUT'),
+            editModal.getByRole('button', { name: 'Kaydet' }).click(),
+        ]);
+        expect(putResponse.status()).toBe(200);
+        await page.waitForTimeout(500);
 
         // DB'de güncellendiğini kontrol et
         const updatedInDb = await prisma.boardMember.findFirst({
