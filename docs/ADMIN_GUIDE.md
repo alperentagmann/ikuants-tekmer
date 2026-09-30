@@ -33,10 +33,17 @@ The İKÜANTS TEKMER Admin Platform serves as the central Digital Operating Syst
 - **Form Builder (`/admin/form-builder`)**: Dynamic form schema builder with 16 field types, validation rules, and KVKK consent toggles.
 - **Media Library (`/admin/medya`)**: Centralized asset manager with folders, tags, search, and secure upload sanitization.
 
-### 2.5. Reporting & BI
+### 2.5. Finance, Rent & Receivables Intelligence
+- **Finance Hub (`/admin/finans`)**: Unified financial KPI dashboard, budget vs actuals, funding awarded vs received, and multi-currency balances (TRY/USD/EUR/GBP).
+- **Invoice Register (`/admin/finans/faturalar`)**: Comprehensive invoice ledger filtered by vendor, date, project, currency, and document status.
+- **Rent Management & Accruals (`/admin/finans/kiralar`)**: Centralized monthly rent control per entrepreneur, partial payments, overdue tracking, and reminders.
+- **Receivables Center (`/admin/finans/alacaklar`)**: Generic receivables ledger for sponsorships, service fees, and non-rent institutional income.
+- **Financial Reports & Aging (`/admin/raporlar/finans`, `/admin/raporlar/kira`)**: Interactive cash flow charts, 6-segment debt aging matrix, budget line utilization tables, and audited CSV/Excel exports with formula injection protection.
+
+### 2.6. Reporting & BI
 - **Reports Center (`/admin/raporlar`)**: Automated daily, monthly, and annual operational intelligence reports with PDF and Excel export.
 
-### 2.6. System & Security
+### 2.7. System & Security
 - **User & Role Management (`/admin/kullanicilar`)**: Invite new team members, manage RBAC permissions, revoke sessions, and monitor activity.
 - **Security Center (`/admin/guvenlik`)**: Multi-Factor Authentication (TOTP) setup, brute-force logs, and PII masking audits.
 - **Integrations (`/admin/entegrasyonlar`)**: Status monitor for M365, Meta, Email, KBS, and Redis.
