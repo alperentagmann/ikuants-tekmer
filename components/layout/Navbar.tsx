@@ -56,16 +56,23 @@ export const Navbar = () => {
                 const res = await fetch('/api/public/menus?location=HEADER');
                 const data = await res.json();
                 if (data.success && Array.isArray(data.menuItems) && data.menuItems.length > 0) {
-                    setNavLinks(data.menuItems.map((m: any) => ({
-                        name: m.title,
-                        href: m.url || '#',
-                        subItems: Array.isArray(m.children) && m.children.length > 0
-                            ? m.children.map((c: any) => ({ name: c.title, href: c.url }))
-                            : undefined,
-                    })));
+                    // API returns `label` field (DB schema uses label, not title)
+                    const mapped = data.menuItems
+                        .filter((m: any) => !!(m.label || m.title))
+                        .map((m: any) => ({
+                            name: (m.label || m.title || '').toUpperCase(),
+                            href: m.url || '#',
+                            subItems: Array.isArray(m.children) && m.children.length > 0
+                                ? m.children.map((c: any) => ({ name: c.label || c.title, href: c.url || '#' }))
+                                : undefined,
+                        }));
+                    if (mapped.length > 0) {
+                        setNavLinks(mapped);
+                    }
+                    // else keep defaultNavLinks
                 }
             } catch {
-                // Fallback to default navLinks
+                // Fallback to defaultNavLinks — already set as initial state
             }
         };
         loadMenus();
