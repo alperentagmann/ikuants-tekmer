@@ -131,6 +131,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ isCollapsed, onToggl
             id: 'cms',
             title: 'İÇERİK & WEB SİTESİ (CMS)',
             items: [
+                { title: 'Hakkımızda Studio', href: '/admin/hakkimizda', icon: Building2 },
                 { title: 'Haberler & Editör', href: '/admin/haberler', icon: Newspaper },
                 ...(isSuper ? [{ title: 'Sayfa Yönetimi', href: '/admin/sayfalar', icon: FileText }] : []),
                 { title: 'Ana Sayfa & Banner', href: '/admin/anasayfa', icon: Building2 },

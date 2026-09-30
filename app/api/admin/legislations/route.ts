@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentAdminUser } from '@/lib/auth';
-import { PartnerService } from '@/lib/services/partner-service';
+import { LegislationService } from '@/lib/services/legislation-service';
 
 export async function GET() {
     const auth = await getCurrentAdminUser();
     if (!auth) return NextResponse.json({ success: false, error: 'Yetkisiz erişim.' }, { status: 401 });
 
     try {
-        const partners = await PartnerService.getAdminPartners();
-        return NextResponse.json({ success: true, partners });
+        const legislations = await LegislationService.getAdminLegislations();
+        return NextResponse.json({ success: true, legislations });
     } catch (error: any) {
         return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
@@ -20,12 +20,12 @@ export async function POST(request: NextRequest) {
 
     try {
         const body = await request.json();
-        if (!body.name || !body.logoUrl) {
-            return NextResponse.json({ success: false, error: 'Partner adı ve Logo URL zorunludur.' }, { status: 400 });
+        if (!body.title) {
+            return NextResponse.json({ success: false, error: 'Mevzuat başlığı zorunludur.' }, { status: 400 });
         }
 
-        const partner = await PartnerService.createPartner(body, auth.user);
-        return NextResponse.json({ success: true, partner });
+        const legislation = await LegislationService.createLegislation(body, auth.user);
+        return NextResponse.json({ success: true, legislation });
     } catch (error: any) {
         return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
@@ -38,7 +38,7 @@ export async function PUT(request: NextRequest) {
     try {
         const body = await request.json();
         if (Array.isArray(body.orderedIds)) {
-            await PartnerService.reorderPartners(body.orderedIds, auth.user);
+            await LegislationService.reorderLegislations(body.orderedIds, auth.user);
             return NextResponse.json({ success: true });
         }
         return NextResponse.json({ success: false, error: 'Geçersiz parametre.' }, { status: 400 });

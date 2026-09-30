@@ -1,58 +1,52 @@
 "use client";
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
     Building2, Monitor, Gamepad2, Video, Users,
-    Laptop, Coffee, MessageSquare, Wifi, Clock
+    Laptop, Coffee, MessageSquare, Wifi, Clock, Loader2
 } from "lucide-react";
 
-const studios = [
-    {
-        title: "Broadcasting Stüdyosu",
-        description: "Profesyonel yayın ve podcast kayıtları için tam donanımlı stüdyo. Yüksek kaliteli ses ve görüntü ekipmanları ile içerik üreticilerine hizmet vermektedir.",
-        icon: Monitor,
-        features: ["Profesyonel kamera sistemi", "Ses yalıtımı", "Canlı yayın altyapısı"]
-    },
-    {
-        title: "AR/VR Stüdyosu",
-        description: "Artırılmış ve sanal gerçeklik projelerinin geliştirilmesi için özel donanımlı laboratuvar. VR headset'ler ve geliştirme araçları mevcuttur.",
-        icon: Gamepad2,
-        features: ["VR Headset'ler", "Motion capture", "3D modelleme istasyonları"]
-    },
-    {
-        title: "Sanal Çekim Stüdyosu",
-        description: "Green screen ve sanal set teknolojileri ile profesyonel video prodüksiyon imkanı sunan çekim stüdyosu.",
-        icon: Video,
-        features: ["Green screen", "Profesyonel aydınlatma", "Sanal set yazılımları"]
-    }
-];
-
-const workAreas = [
-    {
-        title: "Ortak Genel Çalışma Alanları",
-        description: "Girişimcilerin ve takımların birlikte çalışabileceği açık ofis alanları. Modern mobilyalar ve yüksek hızlı internet altyapısı.",
-        icon: Laptop
-    },
-    {
-        title: "Tematik Çalışma Alanları",
-        description: "Belirli sektörlere ve projelere odaklanan özel çalışma alanları. Yaratıcı endüstrilere yönelik projeler için ideal ortam.",
-        icon: Coffee
-    },
-    {
-        title: "Toplantı Odası",
-        description: "Profesyonel görüşmeler, yatırımcı sunumları ve takım toplantıları için donanımlı toplantı odaları.",
-        icon: MessageSquare
-    }
-];
-
-const features = [
-    { icon: Wifi, text: "Yüksek Hızlı İnternet" },
-    { icon: Clock, text: "7/24 Erişim" },
-    { icon: Users, text: "Networking İmkanı" },
-    { icon: Building2, text: "Modern Altyapı" }
-];
-
 export default function KullanimAlanlariPage() {
+    const [facilities, setFacilities] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    const iconMap: Record<string, any> = {
+        Monitor,
+        Gamepad2,
+        Video,
+        Laptop,
+        Coffee,
+        MessageSquare,
+        Building2,
+    };
+
+    useEffect(() => {
+        const fetchFacilities = async () => {
+            try {
+                const res = await fetch('/api/public/facilities');
+                const data = await res.json();
+                if (data.success && Array.isArray(data.facilities)) {
+                    setFacilities(data.facilities);
+                }
+            } catch (err) {
+                console.error("Failed to load facilities:", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchFacilities();
+    }, []);
+
+    const studios = facilities.filter(f => f.facilityType === 'STUDIO');
+    const workAreas = facilities.filter(f => f.facilityType === 'WORK_AREA');
+
+    const features = [
+        { icon: Wifi, text: "Yüksek Hızlı İnternet" },
+        { icon: Clock, text: "7/24 Erişim" },
+        { icon: Users, text: "Networking İmkanı" },
+        { icon: Building2, text: "Modern Altyapı" }
+    ];
+
     return (
         <div className="py-24 relative min-h-screen bg-gray-50 dark:bg-[#050510] transition-colors duration-300">
             <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent pointer-events-none" />
@@ -94,79 +88,105 @@ export default function KullanimAlanlariPage() {
                     ))}
                 </motion.div>
 
-                {/* Studios Section */}
-                <motion.div
-                    initial={{ opacity: 0, y: 30 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.3 }}
-                    className="mb-16"
-                >
-                    <h2 className="font-orbitron text-2xl text-black dark:text-white mb-8 flex items-center gap-3">
-                        <span className="w-8 h-[2px] bg-secondary" />
-                        Stüdyolar
-                    </h2>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        {studios.map((studio, index) => (
-                            <motion.div
-                                key={index}
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: 0.4 + index * 0.1 }}
-                                className="group p-6 rounded-2xl bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 hover:border-primary/40 transition-all shadow-md dark:shadow-none"
-                            >
-                                <div className="w-14 h-14 rounded-xl bg-primary/20 flex items-center justify-center mb-4 group-hover:bg-primary/30 transition-colors">
-                                    <studio.icon className="w-7 h-7 text-primary" />
-                                </div>
-                                <h3 className="font-semibold text-black dark:text-white text-lg mb-2">{studio.title}</h3>
-                                <p className="text-gray-700 dark:text-gray-400 text-sm mb-4 leading-relaxed">{studio.description}</p>
-                                <ul className="space-y-2">
-                                    {studio.features.map((feature, fi) => (
-                                        <li key={fi} className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-500">
-                                            <span className="w-1.5 h-1.5 rounded-full bg-secondary" />
-                                            {feature}
-                                        </li>
-                                    ))}
-                                </ul>
-                            </motion.div>
-                        ))}
+                {loading ? (
+                    <div className="flex flex-col items-center justify-center py-20">
+                        <Loader2 className="w-10 h-10 text-primary animate-spin mb-4" />
+                        <p className="text-gray-500 font-mono text-sm">Tesisler yükleniyor...</p>
                     </div>
-                </motion.div>
+                ) : (
+                    <>
+                        {/* Studios Section */}
+                        {studios.length > 0 && (
+                            <motion.div
+                                initial={{ opacity: 0, y: 30 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.3 }}
+                                className="mb-16"
+                            >
+                                <h2 className="font-orbitron text-2xl text-black dark:text-white mb-8 flex items-center gap-3">
+                                    <span className="w-8 h-[2px] bg-secondary" />
+                                    Stüdyolar
+                                </h2>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                    {studios.map((studio, index) => {
+                                        const IconComp = (studio.iconName && iconMap[studio.iconName]) || Building2;
+                                        let featuresList: string[] = [];
+                                        try {
+                                            if (studio.featuresJson) featuresList = JSON.parse(studio.featuresJson);
+                                        } catch { }
 
-                {/* Work Areas Section */}
-                <motion.div
-                    initial={{ opacity: 0, y: 30 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.5 }}
-                    className="mb-16"
-                >
-                    <h2 className="font-orbitron text-2xl text-black dark:text-white mb-8 flex items-center gap-3">
-                        <span className="w-8 h-[2px] bg-secondary" />
-                        Çalışma Alanları
-                    </h2>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        {workAreas.map((area, index) => (
-                            <motion.div
-                                key={index}
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: 0.6 + index * 0.1 }}
-                                className="group p-6 rounded-2xl bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 hover:border-secondary/40 transition-all shadow-md dark:shadow-none"
-                            >
-                                <div className="w-12 h-12 rounded-lg bg-secondary/20 flex items-center justify-center mb-4 group-hover:bg-secondary/30 transition-colors">
-                                    <area.icon className="w-6 h-6 text-secondary" />
+                                        return (
+                                            <motion.div
+                                                key={studio.id || index}
+                                                initial={{ opacity: 0, y: 20 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                transition={{ delay: 0.1 * index }}
+                                                className="group p-6 rounded-2xl bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 hover:border-primary/40 transition-all shadow-md dark:shadow-none"
+                                            >
+                                                <div className="w-14 h-14 rounded-xl bg-primary/20 flex items-center justify-center mb-4 group-hover:bg-primary/30 transition-colors">
+                                                    <IconComp className="w-7 h-7 text-primary" />
+                                                </div>
+                                                <h3 className="font-semibold text-black dark:text-white text-lg mb-2">{studio.title}</h3>
+                                                <p className="text-gray-700 dark:text-gray-400 text-sm mb-4 leading-relaxed">{studio.description}</p>
+                                                {featuresList.length > 0 && (
+                                                    <ul className="space-y-2">
+                                                        {featuresList.map((feat: string, fi: number) => (
+                                                            <li key={fi} className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-500">
+                                                                <span className="w-1.5 h-1.5 rounded-full bg-secondary" />
+                                                                {feat}
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                )}
+                                            </motion.div>
+                                        );
+                                    })}
                                 </div>
-                                <h3 className="font-semibold text-black dark:text-white text-lg mb-2">{area.title}</h3>
-                                <p className="text-gray-700 dark:text-gray-400 text-sm leading-relaxed">{area.description}</p>
                             </motion.div>
-                        ))}
-                    </div>
-                </motion.div>
+                        )}
+
+                        {/* Work Areas Section */}
+                        {workAreas.length > 0 && (
+                            <motion.div
+                                initial={{ opacity: 0, y: 30 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.4 }}
+                                className="mb-16"
+                            >
+                                <h2 className="font-orbitron text-2xl text-black dark:text-white mb-8 flex items-center gap-3">
+                                    <span className="w-8 h-[2px] bg-secondary" />
+                                    Çalışma Alanları
+                                </h2>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                    {workAreas.map((area, index) => {
+                                        const IconComp = (area.iconName && iconMap[area.iconName]) || Laptop;
+                                        return (
+                                            <motion.div
+                                                key={area.id || index}
+                                                initial={{ opacity: 0, y: 20 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                transition={{ delay: 0.1 * index }}
+                                                className="group p-6 rounded-2xl bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 hover:border-secondary/40 transition-all shadow-md dark:shadow-none"
+                                            >
+                                                <div className="w-12 h-12 rounded-lg bg-secondary/20 flex items-center justify-center mb-4 group-hover:bg-secondary/30 transition-colors">
+                                                    <IconComp className="w-6 h-6 text-secondary" />
+                                                </div>
+                                                <h3 className="font-semibold text-black dark:text-white text-lg mb-2">{area.title}</h3>
+                                                <p className="text-gray-700 dark:text-gray-400 text-sm leading-relaxed">{area.description}</p>
+                                            </motion.div>
+                                        );
+                                    })}
+                                </div>
+                            </motion.div>
+                        )}
+                    </>
+                )}
 
                 {/* CTA */}
                 <motion.div
                     initial={{ opacity: 0, y: 30 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.7 }}
+                    transition={{ delay: 0.5 }}
                     className="text-center p-8 rounded-2xl bg-gradient-to-r from-primary/10 to-secondary/10 border border-gray-200 dark:border-white/10 shadow-lg"
                 >
                     <h3 className="font-orbitron text-xl text-black dark:text-white mb-3">Alanlarımızı Kullanmak İster Misiniz?</h3>

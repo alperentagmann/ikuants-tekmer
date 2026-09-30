@@ -1692,7 +1692,9 @@ model Partner {
   id           String   @id @default(uuid())
   name         String
   logoUrl      String
+  description  String?  @db.Text
   websiteUrl   String?
+  linkedinUrl  String?
   altText      String?
   partnerGroup String   @default("STAKEHOLDER") // STAKEHOLDER, SUPPORTER, SPONSOR, ECOSYSTEM
   sortOrder    Int      @default(0)
@@ -2312,12 +2314,108 @@ model TeamMember {
   imageUrl    String?
   linkedin    String?
   email       String?
+  phone       String?
   isActive    Boolean  @default(true)
   sortOrder   Int      @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   @@index([isActive])
+}
+
+// ----------------------------------------------------------------------------
+// ENTERPRISE: BOARD MEMBERS / KURULLAR (YÖNETİM, DEĞERLENDİRME, DANIŞMA)
+// ----------------------------------------------------------------------------
+
+model BoardMember {
+  id           String   @id @default(uuid())
+  fullName     String
+  title        String   @db.Text
+  organization String?
+  duty         String?
+  boardType    String   @default("YONETIM") // YONETIM, DEGERLENDIRME, DANISMA
+  imageUrl     String?
+  imageStyle   String?
+  bio          String?  @db.Text
+  email        String?
+  linkedin     String?
+  sortOrder    Int      @default(0)
+  isActive     Boolean  @default(true)
+  isPublished  Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([boardType])
+  @@index([isActive])
+  @@index([sortOrder])
+}
+
+// ----------------------------------------------------------------------------
+// ENTERPRISE: FACILITIES & USAGE AREAS / KULLANIM ALANLARI
+// ----------------------------------------------------------------------------
+
+model Facility {
+  id           String   @id @default(uuid())
+  title        String
+  description  String   @db.Text
+  facilityType String   @default("STUDIO") // STUDIO, WORK_AREA, FEATURE
+  featuresJson String?  // JSON array of strings
+  iconName     String?  // Lucide icon name
+  imageUrl     String?
+  sortOrder    Int      @default(0)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([facilityType])
+  @@index([isActive])
+  @@index([sortOrder])
+}
+
+// ----------------------------------------------------------------------------
+// ENTERPRISE: SERVICES / HİZMETLERİMİZ
+// ----------------------------------------------------------------------------
+
+model ServiceItem {
+  id            String   @id @default(uuid())
+  title         String
+  description   String   @db.Text
+  detailsJson   String?  // JSON array of detail strings
+  highlight     String?
+  iconName      String?
+  colorGradient String?  @default("from-purple-500 to-pink-500")
+  ctaLabel      String?
+  ctaUrl        String?
+  sortOrder     Int      @default(0)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([isActive])
+  @@index([sortOrder])
+}
+
+// ----------------------------------------------------------------------------
+// ENTERPRISE: LEGISLATION & REGULATIONS / MEVZUAT
+// ----------------------------------------------------------------------------
+
+model LegislationDocument {
+  id          String    @id @default(uuid())
+  title       String
+  description String?   @db.Text
+  category    String    @default("YONETMELIK") // KANUN, YONETMELIK, KARARNAME, TEBLIG
+  publishDate DateTime?
+  externalUrl String?
+  fileUrl     String?
+  fileName    String?
+  sortOrder   Int       @default(0)
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([category])
+  @@index([isActive])
+  @@index([sortOrder])
 }
 
 // ----------------------------------------------------------------------------

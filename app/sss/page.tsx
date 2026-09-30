@@ -1,45 +1,33 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDown, HelpCircle } from "lucide-react";
-
-const faqData = [
-    {
-        question: "TEKMER nedir?",
-        answer: "TEKMER (Teknoloji Geliştirme Merkezi), girişimcilere ve start-up şirketlerine ön kuluçka, kuluçka ve büyüme süreçlerinde destek sağlayan, KOSGEB tarafından desteklenen merkezlerdir. İKÜANTS TEKMER, İstanbul Kültür Üniversitesi bünyesinde faaliyet göstermektedir."
-    },
-    {
-        question: "TEKMER'e kimler başvurabilir?",
-        answer: "Teknoloji tabanlı iş fikirleri olan girişimciler, üniversite öğrencileri, akademisyenler ve yenilikçi projeleri olan herkes TEKMER'e başvurabilir. Başvuru için bir iş fikri veya proje planı olması yeterlidir."
-    },
-    {
-        question: "TEKMER'de kalış süresi ne kadardır?",
-        answer: "Ön kuluçka süreci genellikle 6-12 ay, kuluçka süreci ise 2-3 yıl arasında değişmektedir. Bu süreler projenin gelişim durumuna göre uzatılabilir."
-    },
-    {
-        question: "TEKMER'de yer almanın avantajları nelerdir?",
-        answer: "TEKMER'de yer alan girişimciler; vergi muafiyetleri, SGK prim destekleri, Ar-Ge indirimleri, personel maaş destekleri, ofis imkanı, mentorluk, ağ oluşturma fırsatları ve KOSGEB desteklerine erişim gibi birçok avantajdan yararlanabilir."
-    },
-    {
-        question: "Başvuru süreci nasıl işliyor?",
-        answer: "Online başvuru formu doldurulduktan sonra ön değerlendirme yapılır. Uygun görülen projeler jüri değerlendirmesine alınır ve kabul edilen girişimcilerle görüşme yapılarak süreç başlatılır."
-    },
-    {
-        question: "Fiziksel ofis zorunlu mu?",
-        answer: "Hayır, fiziksel ofis kullanımı zorunlu değildir. Hibrit çalışma modeli desteklenmektedir. Ancak ofis kullanmak isteyen girişimcilere modern çalışma alanları sağlanmaktadır."
-    },
-    {
-        question: "TEKMER'den mezuniyet sonrası destek var mı?",
-        answer: "Evet, TEKMER mezunları da ekosistem içinde kalmaya devam eder. Mezun girişimciler networking etkinliklerine katılabilir ve danışmanlık hizmetlerinden faydalanabilir."
-    },
-    {
-        question: "Hangi sektörlerden projeler kabul ediliyor?",
-        answer: "Yapay Zeka, Cloud, Mobil Teknolojiler, Oyun, Animasyon, Fintech, Edutech, Biyoteknoloji, Medikal Cihaz ve Yenilikçi Teknolojiler gibi geniş bir yelpazede projeler kabul edilmektedir."
-    }
-];
+import { ChevronDown, HelpCircle, Loader2 } from "lucide-react";
 
 export default function SSSPage() {
+    const [faqData, setFaqData] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
     const [openIndex, setOpenIndex] = useState<number | null>(0);
+    const [activeCategory, setActiveCategory] = useState<string>('ALL');
+
+    useEffect(() => {
+        const fetchFaqs = async () => {
+            try {
+                const res = await fetch('/api/public/faqs');
+                const data = await res.json();
+                if (data.success && Array.isArray(data.faqs)) {
+                    setFaqData(data.faqs);
+                }
+            } catch (err) {
+                console.error("Failed to load FAQs:", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchFaqs();
+    }, []);
+
+    const categories = ['ALL', ...Array.from(new Set(faqData.map(f => f.category || 'GENEL')))];
+    const filteredFaqs = activeCategory === 'ALL' ? faqData : faqData.filter(f => (f.category || 'GENEL') === activeCategory);
 
     return (
         <div className="py-24 relative min-h-screen bg-gray-50 dark:bg-[#050510] transition-colors duration-300">
@@ -63,43 +51,68 @@ export default function SSSPage() {
                     </p>
                 </motion.div>
 
-                <div className="space-y-4">
-                    {faqData.map((faq, index) => (
-                        <motion.div
-                            key={index}
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: index * 0.1 }}
-                            className="border border-gray-200 dark:border-white/10 rounded-xl overflow-hidden bg-white dark:bg-white/5 backdrop-blur-sm shadow-md dark:shadow-none"
-                        >
+                {categories.length > 2 && (
+                    <div className="flex flex-wrap justify-center gap-2 mb-10">
+                        {categories.map((cat) => (
                             <button
-                                onClick={() => setOpenIndex(openIndex === index ? null : index)}
-                                className="w-full flex items-center justify-between p-6 text-left hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
+                                key={cat}
+                                onClick={() => setActiveCategory(cat)}
+                                className={`px-4 py-2 rounded-lg text-xs font-mono font-semibold transition-all ${
+                                    activeCategory === cat
+                                        ? 'bg-primary text-white shadow-md'
+                                        : 'bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-400 hover:text-black dark:hover:text-white'
+                                }`}
                             >
-                                <span className="font-medium text-black dark:text-white pr-4">{faq.question}</span>
-                                <ChevronDown
-                                    className={`w-5 h-5 text-secondary transition-transform flex-shrink-0 ${openIndex === index ? 'rotate-180' : ''
-                                        }`}
-                                />
+                                {cat === 'ALL' ? 'TÜMÜ' : cat}
                             </button>
-                            <AnimatePresence>
-                                {openIndex === index && (
-                                    <motion.div
-                                        initial={{ height: 0, opacity: 0 }}
-                                        animate={{ height: "auto", opacity: 1 }}
-                                        exit={{ height: 0, opacity: 0 }}
-                                        transition={{ duration: 0.2 }}
-                                        className="overflow-hidden"
-                                    >
-                                        <div className="px-6 pb-6 text-black/70 dark:text-gray-400 border-t border-gray-200 dark:border-white/10 pt-4">
-                                            {faq.answer}
-                                        </div>
-                                    </motion.div>
-                                )}
-                            </AnimatePresence>
-                        </motion.div>
-                    ))}
-                </div>
+                        ))}
+                    </div>
+                )}
+
+                {loading ? (
+                    <div className="flex flex-col items-center justify-center py-20">
+                        <Loader2 className="w-10 h-10 text-primary animate-spin mb-4" />
+                        <p className="text-gray-500 font-mono text-sm">Sorular yükleniyor...</p>
+                    </div>
+                ) : (
+                    <div className="space-y-4">
+                        {filteredFaqs.map((faq, index) => (
+                            <motion.div
+                                key={faq.id || index}
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: index * 0.05 }}
+                                className="border border-gray-200 dark:border-white/10 rounded-xl overflow-hidden bg-white dark:bg-white/5 backdrop-blur-sm shadow-md dark:shadow-none"
+                            >
+                                <button
+                                    onClick={() => setOpenIndex(openIndex === index ? null : index)}
+                                    className="w-full flex items-center justify-between p-6 text-left hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
+                                >
+                                    <span className="font-medium text-black dark:text-white pr-4">{faq.question}</span>
+                                    <ChevronDown
+                                        className={`w-5 h-5 text-secondary transition-transform flex-shrink-0 ${openIndex === index ? 'rotate-180' : ''
+                                            }`}
+                                    />
+                                </button>
+                                <AnimatePresence>
+                                    {openIndex === index && (
+                                        <motion.div
+                                            initial={{ height: 0, opacity: 0 }}
+                                            animate={{ height: "auto", opacity: 1 }}
+                                            exit={{ height: 0, opacity: 0 }}
+                                            transition={{ duration: 0.2 }}
+                                            className="overflow-hidden"
+                                        >
+                                            <div className="px-6 pb-6 text-black/70 dark:text-gray-400 border-t border-gray-200 dark:border-white/10 pt-4 leading-relaxed">
+                                                {faq.answer}
+                                            </div>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+                            </motion.div>
+                        ))}
+                    </div>
+                )}
             </div>
         </div>
     );

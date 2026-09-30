@@ -1,131 +1,40 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Users, Award, Briefcase, ChevronDown, ChevronUp } from "lucide-react";
+import { Users, Award, Briefcase, Loader2 } from "lucide-react";
 
-const danismaKurulu = [
-    {
-        name: "Cengiz ULTAV",
-        title: "İKÜ Mütevelli Heyet Üyesi, TTGV Yönetim Kurulu Başkanı, VESTEL Ventures Yönetim Kurulu Üyesi",
-        image: "/images/cengiz-ultav.jpg"
-    },
-    {
-        name: "Kadir TAMRAK",
-        title: "AIVASOFT Kurucu Ortak",
-        image: "/images/kadir-tamrak.jpg"
-    },
-    {
-        name: "Cem UÇAR",
-        title: "FUNEXAGON Kurucu Ortak",
-        image: "/images/cem-ucar.jpg"
-    },
-    {
-        name: "Elyar DAVARAN",
-        title: "BLIZARD GAMES Gaming Art Director",
-        image: "/images/elyar-davaran.jpg"
-    },
-    {
-        name: "Emin Kağan KAYAK",
-        title: "INCREA360 Tasarım Merkezi Teknoloji Yöneticisi",
-        image: "/images/emin-kagan-kayak.jpg"
-    },
-    {
-        name: "Onur YOLAY",
-        title: "Boğaziçi Üniversitesi Hedefli Tedavi Teknolojileri Merkezi Proje ve IP Yöneticisi, INNOWAY R&G Kurucu Ortak",
-        image: "/images/onur-yolay.jpg"
-    },
-    {
-        name: "Serkan KAV",
-        title: "Y İNOVASYON ve TEKNOLOJİ A.Ş.",
-        image: "/images/serkan-kav.jpg"
-    },
-    {
-        name: "Emrah CEBECİOĞLU",
-        title: "CPA INTERNATIONAL TÜRKİYE Kurucu Ortak",
-        image: "/images/emrah-cebecioglu.jpg"
-    }
-];
-
-const yonetimKurulu = [
-    {
-        name: "Dr. Bahar Akıngüç Günver",
-        title: "Yönetim Kurulu Başkanı",
-        image: "/images/bahar-akinguc-gunver.jpg"
-    },
-    {
-        name: "Prof. Dr. Gülce Öğrüç Martins Riberio da Silva Lourenço",
-        title: "Yönetim Kurulu Başkan Vekili",
-        image: "/images/gulce-ogruc-ildiz.jpg",
-        imageStyle: "scale-125 origin-top object-top"
-    },
-
-    {
-        name: "Yusuf Yılmaz",
-        title: "Yönetim Kurulu Başkan Vekili",
-        image: "/images/yusuf-yilmaz.jpg"
-    },
-    {
-        name: "Dr. Öğr. Üyesi Ceren Bilgici",
-        title: "Yönetim Kurulu Üyesi",
-        image: "/images/ceren-bilgici.jpg",
-        imageStyle: "object-top"
-    },
-    {
-        name: "Dr. Öğr. Üyesi Ender Demir",
-        title: "Yönetim Kurulu Üyesi",
-        image: "/images/ender-demir.jpg",
-        imageStyle: "object-top"
-    },
-    {
-        name: "Dr. Öğr. Üyesi Artür Yetvart Mumcu",
-        title: "Yönetim Kurulu Üyesi",
-        image: "/images/artur-yetvart-mumcu.jpg"
-    },
-    {
-        name: "Av. R. İmren Öner Topaloğlu",
-        title: "Yönetim Kurulu Üyesi",
-        image: "/images/imren-oner-topaloglu.jpg",
-        imageStyle: "object-top"
-    }
-];
-const degerlendirmeKurulu = [
-
-    {
-        name: "Duygu Yücesoy Manyaslı",
-        title: "KOSGEB İkitelli Müdürü",
-        image: "/images/duygu-yucesoy-manyasli.jpg"
-    },
-    {
-        name: "Dr. Artür Yetvart Mumcu",
-        title: "İstanbul Kültür Üniversitesi",
-        image: "/images/artur-yetvart-mumcu.jpg"
-    },
-    {
-        name: "Prof. Dr. Akhan Akbulut",
-        title: "İstanbul Kültür Üniversitesi",
-        image: "/images/akhan-akbulut.jpg"
-    },
-    {
-        name: "Dr. Zeynep Gergin",
-        title: "İstanbul Kültür Üniversitesi",
-        image: "/images/zeynep-gergin.jpg"
-    },
-    {
-        name: "Gökhan Uluçay",
-        title: "İstanbul Kültür Üniversitesi",
-        image: "/images/gokhan-ulucay.jpg"
-    }
-];
-
-type BoardType = 'danisma' | 'yonetim' | 'degerlendirme';
+type BoardType = 'yonetim' | 'degerlendirme' | 'danisma';
 
 export default function KurullarPage() {
     const [activeBoard, setActiveBoard] = useState<BoardType>('yonetim');
+    const [members, setMembers] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchMembers = async () => {
+            try {
+                const res = await fetch('/api/public/board-members');
+                const data = await res.json();
+                if (data.success && Array.isArray(data.members)) {
+                    setMembers(data.members);
+                }
+            } catch (err) {
+                console.error("Failed to load board members:", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchMembers();
+    }, []);
+
+    const yonetimMembers = members.filter(m => m.boardType === 'YONETIM');
+    const degerlendirmeMembers = members.filter(m => m.boardType === 'DEGERLENDIRME');
+    const danismaMembers = members.filter(m => m.boardType === 'DANISMA');
 
     const boards = [
-        { id: 'yonetim' as BoardType, name: 'Yönetim Kurulu', icon: Briefcase, members: yonetimKurulu, color: 'from-cyan-500 to-blue-500' },
-        { id: 'degerlendirme' as BoardType, name: 'Değerlendirme Kurulu', icon: Award, members: degerlendirmeKurulu, color: 'from-orange-500 to-red-500' },
-        { id: 'danisma' as BoardType, name: 'Danışma Kurulu', icon: Users, members: danismaKurulu, color: 'from-purple-500 to-pink-500' }
+        { id: 'yonetim' as BoardType, name: 'Yönetim Kurulu', icon: Briefcase, members: yonetimMembers, color: 'from-cyan-500 to-blue-500' },
+        { id: 'degerlendirme' as BoardType, name: 'Değerlendirme Kurulu', icon: Award, members: degerlendirmeMembers, color: 'from-orange-500 to-red-500' },
+        { id: 'danisma' as BoardType, name: 'Danışma Kurulu', icon: Users, members: danismaMembers, color: 'from-purple-500 to-pink-500' }
     ];
 
     return (
@@ -183,66 +92,78 @@ export default function KurullarPage() {
                     ))}
                 </motion.div>
 
-                {/* Board Members */}
-                {boards.map((board) => (
-                    activeBoard === board.id && (
-                        <motion.div
-                            key={board.id}
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.2 }}
-                        >
-                            {board.members.length > 0 ? (
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    {board.members.map((member, index) => (
-                                        <motion.div
-                                            key={member.name}
-                                            initial={{ opacity: 0, y: 20 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            transition={{ delay: 0.1 + index * 0.05 }}
-                                            className="group"
-                                        >
-                                            <div className="p-6 rounded-2xl bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 hover:border-primary/40 transition-all hover:shadow-lg dark:hover:shadow-primary/10 shadow-md dark:shadow-none">
-                                                <div className="flex items-start gap-4">
-                                                    {(member as any).image ? (
-                                                    <div className={`w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 ${(member as any).wrapperStyle || ''}`}>
-                                                        <img
-                                                            src={(member as any).image}
-                                                            alt={member.name}
-                                                            className={`w-full h-full object-cover ${(member as any).imageStyle || ''}`}
-                                                        />
-                                                    </div>
-                                                    ) : (
-                                                        <div className={`w-16 h-16 rounded-xl bg-gradient-to-br ${board.color} flex items-center justify-center flex-shrink-0`}>
-                                                            <span className="text-white font-bold text-xl">
-                                                                {member.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
-                                                            </span>
+                {loading ? (
+                    <div className="flex flex-col items-center justify-center py-20">
+                        <Loader2 className="w-10 h-10 text-primary animate-spin mb-4" />
+                        <p className="text-gray-500 font-mono text-sm">Kurul üyeleri yükleniyor...</p>
+                    </div>
+                ) : (
+                    boards.map((board) => (
+                        activeBoard === board.id && (
+                            <motion.div
+                                key={board.id}
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.2 }}
+                            >
+                                {board.members.length > 0 ? (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        {board.members.map((member, index) => (
+                                            <motion.div
+                                                key={member.id || member.fullName}
+                                                initial={{ opacity: 0, y: 20 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                transition={{ delay: 0.05 * index }}
+                                                className="group"
+                                            >
+                                                <div className="p-6 rounded-2xl bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 hover:border-primary/40 transition-all hover:shadow-lg dark:hover:shadow-primary/10 shadow-md dark:shadow-none">
+                                                    <div className="flex items-start gap-4">
+                                                        {member.imageUrl ? (
+                                                            <div className={`w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 bg-gray-100 dark:bg-white/5`}>
+                                                                <img
+                                                                    src={member.imageUrl}
+                                                                    alt={member.fullName}
+                                                                    className={`w-full h-full object-cover ${member.imageStyle || ''}`}
+                                                                />
+                                                            </div>
+                                                        ) : (
+                                                            <div className={`w-16 h-16 rounded-xl bg-gradient-to-br ${board.color} flex items-center justify-center flex-shrink-0`}>
+                                                                <span className="text-white font-bold text-xl">
+                                                                    {member.fullName.split(' ').map((n: string) => n[0]).join('').slice(0, 2)}
+                                                                </span>
+                                                            </div>
+                                                        )}
+                                                        <div className="flex-1 min-w-0">
+                                                            <h3 className="text-lg font-semibold text-black dark:text-white mb-1 group-hover:text-primary transition-colors">
+                                                                {member.fullName}
+                                                            </h3>
+                                                            <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed">
+                                                                {member.title}
+                                                            </p>
+                                                            {member.organization && member.organization !== 'İKÜANTS TEKMER' && (
+                                                                <span className="inline-block mt-2 text-xs px-2.5 py-0.5 rounded bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-gray-300 font-mono">
+                                                                    {member.organization}
+                                                                </span>
+                                                            )}
                                                         </div>
-                                                    )}
-                                                    <div className="flex-1 min-w-0">
-                                                        <h3 className="text-lg font-semibold text-black dark:text-white mb-1 group-hover:text-primary transition-colors">
-                                                            {member.name}
-                                                        </h3>
-                                                        <p className="text-gray-400 text-sm leading-relaxed">
-                                                            {member.title}
-                                                        </p>
                                                     </div>
                                                 </div>
-                                            </div>
-                                        </motion.div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <div className="text-center py-16">
-                                    <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4">
-                                        <board.icon className="w-10 h-10 text-gray-600" />
+                                            </motion.div>
+                                        ))}
                                     </div>
-                                    <p className="text-gray-500 text-lg">Bu kurul bilgileri yakında eklenecektir.</p>
-                                </div>
-                            )}
-                        </motion.div>
-                    )
-                ))}
+                                ) : (
+                                    <div className="text-center py-16">
+                                        <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4">
+                                            <board.icon className="w-10 h-10 text-gray-400" />
+                                        </div>
+                                        <p className="text-gray-500 text-lg">Bu kurul bilgileri güncellenmektedir.</p>
+                                    </div>
+                                )}
+                            </motion.div>
+                        )
+                    ))
+                )}
+
                 {/* Info Section */}
                 <motion.div
                     initial={{ opacity: 0, y: 30 }}

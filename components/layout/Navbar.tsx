@@ -60,7 +60,7 @@ export const Navbar = () => {
                     const mapped = data.menuItems
                         .filter((m: any) => !!(m.label || m.title))
                         .map((m: any) => ({
-                            name: (m.label || m.title || '').toUpperCase(),
+                            name: (m.label || m.title || '').toLocaleUpperCase('tr-TR'),
                             href: m.url || '#',
                             subItems: Array.isArray(m.children) && m.children.length > 0
                                 ? m.children.map((c: any) => ({ name: c.label || c.title, href: c.url || '#' }))
