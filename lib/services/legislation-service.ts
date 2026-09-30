@@ -67,9 +67,10 @@ export const LegislationService = {
 
     async updateLegislation(id: string, data: Partial<LegislationData>, actor?: any) {
         const oldItem = await prisma.legislationDocument.findUnique({ where: { id } });
+        const { id: _id, createdAt: _c, updatedAt: _u, ...cleanData } = data as any;
         const item = await prisma.legislationDocument.update({
             where: { id },
-            data,
+            data: cleanData,
         });
 
         await logAuditEvent({

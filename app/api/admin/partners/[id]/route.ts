@@ -23,7 +23,7 @@ export async function PUT(request: NextRequest, props: { params: Promise<{ id: s
     try {
         const { id } = await props.params;
         const body = await request.json();
-        const partner = await PartnerService.updatePartner(id, body, auth.user);
+        const partner = await PartnerService.updatePartner(id, body, auth);
         return NextResponse.json({ success: true, partner });
     } catch (error: any) {
         return NextResponse.json({ success: false, error: error.message }, { status: 500 });
@@ -36,7 +36,7 @@ export async function DELETE(request: NextRequest, props: { params: Promise<{ id
 
     try {
         const { id } = await props.params;
-        await PartnerService.deletePartner(id, auth.user);
+        await PartnerService.deletePartner(id, auth);
         return NextResponse.json({ success: true });
     } catch (error: any) {
         return NextResponse.json({ success: false, error: error.message }, { status: 500 });

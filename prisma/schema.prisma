@@ -580,9 +580,23 @@ model Program {
   jury           String?   // JSON array of members
   partners       String?   // JSON array of partner logos/names
   programManager String?
+  heroUrl        String?
+  mobileHeroUrl  String?
+  targetAudience String?
+  whoCanApply    String?
+  applicationCriteria String?
+  timelineJson   String?   // JSON array of { stepNumber, title, period, description }
+  benefitsJson   String?   // JSON array of { title, description, icon }
+  faqsJson       String?   // JSON array of { question, answer }
+  documentsJson  String?   // JSON array of { title, fileUrl, type, size }
+  contentBlocksJson String? // JSON array of Content Blocks
+  ctaTitle       String?
+  ctaDescription String?
   ctaText        String?   @default("HEMEN BAŞVUR")
   ctaLink        String?   @default("/basvuru")
+  formId         String?
   isFeatured     Boolean   @default(false)
+  isPublished    Boolean   @default(true)
   sortOrder      Int       @default(0)
   isArchived     Boolean   @default(false)
   seoTitle       String?

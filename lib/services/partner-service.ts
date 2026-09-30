@@ -66,10 +66,11 @@ export const PartnerService = {
     },
 
     async updatePartner(id: string, data: Partial<PartnerData>, actor?: any) {
+        const { id: _id, createdAt: _c, updatedAt: _u, ...cleanData }: any = data;
         const oldPartner = await prisma.partner.findUnique({ where: { id } });
         const partner = await prisma.partner.update({
             where: { id },
-            data,
+            data: cleanData,
         });
 
         await logAuditEvent({

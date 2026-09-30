@@ -26,8 +26,8 @@ export async function createSession(userId: string, ipAddress?: string, userAgen
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + SESSION_EXPIRY_DAYS);
 
-    // Generate secure JWT token for the session
-    const sessionToken = await new SignJWT({ userId, type: 'admin_session' })
+    // Generate secure JWT token for the session with unique nonce
+    const sessionToken = await new SignJWT({ userId, type: 'admin_session', jti: crypto.randomUUID() })
         .setProtectedHeader({ alg: 'HS256' })
         .setIssuedAt()
         .setExpirationTime(`${SESSION_EXPIRY_DAYS}d`)

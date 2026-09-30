@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ success: false, error: 'Hizmet başlığı ve açıklaması zorunludur.' }, { status: 400 });
         }
 
-        const service = await ServiceItemService.createService(body, auth.user);
+        const service = await ServiceItemService.createService(body, auth);
         return NextResponse.json({ success: true, service });
     } catch (error: any) {
         return NextResponse.json({ success: false, error: error.message }, { status: 500 });
@@ -38,7 +38,7 @@ export async function PUT(request: NextRequest) {
     try {
         const body = await request.json();
         if (Array.isArray(body.orderedIds)) {
-            await ServiceItemService.reorderServices(body.orderedIds, auth.user);
+            await ServiceItemService.reorderServices(body.orderedIds, auth);
             return NextResponse.json({ success: true });
         }
         return NextResponse.json({ success: false, error: 'Geçersiz parametre.' }, { status: 400 });

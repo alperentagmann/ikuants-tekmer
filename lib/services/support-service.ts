@@ -79,12 +79,13 @@ export const SupportService = {
     },
 
     async updateSupport(id: string, data: Partial<SupportData>, actor?: { id: string; name: string; email: string; ip?: string; userAgent?: string }) {
+        const { id: _id, createdAt: _c, updatedAt: _u, ...cleanData }: any = data;
         const oldRecord = await prisma.support.findUnique({ where: { id } });
         if (!oldRecord) throw new Error('Support not found');
 
         const updated = await prisma.support.update({
             where: { id },
-            data,
+            data: cleanData,
         });
 
         // Revision

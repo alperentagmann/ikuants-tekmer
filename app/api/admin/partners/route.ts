@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ success: false, error: 'Partner adı ve Logo URL zorunludur.' }, { status: 400 });
         }
 
-        const partner = await PartnerService.createPartner(body, auth.user);
+        const partner = await PartnerService.createPartner(body, auth);
         return NextResponse.json({ success: true, partner });
     } catch (error: any) {
         return NextResponse.json({ success: false, error: error.message }, { status: 500 });
@@ -38,7 +38,7 @@ export async function PUT(request: NextRequest) {
     try {
         const body = await request.json();
         if (Array.isArray(body.orderedIds)) {
-            await PartnerService.reorderPartners(body.orderedIds, auth.user);
+            await PartnerService.reorderPartners(body.orderedIds, auth);
             return NextResponse.json({ success: true });
         }
         return NextResponse.json({ success: false, error: 'Geçersiz parametre.' }, { status: 400 });

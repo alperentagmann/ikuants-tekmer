@@ -65,10 +65,11 @@ export const ServiceItemService = {
     },
 
     async updateService(id: string, data: Partial<ServiceItemData>, actor?: any) {
+        const { id: _id, createdAt: _c, updatedAt: _u, ...cleanData }: any = data;
         const oldService = await prisma.serviceItem.findUnique({ where: { id } });
         const service = await prisma.serviceItem.update({
             where: { id },
-            data,
+            data: cleanData,
         });
 
         await logAuditEvent({

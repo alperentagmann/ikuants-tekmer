@@ -68,10 +68,11 @@ export const FacilityService = {
     },
 
     async updateFacility(id: string, data: Partial<FacilityData>, actor?: any) {
+        const { id: _id, createdAt: _c, updatedAt: _u, ...cleanData }: any = data;
         const oldFacility = await prisma.facility.findUnique({ where: { id } });
         const facility = await prisma.facility.update({
             where: { id },
-            data,
+            data: cleanData,
         });
 
         await logAuditEvent({

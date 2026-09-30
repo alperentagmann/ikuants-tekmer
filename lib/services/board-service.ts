@@ -79,9 +79,10 @@ export const BoardService = {
 
     async updateBoardMember(id: string, data: Partial<BoardMemberData>, actor?: any) {
         const oldMember = await prisma.boardMember.findUnique({ where: { id } });
+        const { id: _id, createdAt: _c, updatedAt: _u, ...cleanData } = data as any;
         const member = await prisma.boardMember.update({
             where: { id },
-            data,
+            data: cleanData,
         });
 
         await logAuditEvent({

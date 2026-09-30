@@ -8,9 +8,12 @@ interface ConfirmDialogProps {
     description?: string;
     message?: string;
     confirmText?: string;
+    confirmLabel?: string;
     cancelText?: string;
+    cancelLabel?: string;
     requireMatchText?: string;
     isDestructive?: boolean;
+    variant?: string;
     type?: string;
     onConfirm: () => void | Promise<void>;
     onCancel: () => void;
@@ -21,20 +24,25 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
     title,
     description,
     message,
-    confirmText = 'Onayla',
-    cancelText = 'Vazgeç',
+    confirmText,
+    confirmLabel,
+    cancelText,
+    cancelLabel,
     requireMatchText,
     isDestructive = true,
+    variant,
     type,
     onConfirm,
     onCancel,
 }) => {
+    const finalConfirmText = confirmLabel || confirmText || 'Onayla';
+    const finalCancelText = cancelLabel || cancelText || 'Vazgeç';
+    const isActuallyDestructive = isDestructive || variant === 'danger' || type === 'danger';
     const [inputValue, setInputValue] = useState('');
 
     if (!isOpen) return null;
 
     const dialogDescription = description || message || '';
-    const isActuallyDestructive = isDestructive || type === 'danger';
 
     const isMatchValid = !requireMatchText || inputValue === requireMatchText;
 
@@ -79,7 +87,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
                         onClick={onCancel}
                         className="px-4 py-2 rounded-lg text-sm text-gray-300 hover:text-white hover:bg-white/5 border border-white/10 transition-colors"
                     >
-                        {cancelText}
+                        {finalCancelText}
                     </button>
                     <button
                         onClick={() => {
@@ -94,7 +102,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
                                 : 'bg-primary hover:bg-primary/90 text-white shadow-primary/30 disabled:opacity-40'
                         }`}
                     >
-                        {confirmText}
+                        {finalConfirmText}
                     </button>
                 </div>
             </div>

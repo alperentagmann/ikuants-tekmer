@@ -66,9 +66,10 @@ export const TeamService = {
 
     async updateTeamMember(id: string, data: Partial<TeamMemberData>, actor?: any) {
         const oldMember = await prisma.teamMember.findUnique({ where: { id } });
+        const { id: _id, createdAt: _c, updatedAt: _u, ...cleanData } = data as any;
         const member = await prisma.teamMember.update({
             where: { id },
-            data,
+            data: cleanData,
         });
 
         await logAuditEvent({

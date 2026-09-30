@@ -84,9 +84,10 @@ export const FaqService = {
     },
 
     async updateFaq(id: string, data: Partial<{ question: string; answer: string; category: string; isActive: boolean; sortOrder: number }>, actor?: any) {
+        const { id: _id, createdAt: _c, updatedAt: _u, ...cleanData }: any = data;
         const item = await prisma.faqItem.update({
             where: { id },
-            data,
+            data: cleanData,
         });
         await logAuditEvent({
             actorId: actor?.id,

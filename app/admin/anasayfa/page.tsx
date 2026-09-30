@@ -331,6 +331,7 @@ export default function HomepageStudioPage() {
                         {slides.map((s, idx) => (
                             <div
                                 key={s.id}
+                                data-testid="hero-slide-card"
                                 className="bg-[#090912] border border-white/10 rounded-2xl overflow-hidden hover:border-primary/40 transition-all group flex flex-col justify-between"
                             >
                                 <div>
