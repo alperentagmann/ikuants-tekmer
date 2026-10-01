@@ -997,12 +997,14 @@ export default function EntrepreneurDetailPage() {
                             <div>
                                 <label className="block text-xs font-mono text-gray-400 mb-1">Program Seçin *</label>
                                 <select
-                                    id="select-program-id"
+                                    id="assign-program-select"
+                                    data-testid="select-program-id"
                                     required
                                     value={programFormData.programId}
                                     onChange={(e) => setProgramFormData({ ...programFormData, programId: e.target.value })}
                                     className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:border-primary outline-none"
                                 >
+                                    <option value="">-- Program Seçin --</option>
                                     {availablePrograms.map((p) => (
                                         <option key={p.id} value={p.id}>{p.name}</option>
                                     ))}
@@ -1066,9 +1068,10 @@ export default function EntrepreneurDetailPage() {
                                     İptal
                                 </button>
                                 <button
-                                    id="confirm-assign-program-btn"
+                                    id="submit-assign-program-btn"
+                                    data-testid="confirm-assign-program-btn"
                                     type="submit"
-                                    className="px-5 py-2 rounded-xl bg-primary hover:bg-primary/90 text-white text-xs font-bold"
+                                    className="px-5 py-2 rounded-xl bg-primary hover:bg-primary/90 text-white text-xs font-bold cursor-pointer"
                                 >
                                     Programı Ata
                                 </button>

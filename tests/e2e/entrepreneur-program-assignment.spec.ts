@@ -26,14 +26,14 @@ test.describe('Entrepreneur Multi-Program Assignment & History E2E', () => {
 
         // 3. Open Assign Program Modal
         await page.locator('#assign-program-btn').click();
-        await expect(page.locator('#confirm-assign-program-btn')).toBeVisible();
+        await expect(page.locator('#submit-assign-program-btn, #confirm-assign-program-btn')).toBeVisible();
 
         const testCohort = `Cohort-${Date.now()}`;
 
         // 4. Fill program assignment
-        await page.locator('#select-program-id').selectOption(program.id);
+        await page.locator('#assign-program-select, #select-program-id').selectOption(program.id);
         await page.locator('#input-cohort').fill(testCohort);
-        await page.locator('#confirm-assign-program-btn').click();
+        await page.locator('#submit-assign-program-btn, #confirm-assign-program-btn').click();
 
         // 5. Verify badge and list updated
         await page.waitForTimeout(1000);
