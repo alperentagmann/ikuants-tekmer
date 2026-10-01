@@ -39,11 +39,11 @@ test.describe('Daily Interactions & Visitor Logs E2E', () => {
         expect(dbRecord).not.toBeNull();
         expect(dbRecord?.subject).toBe(testSubject);
 
-        // 6. Convert to Task
         if (dbRecord) {
+            // 6. Convert to Task
             const convertTaskBtn = page.locator(`#convert-task-${dbRecord.id}`);
             await convertTaskBtn.click();
-            await page.waitForTimeout(1000);
+            await expect(page.getByText('yeni görev oluşturuldu')).toBeVisible({ timeout: 15000 });
 
             // Verify task was created in DB and linked
             const updatedInteraction = await prisma.dailyInteraction.findUnique({
@@ -54,7 +54,7 @@ test.describe('Daily Interactions & Visitor Logs E2E', () => {
             // 7. Convert to Activity
             const convertActivityBtn = page.locator(`#convert-activity-${dbRecord.id}`);
             await convertActivityBtn.click();
-            await page.waitForTimeout(1000);
+            await expect(page.getByText('kurumsal faaliyet kaydı oluşturuldu')).toBeVisible({ timeout: 15000 });
 
             const finalInteraction = await prisma.dailyInteraction.findUnique({
                 where: { id: dbRecord.id },

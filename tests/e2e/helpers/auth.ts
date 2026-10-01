@@ -14,10 +14,7 @@ export async function loginAsAdmin(context: BrowserContext, email = 'bilgi@ikuan
         {
             name: '__session',
             value: sessionToken,
-            domain: 'localhost',
-            path: '/',
-            httpOnly: true,
-            sameSite: 'Lax',
+            url: 'http://localhost:3000',
         },
     ]);
     return { user, sessionToken };

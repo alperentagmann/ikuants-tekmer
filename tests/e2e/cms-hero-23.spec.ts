@@ -61,7 +61,7 @@ test.describe('14. HERO SLIDER — 23 SLIDES CMS & PARITY ACCEPTANCE', () => {
         await page.waitForLoadState('networkidle');
 
         // Verify the counter pill renders the total count (e.g. / 23)
-        const counter = page.locator('[data-testid="hero-slide-counter"]');
+        const counter = page.locator('[data-testid="hero-counter-pill"]');
         await expect(counter.first()).toBeVisible();
         await expect(counter.first()).toContainText('23');
     });

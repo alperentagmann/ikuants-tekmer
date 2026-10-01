@@ -22,7 +22,9 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     "scripts/**",
     "tests/**",
-    "prisma/**"
+    "prisma/**",
+    ".agents/**",
+    ".embedded-postgres/**"
   ]),
 ]);
 

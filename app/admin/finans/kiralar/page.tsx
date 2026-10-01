@@ -158,8 +158,9 @@ export default function RentManagementPage() {
     const filteredAccruals = accruals.filter(a => {
         if (!searchQuery) return true;
         const q = searchQuery.toLowerCase();
+        const entrepreneurName = (a as any).entrepreneur?.name || a.contract?.entrepreneur?.name || '';
         return (
-            a.contract?.entrepreneur?.name?.toLowerCase().includes(q) ||
+            entrepreneurName.toLowerCase().includes(q) ||
             a.contract?.spaceName?.toLowerCase().includes(q) ||
             a.contract?.contractNo?.toLowerCase().includes(q)
         );
@@ -298,7 +299,7 @@ export default function RentManagementPage() {
                                 {filteredAccruals.map((acc) => (
                                     <tr key={acc.id} className="hover:bg-slate-800/30 transition-colors">
                                         <td className="px-5 py-4 whitespace-nowrap">
-                                            <div className="font-semibold text-white">{acc.contract?.entrepreneur?.name}</div>
+                                            <div className="font-semibold text-white">{(acc as any).entrepreneur?.name || acc.contract?.entrepreneur?.name}</div>
                                             <div className="text-xs text-slate-400 mt-0.5">
                                                 {acc.contract?.spaceName} • {acc.contract?.contractNo}
                                             </div>

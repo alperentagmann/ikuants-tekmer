@@ -46,5 +46,5 @@ next-env.d.ts
 # test artifacts
 test-results/
 .last-run.json
-scratch/
-
+# local agents & skills
+.agents/

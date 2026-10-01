@@ -70,15 +70,20 @@ test.describe('10. DESTEKLER — SUPPORTS E2E CRUD', () => {
         await page.goto('/admin/destekler');
         await page.waitForLoadState('networkidle');
 
-        const row = page.locator(`tr:has-text("${TEST_TITLE}"), div:has-text("${TEST_TITLE}")`).first();
+        const row = page.locator('tr').filter({ hasText: TEST_TITLE }).first();
         const editBtn = row.locator('button[title="Düzenle"]').first();
         await editBtn.click();
         await page.waitForTimeout(500);
 
         const editTitleInput = page.locator('input[placeholder*="Örn: GELİR"], input[placeholder*="GELİR"]').first();
         await editTitleInput.fill(UPDATED_TITLE);
-        await page.locator('button:has-text("Kaydet")').click();
-        await page.waitForTimeout(1000);
+        
+        const [updateResponse] = await Promise.all([
+            page.waitForResponse(r => r.url().includes('/api/admin/supports') && r.request().method() === 'PUT'),
+            page.locator('button:has-text("Kaydet")').click(),
+        ]);
+        expect(updateResponse.status()).toBe(200);
+        await page.waitForTimeout(500);
 
         // 6. Public'ta güncellenmeli
         await page.goto('/destekler');
@@ -90,7 +95,7 @@ test.describe('10. DESTEKLER — SUPPORTS E2E CRUD', () => {
         await page.goto('/admin/destekler');
         await page.waitForLoadState('networkidle');
 
-        const updatedRow = page.locator(`tr:has-text("${UPDATED_TITLE}"), div:has-text("${UPDATED_TITLE}")`).first();
+        const updatedRow = page.locator('tr').filter({ hasText: UPDATED_TITLE }).first();
         const deleteBtn = updatedRow.locator('button[title*="Sil"], button[title*="Arşivle"]').first();
         await deleteBtn.click();
         await page.waitForTimeout(500);

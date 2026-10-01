@@ -12,6 +12,7 @@ export class RentService {
             include: {
                 entrepreneur: { select: { id: true, name: true, logoUrl: true, sector: true, email: true, phone: true } },
                 facility: { select: { id: true, title: true, facilityType: true } },
+                documents: { orderBy: { uploadedAt: 'desc' } },
                 accruals: { orderBy: [{ year: 'desc' }, { month: 'desc' }], take: 3 },
             },
             orderBy: [{ startDate: 'desc' }],
@@ -22,9 +23,17 @@ export class RentService {
         entrepreneurId: string;
         spaceFacilityId?: string;
         spaceName: string;
+        roomDeskNo?: string;
+        areaM2?: number;
+        spaceType?: string;
         contractNo: string;
+        contractDate?: Date | string;
         startDate: Date | string;
         endDate: Date | string;
+        commercialTitle?: string;
+        contactPersonName?: string;
+        contactEmail?: string;
+        contactPhone?: string;
         monthlyRent: number;
         currency?: string;
         vatRate?: number;
@@ -33,25 +42,46 @@ export class RentService {
         isWaived?: boolean;
         freePeriodStart?: Date | string | null;
         freePeriodEnd?: Date | string | null;
+        waiverReason?: string;
+        autoRenew?: boolean;
+        renewalNoticeDays?: number;
         contractDocUrl?: string;
         notes?: string;
     }, actorId?: string) {
+        const netRent = Number(data.monthlyRent) || 0;
+        const vatRate = data.vatRate !== undefined ? Number(data.vatRate) : 20;
+        const vatAmount = (netRent * vatRate) / 100;
+        const totalMonthlyRent = netRent + vatAmount;
+
         const contract = await prisma.rentContract.create({
             data: {
                 entrepreneurId: data.entrepreneurId,
                 spaceFacilityId: data.spaceFacilityId || null,
                 spaceName: data.spaceName,
+                roomDeskNo: data.roomDeskNo || null,
+                areaM2: data.areaM2 ? Number(data.areaM2) : null,
+                spaceType: data.spaceType || 'OFFICE',
                 contractNo: data.contractNo,
+                contractDate: data.contractDate ? new Date(data.contractDate) : new Date(),
                 startDate: new Date(data.startDate),
                 endDate: new Date(data.endDate),
-                monthlyRent: Number(data.monthlyRent),
+                commercialTitle: data.commercialTitle || null,
+                contactPersonName: data.contactPersonName || null,
+                contactEmail: data.contactEmail || null,
+                contactPhone: data.contactPhone || null,
+                monthlyRent: netRent,
                 currency: data.currency || 'TRY',
-                vatRate: data.vatRate !== undefined ? Number(data.vatRate) : 20,
+                vatRate: vatRate,
+                vatAmount: vatAmount,
+                totalMonthlyRent: totalMonthlyRent,
                 dueDay: data.dueDay !== undefined ? Number(data.dueDay) : 5,
                 depositAmount: data.depositAmount !== undefined ? Number(data.depositAmount) : 0,
                 isWaived: data.isWaived || false,
                 freePeriodStart: data.freePeriodStart ? new Date(data.freePeriodStart) : null,
                 freePeriodEnd: data.freePeriodEnd ? new Date(data.freePeriodEnd) : null,
+                waiverReason: data.waiverReason || null,
+                autoRenew: data.autoRenew || false,
+                renewalNoticeDays: data.renewalNoticeDays ? Number(data.renewalNoticeDays) : 30,
                 status: 'ACTIVE',
                 contractDocUrl: data.contractDocUrl || null,
                 notes: data.notes || null,
@@ -59,8 +89,23 @@ export class RentService {
             },
             include: {
                 entrepreneur: { select: { name: true } },
+                documents: true,
             },
         });
+
+        // If a contractDocUrl was provided during creation, create the initial signed document record
+        if (data.contractDocUrl) {
+            await prisma.rentContractDocument.create({
+                data: {
+                    contractId: contract.id,
+                    documentType: 'SIGNED_CONTRACT',
+                    title: 'İmzalı Kira Sözleşmesi',
+                    fileUrl: data.contractDocUrl,
+                    documentDate: new Date(data.startDate),
+                    uploadedById: actorId || null,
+                },
+            });
+        }
 
         await logAuditEvent({
             actorId,
@@ -71,10 +116,156 @@ export class RentService {
                 contractNo: contract.contractNo,
                 entrepreneur: contract.entrepreneur.name,
                 monthlyRent: contract.monthlyRent,
+                totalMonthlyRent: contract.totalMonthlyRent,
             },
         });
 
         return contract;
+    }
+
+    static async addContractDocument(contractId: string, data: {
+        documentType: string;
+        title: string;
+        fileUrl: string;
+        documentDate?: Date | string;
+        description?: string;
+        version?: number;
+    }, actorId?: string) {
+        const contract = await prisma.rentContract.findUnique({
+            where: { id: contractId },
+            include: { entrepreneur: true },
+        });
+        if (!contract) throw new Error('Kira sözleşmesi bulunamadı');
+
+        const doc = await prisma.rentContractDocument.create({
+            data: {
+                contractId,
+                documentType: data.documentType || 'SIGNED_CONTRACT',
+                title: data.title,
+                fileUrl: data.fileUrl,
+                documentDate: data.documentDate ? new Date(data.documentDate) : new Date(),
+                description: data.description || null,
+                version: data.version || 1,
+                uploadedById: actorId || null,
+            },
+        });
+
+        await logAuditEvent({
+            actorId,
+            action: 'CREATE',
+            entityType: 'RentContractDocument',
+            entityId: doc.id,
+            newValues: {
+                contractNo: contract.contractNo,
+                documentType: doc.documentType,
+                title: doc.title,
+            },
+        });
+
+        return doc;
+    }
+
+    static async getContractDocuments(contractId: string) {
+        return prisma.rentContractDocument.findMany({
+            where: { contractId },
+            orderBy: [{ documentDate: 'desc' }, { createdAt: 'desc' }],
+        });
+    }
+
+    static async deleteContractDocument(documentId: string, actorId?: string) {
+        const doc = await prisma.rentContractDocument.findUnique({
+            where: { id: documentId },
+            include: { contract: true },
+        });
+        if (!doc) throw new Error('Sözleşme belgesi bulunamadı');
+
+        await prisma.rentContractDocument.delete({ where: { id: documentId } });
+
+        await logAuditEvent({
+            actorId,
+            action: 'DELETE',
+            entityType: 'RentContractDocument',
+            entityId: documentId,
+            oldValues: { title: doc.title, contractNo: doc.contract.contractNo },
+        });
+
+        return { success: true };
+    }
+
+    static async getEntrepreneurRentSummary(entrepreneurId: string) {
+        const contracts = await prisma.rentContract.findMany({
+            where: { entrepreneurId },
+            include: {
+                documents: { orderBy: { uploadedAt: 'desc' } },
+                accruals: {
+                    orderBy: [{ year: 'desc' }, { month: 'desc' }],
+                    include: { payments: { orderBy: { paymentDate: 'desc' } } },
+                },
+            },
+            orderBy: [{ startDate: 'desc' }],
+        });
+
+        const activeContract = contracts.find(c => c.status === 'ACTIVE') || contracts[0] || null;
+
+        const now = new Date();
+        const currentYear = now.getFullYear();
+        const currentMonth = now.getMonth() + 1;
+
+        // Current month accrual
+        const currentAccrual = activeContract?.accruals.find(a => a.year === currentYear && a.month === currentMonth) || null;
+
+        // Total overdue across all contracts & accruals
+        let totalOverdue = 0;
+        let totalPaidAllTime = 0;
+        let lastPaymentDate: Date | null = null;
+
+        for (const c of contracts) {
+            for (const a of c.accruals) {
+                if (a.remainingAmount > 0 && a.status !== 'WAIVED' && a.status !== 'CANCELLED') {
+                    if (now > a.dueDate) {
+                        totalOverdue += a.remainingAmount;
+                    }
+                }
+                totalPaidAllTime += a.paidAmount;
+                for (const p of a.payments) {
+                    if (!lastPaymentDate || p.paymentDate > lastPaymentDate) {
+                        lastPaymentDate = p.paymentDate;
+                    }
+                }
+            }
+        }
+
+        // Expiry alert calculation
+        let daysUntilExpiry: number | null = null;
+        let isExpiringSoon = false;
+        if (activeContract) {
+            const diffTime = activeContract.endDate.getTime() - now.getTime();
+            daysUntilExpiry = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            if (daysUntilExpiry <= 60 && daysUntilExpiry >= 0) {
+                isExpiringSoon = true;
+            }
+        }
+
+        return {
+            hasContract: contracts.length > 0,
+            activeContract,
+            allContracts: contracts,
+            currentMonth: {
+                periodLabel: `${currentMonth}/${currentYear}`,
+                accrual: currentAccrual,
+                status: currentAccrual ? currentAccrual.status : (activeContract ? 'UPCOMING' : 'NO_CONTRACT'),
+                dueAmount: currentAccrual ? currentAccrual.totalDue : (activeContract ? activeContract.totalMonthlyRent : 0),
+                paidAmount: currentAccrual ? currentAccrual.paidAmount : 0,
+                remainingAmount: currentAccrual ? currentAccrual.remainingAmount : 0,
+            },
+            totalOverdue,
+            totalPaidAllTime,
+            lastPaymentDate,
+            daysUntilExpiry,
+            isExpiringSoon,
+            currency: activeContract?.currency || 'TRY',
+            documentsCount: contracts.reduce((acc, c) => acc + c.documents.length, 0),
+        };
     }
 
     static async updateRentContract(id: string, data: any, actorId?: string) {

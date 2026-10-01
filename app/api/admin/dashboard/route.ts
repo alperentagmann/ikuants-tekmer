@@ -23,30 +23,47 @@ export async function GET() {
             recentNews,
             mentorsWithoutPhoto,
             draftNews,
+            totalPrograms,
+            activePrograms,
+            activeRentContracts,
+            pendingTasksCount,
+            recentApplications,
         ] = await Promise.all([
-            prisma.entrepreneur.count({ where: { isArchived: false } }),
-            prisma.entrepreneur.count({ where: { status: 'ACTIVE', isArchived: false } }),
-            prisma.mentor.count({ where: { isArchived: false } }),
-            prisma.mentor.count({ where: { isActive: true, isArchived: false } }),
-            prisma.application.count({ where: { isArchived: false } }),
-            prisma.application.count({ where: { status: 'NEW', isArchived: false } }),
-            prisma.application.count({ where: { status: { in: ['PRE_REVIEW', 'UNDER_EVALUATION', 'JURY'] }, isArchived: false } }),
-            prisma.application.count({ where: { status: 'ACCEPTED', isArchived: false } }),
-            prisma.application.count({ where: { status: 'REJECTED', isArchived: false } }),
-            prisma.contactRequest.count({ where: { isArchived: false } }),
-            prisma.contactRequest.count({ where: { status: 'NEW', isArchived: false } }),
+            prisma.entrepreneur.count({ where: { isArchived: false } }).catch(() => 0),
+            prisma.entrepreneur.count({ where: { status: 'ACTIVE', isArchived: false } }).catch(() => 0),
+            prisma.mentor.count({ where: { isArchived: false } }).catch(() => 0),
+            prisma.mentor.count({ where: { isActive: true, isArchived: false } }).catch(() => 0),
+            prisma.application.count({ where: { isArchived: false } }).catch(() => 0),
+            prisma.application.count({ where: { status: 'NEW', isArchived: false } }).catch(() => 0),
+            prisma.application.count({ where: { status: { in: ['PRE_REVIEW', 'UNDER_EVALUATION', 'JURY'] }, isArchived: false } }).catch(() => 0),
+            prisma.application.count({ where: { status: 'ACCEPTED', isArchived: false } }).catch(() => 0),
+            prisma.application.count({ where: { status: 'REJECTED', isArchived: false } }).catch(() => 0),
+            prisma.contactRequest.count({ where: { isArchived: false } }).catch(() => 0),
+            prisma.contactRequest.count({ where: { status: 'NEW', isArchived: false } }).catch(() => 0),
             prisma.auditLog.findMany({
                 orderBy: { createdAt: 'desc' },
                 take: 8,
-            }),
+            }).catch(() => []),
             prisma.news.findMany({
                 where: { isArchived: false },
                 include: { category: true },
                 orderBy: { createdAt: 'desc' },
                 take: 5,
-            }),
-            prisma.mentor.count({ where: { imageUrl: null, isArchived: false } }),
+            }).catch(() => []),
+            prisma.mentor.count({ where: { imageUrl: null, isArchived: false } }).catch(() => 0),
             prisma.news.count({ where: { status: 'DRAFT', isArchived: false } }),
+            prisma.program.count({ where: { isArchived: false } }).catch(() => 0),
+            prisma.program.count({ where: { applyStatus: 'OPEN', isArchived: false } }).catch(() => 0),
+            prisma.rentContract.count({ where: { status: 'ACTIVE' } }).catch(() => 0),
+            prisma.task.count({ where: { status: { not: 'COMPLETED' }, isArchived: false } }).catch(() => 0),
+            prisma.application.findMany({
+                where: { isArchived: false },
+                orderBy: { createdAt: 'desc' },
+                take: 6,
+                include: {
+                    program: { select: { name: true } },
+                }
+            }).catch(() => []),
         ]);
 
         // Status breakdown
@@ -70,7 +87,7 @@ export async function GET() {
         if (newContacts > 0) {
             attentionItems.push({
                 type: 'contact',
-                title: `${newContacts} cevap bekleyen iletişim/randevu talebi var`,
+                title: `${newContacts} cevap bekleyen iletişim talebi var`,
                 actionUrl: '/admin/iletisim?status=NEW',
                 severity: 'high',
             });
@@ -106,11 +123,24 @@ export async function GET() {
                 rejectedApplications,
                 totalContacts,
                 newContacts,
+                totalPrograms,
+                activePrograms,
+                activeRentContracts,
+                pendingTasksCount,
             },
             applicationStatusCounts,
             attentionItems,
             recentAuditLogs,
             recentNews,
+            recentApplications: recentApplications.map(app => ({
+                id: app.id,
+                applicantName: app.applicantName,
+                applicantEmail: app.email,
+                companyName: app.companyName,
+                programName: app.program?.name,
+                status: app.status,
+                createdAt: app.createdAt,
+            })),
         });
     } catch (error) {
         console.error('Dashboard error:', error);

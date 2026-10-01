@@ -2,10 +2,10 @@ import { PrismaClient } from '@prisma/client';
 
 // Production environment database URL validator (fail-fast)
 function validateDatabaseUrl() {
-    const isProduction = process.env.NODE_ENV === 'production' || process.env.VERCEL === '1';
+    const isVercelProduction = process.env.VERCEL === '1';
     const dbUrl = process.env.DATABASE_URL;
 
-    if (isProduction) {
+    if (isVercelProduction) {
         if (!dbUrl) {
             throw new Error(
                 'CONFIGURATION ERROR: DATABASE_URL environment variable is required in production environment. Please configure a managed PostgreSQL connection.'

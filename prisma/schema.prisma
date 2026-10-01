@@ -3085,37 +3085,78 @@ model InvoiceRecord {
 // ----------------------------------------------------------------------------
 
 model RentContract {
-  id              String        @id @default(uuid())
-  entrepreneurId  String
-  spaceFacilityId String?       // Facility / Room / Desk ID
-  spaceName       String        // e.g. "Ofis 204", "Ortak Çalışma Masası 12"
-  contractNo      String        @unique
-  startDate       DateTime
-  endDate         DateTime
-  monthlyRent     Float
-  currency        String        @default("TRY")
-  vatRate         Float         @default(20) // %20 KDV
-  dueDay          Int           @default(5) // Her ayın 5. günü
-  depositAmount   Float         @default(0)
+  id                String                 @id @default(uuid())
+  entrepreneurId    String
+  spaceFacilityId   String?                // Facility / Room / Desk ID
+  spaceName         String                 // e.g. "Ofis 204", "Ortak Çalışma Masası 12"
+  roomDeskNo        String?                // e.g. "Masa 4", "Oda 204"
+  areaM2            Float?                 // e.g. 24.5 m²
+  spaceType         String                 @default("OFFICE") // OFFICE, SHARED_DESK, LAB, WORKSHOP, VIRTUAL
+  contractNo        String                 @unique
+  contractDate      DateTime               @default(now())
+  startDate         DateTime
+  endDate           DateTime
   
-  isWaived        Boolean       @default(false) // Kira Muaf
-  freePeriodStart DateTime?
-  freePeriodEnd   DateTime?
+  // Şirket & İletişim Snapshot
+  commercialTitle   String?                // Şirket Ticari Unvanı
+  contactPersonName String?                // Finans / Kira İletişim Yetkilisi
+  contactEmail      String?
+  contactPhone      String?
   
-  status          String        @default("ACTIVE") // ACTIVE, EXPIRED, TERMINATED, SUSPENDED, WAIVED
-  contractDocUrl  String?
-  notes           String?       @db.Text
+  // Finansal Bilgiler
+  monthlyRent       Float                  // Aylık Net Kira
+  currency          String                 @default("TRY")
+  vatRate           Float                  @default(20) // %20 KDV
+  vatAmount         Float                  @default(0)
+  totalMonthlyRent  Float                  @default(0)  // Net + KDV
+  dueDay            Int                    @default(5)  // Her ayın 5. günü
+  depositAmount     Float                  @default(0)
   
-  createdById     String?
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  // Muafiyet & Ücretsiz Dönem
+  isWaived          Boolean                @default(false) // Kira Muaf
+  freePeriodStart   DateTime?
+  freePeriodEnd     DateTime?
+  waiverReason      String?
+  
+  // Yenileme
+  autoRenew         Boolean                @default(false)
+  renewalNoticeDays Int                    @default(30)
+  
+  status            String                 @default("ACTIVE") // ACTIVE, EXPIRED, TERMINATED, SUSPENDED, WAIVED
+  contractDocUrl    String?
+  notes             String?                @db.Text
+  
+  createdById       String?
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
 
-  entrepreneur    Entrepreneur  @relation(fields: [entrepreneurId], references: [id], onDelete: Cascade)
-  facility        Facility?     @relation(fields: [spaceFacilityId], references: [id], onDelete: SetNull)
-  accruals        RentAccrual[]
+  entrepreneur      Entrepreneur           @relation(fields: [entrepreneurId], references: [id], onDelete: Cascade)
+  facility          Facility?              @relation(fields: [spaceFacilityId], references: [id], onDelete: SetNull)
+  accruals          RentAccrual[]
+  documents         RentContractDocument[]
 
   @@index([entrepreneurId])
   @@index([status])
+}
+
+model RentContractDocument {
+  id           String       @id @default(uuid())
+  contractId   String
+  documentType String       @default("SIGNED_CONTRACT") // SIGNED_CONTRACT, ADDITIONAL_PROTOCOL, AMENDMENT, DELIVERY_REPORT, DEPOSIT_RECEIPT, TERMINATION_EVICTION, OTHER
+  title        String
+  fileUrl      String
+  documentDate DateTime     @default(now())
+  description  String?      @db.Text
+  version      Int          @default(1)
+  uploadedById String?
+  uploadedAt   DateTime     @default(now())
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  contract     RentContract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+
+  @@index([contractId])
+  @@index([documentType])
 }
 
 model RentAccrual {
