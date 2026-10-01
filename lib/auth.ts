@@ -124,6 +124,13 @@ export async function getCurrentAdminUser() {
     }
 }
 
+export const getCurrentUser = getCurrentAdminUser;
+
+export async function getAuthUser(req?: any) {
+    const auth = await requireAuth(req);
+    return auth.authenticated ? auth.user : null;
+}
+
 export async function revokeSession(sessionToken: string) {
     await prisma.session.updateMany({
         where: { sessionToken },

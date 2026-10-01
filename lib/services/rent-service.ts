@@ -500,16 +500,19 @@ export class RentService {
         const currentYear = now.getFullYear();
         const currentMonth = now.getMonth() + 1;
 
-        const allAccruals = await prisma.rentAccrual.findMany({
-            include: { entrepreneur: true },
-        });
+        const [allAccruals, totalActiveEntrepreneurs, activeContractsCount] = await Promise.all([
+            prisma.rentAccrual.findMany({
+                include: { entrepreneur: true },
+            }),
+            prisma.entrepreneur.count({ where: { isArchived: false } }),
+            prisma.rentContract.count({ where: { status: 'ACTIVE' } }),
+        ]);
 
         let thisMonthTotalDue = 0;
         let thisMonthPaid = 0;
         let thisMonthRemaining = 0;
         let totalOverdueAmount = 0;
         let overdueCount = 0;
-        const activeContractsCount = await prisma.rentContract.count({ where: { status: 'ACTIVE' } });
 
         for (const a of allAccruals) {
             if (a.year === currentYear && a.month === currentMonth) {
@@ -527,17 +530,138 @@ export class RentService {
         }
 
         const collectionRate = thisMonthTotalDue > 0 ? (thisMonthPaid / thisMonthTotalDue) * 100 : 0;
+        const withoutContractCount = Math.max(0, totalActiveEntrepreneurs - activeContractsCount);
 
         return {
             currentPeriod: `${currentMonth}/${currentYear}`,
+            totalActiveEntrepreneurs,
+            withoutContractCount,
+            activeContractsCount,
             thisMonthTotalDue,
             thisMonthPaid,
             thisMonthRemaining,
             totalOverdueAmount,
             overdueCount,
-            activeContractsCount,
             collectionRate: Number(collectionRate.toFixed(1)),
         };
+    }
+
+    static async getAllEntrepreneursRentStatus(filters?: { status?: string; search?: string }) {
+        const now = new Date();
+        const currentYear = now.getFullYear();
+        const currentMonth = now.getMonth() + 1;
+
+        const entrepreneurs = await prisma.entrepreneur.findMany({
+            where: {
+                isArchived: false,
+                ...(filters?.search ? {
+                    name: { contains: filters.search, mode: 'insensitive' }
+                } : {})
+            },
+            include: {
+                programAssignments: {
+                    include: { program: true },
+                    take: 1
+                },
+                organizations: {
+                    include: { organization: true },
+                    take: 1
+                },
+                rentContracts: {
+                    include: {
+                        accruals: {
+                            orderBy: [{ year: 'desc' }, { month: 'desc' }],
+                            take: 12,
+                            include: { payments: true }
+                        },
+                        documents: true
+                    },
+                    orderBy: { startDate: 'desc' }
+                }
+            },
+            orderBy: { name: 'asc' }
+        });
+
+        const items = entrepreneurs.map(e => {
+            const activeContract = e.rentContracts.find(c => c.status === 'ACTIVE') || e.rentContracts[0] || null;
+            const currentAccrual = activeContract?.accruals.find(a => a.year === currentYear && a.month === currentMonth) || null;
+
+            let totalOverdue = 0;
+            let totalPaidAllTime = 0;
+            for (const c of e.rentContracts) {
+                for (const a of c.accruals) {
+                    if (a.remainingAmount > 0 && a.status !== 'WAIVED' && a.status !== 'CANCELLED') {
+                        if (now > a.dueDate) {
+                            totalOverdue += a.remainingAmount;
+                        }
+                    }
+                    totalPaidAllTime += a.paidAmount;
+                }
+            }
+
+            let contractStatus = 'NO_CONTRACT';
+            if (activeContract) {
+                if (activeContract.isWaived) {
+                    contractStatus = 'WAIVED';
+                } else if (activeContract.status === 'ACTIVE') {
+                    contractStatus = 'ACTIVE';
+                } else {
+                    contractStatus = activeContract.status;
+                }
+            }
+
+            const companyName = e.organizations?.[0]?.organization?.name || e.organizations?.[0]?.organization?.legalName || null;
+
+            return {
+                id: e.id,
+                entrepreneurId: e.id,
+                name: e.name,
+                logoUrl: e.logoUrl,
+                companyName,
+                companyStatus: e.companyStatus || (companyName ? 'INCORPORATED' : 'NOT_INCORPORATED'),
+                program: e.programAssignments?.[0]?.program?.name || e.program || 'Program Atanmamış',
+                contractStatus,
+                hasContract: !!activeContract,
+                contract: activeContract ? {
+                    id: activeContract.id,
+                    contractNo: activeContract.contractNo,
+                    spaceName: activeContract.spaceName,
+                    monthlyRent: activeContract.monthlyRent,
+                    totalMonthlyRent: activeContract.totalMonthlyRent,
+                    currency: activeContract.currency,
+                    endDate: activeContract.endDate,
+                    dueDay: activeContract.dueDay,
+                    isWaived: activeContract.isWaived,
+                } : null,
+                currentMonthAccrual: currentAccrual ? {
+                    id: currentAccrual.id,
+                    periodLabel: currentAccrual.periodLabel,
+                    totalDue: currentAccrual.totalDue,
+                    paidAmount: currentAccrual.paidAmount,
+                    remainingAmount: currentAccrual.remainingAmount,
+                    status: currentAccrual.status,
+                    dueDate: currentAccrual.dueDate
+                } : null,
+                totalOverdue,
+                totalPaidAllTime
+            };
+        });
+
+        if (filters?.status && filters.status !== 'ALL') {
+            if (filters.status === 'NO_CONTRACT') {
+                return items.filter(i => !i.hasContract);
+            } else if (filters.status === 'OVERDUE') {
+                return items.filter(i => i.totalOverdue > 0 || i.currentMonthAccrual?.status === 'OVERDUE');
+            } else if (filters.status === 'PAID') {
+                return items.filter(i => i.currentMonthAccrual?.status === 'PAID');
+            } else if (filters.status === 'PARTIALLY_PAID') {
+                return items.filter(i => i.currentMonthAccrual?.status === 'PARTIALLY_PAID');
+            } else if (filters.status === 'ACTIVE') {
+                return items.filter(i => i.hasContract && i.contractStatus === 'ACTIVE');
+            }
+        }
+
+        return items;
     }
 
     static async getReminderRules() {

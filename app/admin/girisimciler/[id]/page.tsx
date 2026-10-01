@@ -481,6 +481,145 @@ export default function EntrepreneurDetailPage() {
                 </div>
             </div>
 
+            {/* SETUP CHECKLIST (KURULUM DURUMU & EKSİK AKSİYONLAR) */}
+            {(!activeProgramName || activeProgramName === 'Program Atanmamış' || !entrepreneur.companyName || !rentSummary?.hasContract) && (
+                <div className="bg-gradient-to-r from-amber-950/40 via-[#151210] to-[#0e0e18] border border-amber-500/30 rounded-2xl p-5 shadow-xl space-y-3">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-amber-400">
+                            <ShieldAlert className="w-4 h-4" />
+                            <h3 className="font-orbitron font-bold text-xs uppercase tracking-wider text-amber-300">
+                                Girişimci Kurulum Durumu & Bekleyen Aksiyonlar
+                            </h3>
+                        </div>
+                        <span className="text-[10px] font-mono text-amber-400/80 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
+                            Aksiyon Gerekli
+                        </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-1">
+                        {/* 1. Program Status */}
+                        {(!activeProgramName || activeProgramName === 'Program Atanmamış') ? (
+                            <div className="p-3 rounded-xl bg-black/50 border border-amber-500/20 flex flex-col justify-between gap-2 text-xs">
+                                <div>
+                                    <div className="text-amber-400 font-bold flex items-center gap-1">
+                                        <span>○</span> Program Atanmamış
+                                    </div>
+                                    <div className="text-[10px] text-gray-400 mt-0.5">Kuluçka veya hızlandırma süreci belirlenmedi.</div>
+                                </div>
+                                <button
+                                    id="checklist-assign-program-btn"
+                                    onClick={() => {
+                                        setActiveTab('programlar');
+                                        setShowAssignProgramModal(true);
+                                    }}
+                                    className="px-3 py-1.5 rounded-lg bg-primary hover:bg-primary/90 text-white font-bold text-[11px] shadow-sm flex items-center justify-center gap-1 cursor-pointer"
+                                >
+                                    <Plus className="w-3 h-3" /> + Program Ata
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="p-3 rounded-xl bg-emerald-950/30 border border-emerald-500/20 flex items-center gap-2 text-xs text-emerald-300">
+                                <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                                <div>
+                                    <div className="font-bold">{activeProgramName}</div>
+                                    <div className="text-[10px] text-emerald-400/70">Program Kaydı Aktif</div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* 2. Company / Incorporation Status */}
+                        {!entrepreneur.companyName ? (
+                            <div className="p-3 rounded-xl bg-black/50 border border-amber-500/20 flex flex-col justify-between gap-2 text-xs">
+                                <div>
+                                    <div className="text-amber-400 font-bold flex items-center gap-1">
+                                        <span>○</span> Şirket Bağlanmamış
+                                    </div>
+                                    <div className="text-[10px] text-gray-400 mt-0.5">Tüzel kişilik kaydı henüz bağlanmadı.</div>
+                                </div>
+                                <button
+                                    onClick={() => {
+                                        setActiveTab('genel');
+                                    }}
+                                    className="px-3 py-1.5 rounded-lg bg-cyan-600/80 hover:bg-cyan-600 text-white font-bold text-[11px] shadow-sm flex items-center justify-center gap-1 cursor-pointer"
+                                >
+                                    <Plus className="w-3 h-3" /> + Şirket Bilgisi Gir
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="p-3 rounded-xl bg-emerald-950/30 border border-emerald-500/20 flex items-center gap-2 text-xs text-emerald-300">
+                                <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                                <div>
+                                    <div className="font-bold truncate">{entrepreneur.companyName}</div>
+                                    <div className="text-[10px] text-emerald-400/70">Tüzel Şirket Bağlı</div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* 3. Rent Contract Status */}
+                        {!rentSummary?.hasContract ? (
+                            <div className="p-3 rounded-xl bg-black/50 border border-amber-500/20 flex flex-col justify-between gap-2 text-xs">
+                                <div>
+                                    <div className="text-amber-400 font-bold flex items-center gap-1">
+                                        <span>○</span> Kira Sözleşmesi Yok
+                                    </div>
+                                    <div className="text-[10px] text-gray-400 mt-0.5">Ofis/alan tahsis ve kira sözleşmesi eksik.</div>
+                                </div>
+                                <button
+                                    id="checklist-add-rent-contract-btn"
+                                    onClick={() => {
+                                        setActiveTab('finans');
+                                        setShowRentModal(true);
+                                    }}
+                                    className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px] shadow-sm flex items-center justify-center gap-1 cursor-pointer"
+                                >
+                                    <Plus className="w-3 h-3" /> + Kira Sözleşmesi Ekle
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="p-3 rounded-xl bg-emerald-950/30 border border-emerald-500/20 flex items-center gap-2 text-xs text-emerald-300">
+                                <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                                <div>
+                                    <div className="font-bold">{rentSummary.activeContract?.spaceName || 'Kira Sözleşmesi'}</div>
+                                    <div className="text-[10px] text-emerald-400/70">{rentSummary.activeContract?.contractNo}</div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* 4. Document / Contract Evrak Status */}
+                        {rentSummary?.documentsCount === 0 ? (
+                            <div className="p-3 rounded-xl bg-black/50 border border-amber-500/20 flex flex-col justify-between gap-2 text-xs">
+                                <div>
+                                    <div className="text-amber-400 font-bold flex items-center gap-1">
+                                        <span>○</span> Belge / Sözleşme Eksik
+                                    </div>
+                                    <div className="text-[10px] text-gray-400 mt-0.5">İmzalı sözleşme nüshası yüklenmedi.</div>
+                                </div>
+                                <button
+                                    onClick={() => {
+                                        setActiveTab('finans');
+                                        if (rentContracts.length > 0) {
+                                            setDocFormData(prev => ({ ...prev, contractId: rentContracts[0].id }));
+                                            setShowDocModal(true);
+                                        }
+                                    }}
+                                    className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-[11px] border border-slate-700 flex items-center justify-center gap-1 cursor-pointer"
+                                >
+                                    <Upload className="w-3 h-3" /> + Belge Yükle
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="p-3 rounded-xl bg-emerald-950/30 border border-emerald-500/20 flex items-center gap-2 text-xs text-emerald-300">
+                                <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                                <div>
+                                    <div className="font-bold">{rentSummary?.documentsCount || 1} Belge Yüklü</div>
+                                    <div className="text-[10px] text-emerald-400/70">Evraklar Tamam</div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+
             {/* CRM Navigation Tabs */}
             <div className="flex items-center gap-1 overflow-x-auto pb-2 border-b border-white/10 scrollbar-thin">
                 {tabs.map((tab) => {
@@ -1308,6 +1447,100 @@ export default function EntrepreneurDetailPage() {
                                     className="px-4 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold"
                                 >
                                     Tahakkukları Oluştur
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Assign Program Modal */}
+            {showAssignProgramModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4">
+                    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4">
+                        <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+                            <h3 className="text-base font-bold text-white flex items-center gap-2">
+                                <Layers className="w-4 h-4 text-primary" /> Girişimciyi Programa Ata
+                            </h3>
+                            <button onClick={() => setShowAssignProgramModal(false)} className="text-gray-400 hover:text-white">✕</button>
+                        </div>
+                        <form onSubmit={handleAssignProgram} className="space-y-3">
+                            <div>
+                                <label className="block text-xs font-mono text-gray-400 mb-1">Program Seçin *</label>
+                                <select
+                                    id="assign-program-select"
+                                    required
+                                    value={programFormData.programId}
+                                    onChange={(e) => setProgramFormData({ ...programFormData, programId: e.target.value })}
+                                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:border-primary outline-none"
+                                >
+                                    <option value="">-- Program Seçin --</option>
+                                    {availablePrograms.map(p => (
+                                        <option key={p.id} value={p.id}>{p.name} ({p.type || 'Program'})</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label className="block text-xs font-mono text-gray-400 mb-1">Dönem / Cohort</label>
+                                    <input
+                                        type="text"
+                                        value={programFormData.cohort}
+                                        onChange={(e) => setProgramFormData({ ...programFormData, cohort: e.target.value })}
+                                        placeholder="2026-1"
+                                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:border-primary outline-none"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-mono text-gray-400 mb-1">Durum</label>
+                                    <select
+                                        value={programFormData.status}
+                                        onChange={(e) => setProgramFormData({ ...programFormData, status: e.target.value })}
+                                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-2 py-2 text-xs text-white focus:border-primary outline-none"
+                                    >
+                                        <option value="ACTIVE">Aktif (ACTIVE)</option>
+                                        <option value="ACCEPTED">Kabul Edildi (ACCEPTED)</option>
+                                        <option value="APPLIED">Başvuruda (APPLIED)</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-mono text-gray-400 mb-1">Başlangıç Tarihi</label>
+                                <input
+                                    type="date"
+                                    value={programFormData.joinedAt}
+                                    onChange={(e) => setProgramFormData({ ...programFormData, joinedAt: e.target.value })}
+                                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:border-primary outline-none"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-mono text-gray-400 mb-1">Notlar / Hedefler</label>
+                                <textarea
+                                    rows={2}
+                                    value={programFormData.notes}
+                                    onChange={(e) => setProgramFormData({ ...programFormData, notes: e.target.value })}
+                                    placeholder="Program kabul notları..."
+                                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:border-primary outline-none"
+                                />
+                            </div>
+
+                            <div className="flex justify-end gap-2 pt-3 border-t border-slate-800">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowAssignProgramModal(false)}
+                                    className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-semibold"
+                                >
+                                    İptal
+                                </button>
+                                <button
+                                    id="submit-assign-program-btn"
+                                    type="submit"
+                                    className="px-5 py-2 rounded-xl bg-primary hover:bg-primary/90 text-white text-xs font-bold cursor-pointer"
+                                >
+                                    + Programı Ata
                                 </button>
                             </div>
                         </form>

@@ -3,7 +3,8 @@ import React, { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { AdminSidebar } from './AdminSidebar';
 import { CommandPalette } from './CommandPalette';
-import { Search, Bell, Plus, ExternalLink, ShieldAlert, Sparkles, Check } from 'lucide-react';
+import { AiAssistantDrawer } from './AiAssistantDrawer';
+import { Search, Bell, Plus, ExternalLink, ShieldAlert, Sparkles, Check, Bot } from 'lucide-react';
 import Link from 'next/link';
 
 interface AdminLayoutProps {
@@ -15,17 +16,22 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     const pathname = usePathname();
     const [isCollapsed, setIsCollapsed] = useState(false);
     const [isPaletteOpen, setIsPaletteOpen] = useState(false);
+    const [isAiOpen, setIsAiOpen] = useState(false);
     const [currentUser, setCurrentUser] = useState<any>(null);
     const [loadingAuth, setLoadingAuth] = useState(true);
     const [notifications, setNotifications] = useState<any[]>([]);
     const [isNotifOpen, setIsNotifOpen] = useState(false);
 
-    // Global keyboard shortcut for Ctrl/Cmd + K
+    // Global keyboard shortcut for Ctrl/Cmd + K and Ctrl/Cmd + J (AI)
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
                 e.preventDefault();
                 setIsPaletteOpen((prev) => !prev);
+            }
+            if ((e.metaKey || e.ctrlKey) && e.key === 'j') {
+                e.preventDefault();
+                setIsAiOpen((prev) => !prev);
             }
         };
         window.addEventListener('keydown', handleKeyDown);
@@ -108,12 +114,23 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
 
                     {/* Right: Quick actions, notifications, public site link */}
                     <div className="flex items-center gap-3">
+                        {/* AI Assistant Button */}
+                        <button
+                            id="global-ai-assistant-btn"
+                            onClick={() => setIsAiOpen(true)}
+                            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90 text-white text-xs font-bold transition-all shadow-md shadow-primary/25 cursor-pointer"
+                        >
+                            <Sparkles className="w-3.5 h-3.5 animate-spin" />
+                            <span>İKÜANTS AI</span>
+                            <kbd className="hidden lg:inline-block px-1 bg-white/20 rounded text-[9px] font-mono ml-1">Ctrl J</kbd>
+                        </button>
+
                         {/* Quick Add Menu */}
                         <Link
                             href="/admin/haberler?action=create"
-                            className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/20 hover:bg-primary text-primary hover:text-white border border-primary/30 text-xs font-semibold transition-all shadow-sm"
+                            className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white border border-white/10 text-xs font-semibold transition-all shadow-sm"
                         >
-                            <Plus className="w-3.5 h-3.5" />
+                            <Plus className="w-3.5 h-3.5 text-primary" />
                             Hızlı Haber Ekle
                         </Link>
 
@@ -165,6 +182,9 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
 
             {/* Command Palette */}
             <CommandPalette isOpen={isPaletteOpen} onClose={() => setIsPaletteOpen(false)} />
+
+            {/* AI Assistant Global Drawer */}
+            <AiAssistantDrawer isOpen={isAiOpen} onClose={() => setIsAiOpen(false)} currentUser={currentUser} />
         </div>
     );
 };

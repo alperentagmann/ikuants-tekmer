@@ -1,11 +1,12 @@
 "use client";
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import {
     Users, UserCheck, Rocket, FileText, Mail, Plus, AlertCircle,
     TrendingUp, Calendar, Clock, ArrowRight, ShieldCheck, Newspaper,
     CheckCircle2, Sparkles, Filter, Activity, RefreshCw, Receipt,
-    Layers, Search, CheckSquare, Eye, ExternalLink, HelpCircle
+    Layers, Search, CheckSquare, Eye, ExternalLink, HelpCircle,
+    Paperclip, Send, RotateCcw, Shield, Check, X, Loader2
 } from 'lucide-react';
 import { StatusBadge } from '@/components/admin/StatusBadge';
 
@@ -15,6 +16,15 @@ export default function AdminDashboardPage() {
     const [refreshing, setRefreshing] = useState(false);
     const [timeframe, setTimeframe] = useState<'all' | 'today' | 'week' | 'month'>('all');
     const [lastUpdated, setLastUpdated] = useState<string>('');
+
+    // AI Operations State
+    const [aiPrompt, setAiPrompt] = useState('');
+    const [aiLoading, setAiLoading] = useState(false);
+    const [aiAttachment, setAiAttachment] = useState<File | null>(null);
+    const [aiResponse, setAiResponse] = useState<any>(null);
+    const [executingAction, setExecutingAction] = useState(false);
+    const [undoingChangeSet, setUndoingChangeSet] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const fetchDashboard = async (showRefreshIndicator = false) => {
         if (showRefreshIndicator) setRefreshing(true);
@@ -37,6 +47,101 @@ export default function AdminDashboardPage() {
         fetchDashboard();
     }, []);
 
+    const handleAiSubmit = async (customPrompt?: string) => {
+        const text = customPrompt || aiPrompt;
+        if (!text.trim() && !aiAttachment) return;
+
+        setAiLoading(true);
+        setAiResponse(null);
+
+        try {
+            let fileAttachmentData: any = null;
+            if (aiAttachment) {
+                fileAttachmentData = {
+                    name: aiAttachment.name,
+                    size: aiAttachment.size,
+                    type: aiAttachment.type,
+                    url: `/uploads/media/${encodeURIComponent(aiAttachment.name)}`
+                };
+            }
+
+            const res = await fetch('/api/admin/ai/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    prompt: text,
+                    routeContext: '/admin/dashboard',
+                    attachments: fileAttachmentData ? [fileAttachmentData] : []
+                })
+            });
+
+            const result = await res.json();
+            if (result.success) {
+                setAiResponse(result);
+                setAiPrompt('');
+                setAiAttachment(null);
+            }
+        } catch (err) {
+            console.error('AI error:', err);
+        } finally {
+            setAiLoading(false);
+        }
+    };
+
+    const handleExecuteAiAction = async (action: any) => {
+        setExecutingAction(true);
+        try {
+            const actionName = action.actionId || action.actionName;
+            const parameters = action.params || action.parameters;
+            const res = await fetch('/api/admin/ai/execute', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    actionName,
+                    parameters,
+                    prompt: aiPrompt || 'AI İşlemi'
+                })
+            });
+            const result = await res.json();
+            if (result.success) {
+                setAiResponse((prev: any) => ({
+                    ...prev,
+                    executionResult: result,
+                    lastChangeSetId: result.changeSet?.id
+                }));
+                fetchDashboard();
+            }
+        } catch (err) {
+            console.error('Execution error:', err);
+        } finally {
+            setExecutingAction(false);
+        }
+    };
+
+    const handleUndo = async (changeSetId: string) => {
+        setUndoingChangeSet(true);
+        try {
+            const res = await fetch('/api/admin/ai/undo', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ changeSetId })
+            });
+            const result = await res.json();
+            if (result.success) {
+                setAiResponse((prev: any) => ({
+                    ...prev,
+                    undoResult: result,
+                    lastChangeSetId: null
+                }));
+                fetchDashboard();
+            }
+        } catch (err) {
+            console.error('Undo error:', err);
+        } finally {
+            setUndoingChangeSet(false);
+        }
+    };
+
     if (loading) {
         return (
             <div className="space-y-6 animate-pulse">
@@ -53,10 +158,6 @@ export default function AdminDashboardPage() {
                     {[1, 2, 3, 4, 5, 6].map((i) => (
                         <div key={i} className="h-28 bg-white/5 rounded-2xl" />
                     ))}
-                </div>
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                    <div className="lg:col-span-4 h-64 bg-white/5 rounded-2xl" />
-                    <div className="lg:col-span-8 h-64 bg-white/5 rounded-2xl" />
                 </div>
             </div>
         );
@@ -148,6 +249,167 @@ export default function AdminDashboardPage() {
 
     return (
         <div className="space-y-6 pb-12">
+            {/* TOP HERO: İKÜANTS AI COMMAND CENTER */}
+            <div className="bg-gradient-to-br from-[#121124] via-[#0b0a14] to-[#07060e] border border-primary/30 rounded-3xl p-6 shadow-2xl relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-96 h-96 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
+                <div className="relative z-10 space-y-4">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2.5">
+                            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-primary to-purple-600 flex items-center justify-center shadow-lg shadow-primary/30">
+                                <Sparkles className="w-4 h-4 text-white" />
+                            </div>
+                            <div>
+                                <h2 className="font-orbitron font-bold text-base sm:text-lg text-white tracking-wide">
+                                    İKÜANTS AI Komuta & Operasyon Merkezi
+                                </h2>
+                                <p className="text-xs text-gray-400">
+                                    Bugün kurumda veya web sitesinde ne yapmak istiyorsunuz? Doğal Türkçe ile komut verin.
+                                </p>
+                            </div>
+                        </div>
+                        <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-mono text-[10px]">
+                            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                            AI Operasyon Motoru Aktif
+                        </span>
+                    </div>
+
+                    {/* AI Prompt Input Bar */}
+                    <div className="flex flex-col sm:flex-row items-center gap-2 bg-black/60 border border-white/10 rounded-2xl p-2 focus-within:border-primary transition-all">
+                        <input
+                            id="ai-command-input"
+                            type="text"
+                            placeholder="Örn: 'Bugünkü çalışmalarımı kaydet', 'PNG banner ekle', 'Yeni kullanıcı oluştur', 'Geciken kiraları listele'..."
+                            value={aiPrompt}
+                            onChange={(e) => setAiPrompt(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' && !e.shiftKey) {
+                                    e.preventDefault();
+                                    handleAiSubmit();
+                                }
+                            }}
+                            className="w-full bg-transparent px-3 py-2 text-xs sm:text-sm text-white placeholder-gray-500 focus:outline-none"
+                        />
+
+                        <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                accept="image/*,.pdf,.docx,.xlsx"
+                                className="hidden"
+                                onChange={(e) => {
+                                    if (e.target.files?.[0]) setAiAttachment(e.target.files[0]);
+                                }}
+                            />
+                            <button
+                                type="button"
+                                onClick={() => fileInputRef.current?.click()}
+                                className={`p-2 rounded-xl text-xs transition-colors flex items-center gap-1 cursor-pointer ${
+                                    aiAttachment ? 'bg-primary/20 text-primary border border-primary/40' : 'text-gray-400 hover:text-white hover:bg-white/5'
+                                }`}
+                                title="Dosya veya Görsel Ekle (PNG/PDF)"
+                            >
+                                <Paperclip className="w-4 h-4" />
+                                {aiAttachment && <span className="text-[10px] max-w-[80px] truncate">{aiAttachment.name}</span>}
+                            </button>
+
+                            <button
+                                id="ai-command-submit-btn"
+                                onClick={() => handleAiSubmit()}
+                                disabled={aiLoading || (!aiPrompt.trim() && !aiAttachment)}
+                                className="px-5 py-2 rounded-xl bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90 text-white text-xs font-bold flex items-center gap-1.5 shadow-lg shadow-primary/30 disabled:opacity-50 transition-all cursor-pointer"
+                            >
+                                {aiLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                                <span>Çalıştır</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Suggestion Chips */}
+                    <div className="flex flex-wrap items-center gap-2 pt-1">
+                        <span className="text-[10px] font-mono text-gray-500 mr-1">Öneriler:</span>
+                        {[
+                            'Bugünkü çalışmalarımı kaydet',
+                            'Ana sayfaya banner ekle',
+                            'Gecikmiş kiraları listele',
+                            'Günlük raporumu hazırla',
+                            'Eylül ayı kurumsal raporu çıkar',
+                            'Program atanmamış girişimcileri bul',
+                        ].map((chip) => (
+                            <button
+                                key={chip}
+                                onClick={() => {
+                                    setAiPrompt(chip);
+                                    handleAiSubmit(chip);
+                                }}
+                                className="px-3 py-1 rounded-xl bg-white/5 hover:bg-primary/20 text-gray-300 hover:text-primary text-[11px] font-medium border border-white/5 hover:border-primary/30 transition-all cursor-pointer"
+                            >
+                                {chip}
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* AI Structured Response Card */}
+                    {aiResponse && (
+                        <div className="p-4 rounded-2xl bg-[#090814] border border-primary/40 space-y-3 mt-4 animate-in fade-in">
+                            <div className="flex items-start justify-between">
+                                <div className="space-y-1">
+                                    <div className="text-xs font-bold text-primary font-mono flex items-center gap-1.5">
+                                        <Sparkles className="w-3.5 h-3.5" />
+                                        <span>AI Operasyon Planı & Önizleme</span>
+                                    </div>
+                                    <p className="text-xs text-white leading-relaxed whitespace-pre-line">{aiResponse.content || aiResponse.message}</p>
+                                </div>
+                                <button onClick={() => setAiResponse(null)} className="text-gray-500 hover:text-white">
+                                    <X className="w-4 h-4" />
+                                </button>
+                            </div>
+
+                            {/* Execution Result */}
+                            {aiResponse.executionResult && (
+                                <div className="p-3 rounded-xl bg-emerald-950/40 border border-emerald-500/30 flex items-center justify-between text-xs text-emerald-300">
+                                    <div className="flex items-center gap-2">
+                                        <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                                        <span>{aiResponse.executionResult.message || 'İşlem başarıyla tamamlandı ve denetim günlüğüne kaydedildi.'}</span>
+                                    </div>
+                                    <button
+                                        id="ai-undo-btn"
+                                        onClick={() => handleUndo(aiResponse.lastChangeSetId || aiResponse.executionResult?.changeSetId)}
+                                        disabled={undoingChangeSet}
+                                        className="px-3 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 font-bold flex items-center gap-1 cursor-pointer"
+                                    >
+                                        <RotateCcw className={`w-3.5 h-3.5 ${undoingChangeSet ? 'animate-spin' : ''}`} />
+                                        <span>Geri Al (Undo)</span>
+                                    </button>
+                                </div>
+                            )}
+
+                            {/* Action Confirmation Cards */}
+                            {(aiResponse.confirmationPayload || (aiResponse.plannedActions && aiResponse.plannedActions.length > 0)) && !aiResponse.executionResult && (
+                                <div className="space-y-2 pt-2 border-t border-white/10">
+                                    <div className="p-3 rounded-xl bg-black/40 border border-white/10 flex items-center justify-between text-xs">
+                                        <div>
+                                            <div className="font-semibold text-white">İşlem Onayı</div>
+                                            <div className="text-[10px] font-mono text-gray-400">
+                                                Aksiyon: {aiResponse.confirmationPayload?.actionId || aiResponse.plannedActions?.[0]?.actionName || 'cms.hero.update'}
+                                            </div>
+                                        </div>
+                                        <button
+                                            id="ai-confirm-execute-btn"
+                                            onClick={() => handleExecuteAiAction(aiResponse.confirmationPayload || aiResponse.plannedActions[0])}
+                                            disabled={executingAction}
+                                            className="px-4 py-1.5 rounded-xl bg-primary hover:bg-primary/90 text-white font-bold flex items-center gap-1.5 shadow-md shadow-primary/20 cursor-pointer"
+                                        >
+                                            {executingAction ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                                            <span>Onayla ve Uygula</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+            </div>
+
             {/* Top Control Bar */}
             <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 bg-[#0d0e1b]/90 border border-white/10 p-4 sm:p-5 rounded-2xl backdrop-blur-xl shadow-xl">
                 <div>

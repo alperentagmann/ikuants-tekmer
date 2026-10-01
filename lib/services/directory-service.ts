@@ -1,122 +1,142 @@
 import { prisma } from '@/lib/prisma';
-import { logAuditEvent } from '@/lib/audit';
-
-export interface CreateContactInput {
-    organizationId?: string;
-    fullName: string;
-    title?: string;
-    email?: string;
-    phone?: string;
-    contactType?: string; // MENTOR, ENTREPRENEUR, INSTRUCTOR, ACADEMIC, INVESTOR, PARTNER, PUBLIC_REP
-    linkedEntityId?: string;
-    linkedin?: string;
-    notes?: string;
-    tags?: string[];
-}
+import { PersonService, CreatePersonInput } from './person-service';
+import { OrganizationService, CreateOrganizationInput } from './organization-service';
 
 export const DirectoryService = {
-    async getContacts(params: {
-        contactType?: string;
-        organizationId?: string;
+    async getUnifiedDirectory(params: {
+        tab?: 'people' | 'companies' | 'mentors' | 'stakeholders' | 'all';
         search?: string;
+        type?: string;
+        status?: string;
+        limit?: number;
+        offset?: number;
     }) {
-        const where: any = {};
-        if (params.contactType) where.contactType = params.contactType;
-        if (params.organizationId) where.organizationId = params.organizationId;
-        if (params.search) {
-            where.OR = [
-                { fullName: { contains: params.search } },
-                { email: { contains: params.search } },
-                { title: { contains: params.search } },
-                { organization: { name: { contains: params.search } } },
-            ];
-        }
+        const tab = params.tab || 'people';
+        const search = params.search || '';
 
-        return prisma.stakeholderContact.findMany({
-            where,
-            include: {
-                organization: true,
-            },
-            orderBy: { fullName: 'asc' },
-        });
-    },
-
-    async getOrganizations() {
-        return prisma.organization.findMany({
-            include: {
-                _count: { select: { contacts: true } },
-            },
-            orderBy: { name: 'asc' },
-        });
-    },
-
-    async createContact(input: CreateContactInput, actor?: { id: string; name?: string }) {
-        const contact = await prisma.stakeholderContact.create({
-            data: {
-                organizationId: input.organizationId,
-                fullName: input.fullName,
-                title: input.title,
-                email: input.email,
-                phone: input.phone,
-                contactType: input.contactType || 'PARTNER',
-                linkedEntityId: input.linkedEntityId,
-                linkedin: input.linkedin,
-                notes: input.notes,
-                tags: input.tags ? JSON.stringify(input.tags) : null,
-            },
-            include: {
-                organization: true,
-            },
-        });
-
-        if (actor) {
-            await logAuditEvent({
-                actorId: actor.id,
-                actorName: actor.name,
-                action: 'CREATE',
-                entityType: 'StakeholderContact',
-                entityId: contact.id,
-                diff: `Paydaş rehberine kişi eklendi: ${contact.fullName}`,
+        if (tab === 'people') {
+            const result = await PersonService.getPersons({
+                search,
+                status: params.status,
+                limit: params.limit,
+                offset: params.offset,
             });
+            return {
+                type: 'people',
+                items: result.items,
+                total: result.total,
+            };
         }
 
-        return contact;
+        if (tab === 'companies') {
+            const result = await OrganizationService.getOrganizations({
+                search,
+                orgType: params.type,
+                status: params.status,
+                limit: params.limit,
+                offset: params.offset,
+            });
+            return {
+                type: 'companies',
+                items: result.items,
+                total: result.total,
+            };
+        }
+
+        if (tab === 'mentors') {
+            const where: any = { isArchived: false };
+            if (search) {
+                where.OR = [
+                    { name: { contains: search, mode: 'insensitive' } },
+                    { surname: { contains: search, mode: 'insensitive' } },
+                    { company: { contains: search, mode: 'insensitive' } },
+                    { title: { contains: search, mode: 'insensitive' } },
+                ];
+            }
+            const items = await prisma.mentor.findMany({
+                where,
+                include: {
+                    person: true,
+                    mentorPrograms: { include: { program: true } },
+                    _count: { select: { mentorSessions: true } },
+                },
+                orderBy: { name: 'asc' },
+                take: params.limit || 100,
+                skip: params.offset || 0,
+            });
+            const total = await prisma.mentor.count({ where });
+            return {
+                type: 'mentors',
+                items,
+                total,
+            };
+        }
+
+        if (tab === 'stakeholders') {
+            const where: any = {};
+            if (params.type) where.stakeholderType = params.type;
+            const items = await prisma.stakeholderRelationship.findMany({
+                where,
+                include: {
+                    person: true,
+                    organization: true,
+                },
+                orderBy: { createdAt: 'desc' },
+                take: params.limit || 100,
+                skip: params.offset || 0,
+            });
+            const total = await prisma.stakeholderRelationship.count({ where });
+            return {
+                type: 'stakeholders',
+                items,
+                total,
+            };
+        }
+
+        // Default overview stats
+        const [peopleCount, companiesCount, mentorsCount, stakeholdersCount] = await Promise.all([
+            prisma.person.count({ where: { status: 'ACTIVE' } }),
+            prisma.organization.count({ where: { status: 'ACTIVE' } }),
+            prisma.mentor.count({ where: { isArchived: false } }),
+            prisma.stakeholderRelationship.count(),
+        ]);
+
+        return {
+            type: 'overview',
+            stats: {
+                peopleCount,
+                companiesCount,
+                mentorsCount,
+                stakeholdersCount,
+            },
+        };
     },
 
-    async createOrganization(data: {
-        name: string;
-        sector?: string;
-        orgType?: string;
-        website?: string;
-        email?: string;
-        phone?: string;
-        address?: string;
-        notes?: string;
-    }, actor?: { id: string; name?: string }) {
-        const org = await prisma.organization.create({
-            data: {
-                name: data.name,
-                sector: data.sector,
-                orgType: data.orgType || 'COMPANY',
-                website: data.website,
-                email: data.email,
-                phone: data.phone,
-                address: data.address,
-                notes: data.notes,
-            },
-        });
+    async createPerson(input: CreatePersonInput, actor?: { id: string; name?: string }) {
+        return PersonService.createPerson(input, actor);
+    },
 
-        if (actor) {
-            await logAuditEvent({
-                actorId: actor.id,
-                actorName: actor.name,
-                action: 'CREATE',
-                entityType: 'Organization',
-                entityId: org.id,
-                diff: `Kurum oluşturuldu: ${org.name}`,
-            });
-        }
+    async createOrganization(input: CreateOrganizationInput, actor?: { id: string; name?: string }) {
+        return OrganizationService.createOrganization(input, actor);
+    },
 
-        return org;
+    async getContacts(filters?: any) {
+        return PersonService.getPersons(filters);
+    },
+
+    async getOrganizations(filters?: any) {
+        return OrganizationService.getOrganizations(filters);
+    },
+
+    async createContact(input: any, actor?: { id: string; name?: string }) {
+        return PersonService.createPerson({
+            firstName: input.fullName?.split(' ')[0] || input.firstName || 'Kişi',
+            lastName: input.fullName?.split(' ').slice(1).join(' ') || input.lastName || '',
+            email: input.email,
+            phone: input.phone,
+            title: input.title,
+            linkedin: input.linkedin,
+            notes: input.notes,
+        }, actor);
     },
 };

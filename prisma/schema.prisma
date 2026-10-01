@@ -80,9 +80,11 @@ model User {
   authoredReports        OperationalReport[] @relation("ReportAuthor")
   approvedReports        OperationalReport[] @relation("ReportApprover")
   
-  // Operations & Finance relations
+  // Operations, CRM & AI relations
   hostedInteractions     DailyInteraction[]  @relation("InteractionHost")
   assignedPrograms       EntrepreneurProgram[] @relation("ProgramAssigner")
+  person                 Person?
+  aiChangeSets           AiChangeSet[]
 }
 
 model Role {
@@ -356,14 +358,19 @@ model Entrepreneur {
   invoices           InvoiceRecord[]
   receivables        Receivable[]
 
+  companyStatus      String       @default("UNINCORPORATED") // UNINCORPORATED, INCORPORATED, IN_PROGRESS
+  organizations      EntrepreneurOrganization[]
+
   @@index([status])
   @@index([sector])
   @@index([sortOrder])
+  @@index([companyStatus])
 }
 
 model EntrepreneurFounder {
   id             String       @id @default(uuid())
   entrepreneurId String
+  personId       String?
   fullName       String
   title          String?
   email          String?
@@ -377,8 +384,10 @@ model EntrepreneurFounder {
   updatedAt      DateTime     @updatedAt
 
   entrepreneur   Entrepreneur @relation(fields: [entrepreneurId], references: [id], onDelete: Cascade)
+  person         Person?      @relation(fields: [personId], references: [id], onDelete: SetNull)
 
   @@index([entrepreneurId])
+  @@index([personId])
 }
 
 model EntrepreneurInvestment {
@@ -523,9 +532,12 @@ model Mentor {
   portalAccounts  PortalAccount[]
 
   // Operations relations
+  personId          String?
+  person            Person?            @relation(fields: [personId], references: [id], onDelete: SetNull)
   dailyInteractions DailyInteraction[]
   kvkkConsents      KvkkConsent[]
 
+  @@index([personId])
   @@index([isActive])
   @@index([sortOrder])
 }
@@ -1159,25 +1171,37 @@ model ActivityParticipant {
 
 model Organization {
   id          String   @id @default(uuid())
-  name        String
-  legalName   String?
+  name        String   // Display / Brand name
+  legalName   String?  // Official Legal / Commercial Title
   sector      String?
-  orgType     String   @default("COMPANY") // COMPANY, UNIVERSITY, NGO, PUBLIC, VC_ANGEL, TEKMER
+  orgType     String   @default("COMPANY") // COMPANY, UNIVERSITY, PUBLIC_INSTITUTION, INVESTOR, NGO, PARTNER, SUPPLIER, SPONSOR, TEKMER, OTHER
   taxNumber   String?
+  taxOffice   String?
+  mersisNo    String?
   website     String?
   email       String?
   phone       String?
   address     String?
+  city        String?
+  country     String?  @default("Türkiye")
   logoUrl     String?
-  notes       String?
+  status      String   @default("ACTIVE") // ACTIVE, PASSIVE, ARCHIVED
+  tags        String?  // JSON array of strings
+  notes       String?  @db.Text
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  contacts    StakeholderContact[]
-  projects    Project[]
-  receivables Receivable[]
+  contacts      StakeholderContact[]
+  memberships   PersonOrganizationMembership[]
+  entrepreneurs EntrepreneurOrganization[]
+  stakeholders  StakeholderRelationship[]
+  rentContracts RentContract[]
+  projects      Project[]
+  receivables   Receivable[]
 
   @@index([name])
+  @@index([orgType])
+  @@index([status])
 }
 
 // ----------------------------------------------------------------------------
@@ -3097,11 +3121,13 @@ model RentContract {
   startDate         DateTime
   endDate           DateTime
   
-  // Şirket & İletişim Snapshot
-  commercialTitle   String?                // Şirket Ticari Unvanı
-  contactPersonName String?                // Finans / Kira İletişim Yetkilisi
-  contactEmail      String?
-  contactPhone      String?
+  // Şirket & İletişim Snapshot & Relational Links
+  organizationId         String?
+  financeContactPersonId String?
+  commercialTitle        String?                // Şirket Ticari Unvanı
+  contactPersonName      String?                // Finans / Kira İletişim Yetkilisi
+  contactEmail           String?
+  contactPhone           String?
   
   // Finansal Bilgiler
   monthlyRent       Float                  // Aylık Net Kira
@@ -3130,12 +3156,16 @@ model RentContract {
   createdAt         DateTime               @default(now())
   updatedAt         DateTime               @updatedAt
 
-  entrepreneur      Entrepreneur           @relation(fields: [entrepreneurId], references: [id], onDelete: Cascade)
-  facility          Facility?              @relation(fields: [spaceFacilityId], references: [id], onDelete: SetNull)
-  accruals          RentAccrual[]
-  documents         RentContractDocument[]
+  entrepreneur         Entrepreneur           @relation(fields: [entrepreneurId], references: [id], onDelete: Cascade)
+  organization         Organization?          @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  financeContactPerson Person?                @relation("RentFinanceContact", fields: [financeContactPersonId], references: [id], onDelete: SetNull)
+  facility             Facility?              @relation(fields: [spaceFacilityId], references: [id], onDelete: SetNull)
+  accruals             RentAccrual[]
+  documents            RentContractDocument[]
 
   @@index([entrepreneurId])
+  @@index([organizationId])
+  @@index([financeContactPersonId])
   @@index([status])
 }
 
@@ -3295,6 +3325,141 @@ model ExchangeRate {
   @@index([sourceCurrency, targetCurrency])
 }
 
+// ----------------------------------------------------------------------------
+// UNIFIED MASTER CRM & CENTRAL DIRECTORY (PERSON & RELATIONSHIPS)
+// ----------------------------------------------------------------------------
 
+model Person {
+  id              String   @id @default(uuid())
+  firstName       String
+  lastName        String
+  fullName        String
+  title           String?  // e.g. "Kurucu Ortak", "Kıdemli Yazılım Mimarı", "Finans Direktörü"
+  email           String?  @unique
+  secondaryEmail  String?
+  phone           String?
+  secondaryPhone  String?
+  linkedin        String?
+  avatarUrl       String?
+  city            String?
+  country         String?  @default("Türkiye")
+  notes           String?  @db.Text
+  tags            String?  // JSON array of strings
+  status          String   @default("ACTIVE") // ACTIVE, PASSIVE, ARCHIVED
+  userId          String?  @unique
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
+  user            User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  memberships     PersonOrganizationMembership[]
+  founders        EntrepreneurFounder[]
+  mentors         Mentor[]
+  stakeholders    StakeholderRelationship[]
+  assignedRentContracts RentContract[] @relation("RentFinanceContact")
 
+  @@index([fullName])
+  @@index([email])
+  @@index([phone])
+  @@index([status])
+}
+
+model PersonOrganizationMembership {
+  id                    String       @id @default(uuid())
+  personId              String
+  organizationId        String
+  role                  String       @default("EMPLOYEE") // FOUNDER, CO_FOUNDER, CEO, CTO, EMPLOYEE, FINANCE_CONTACT, LEGAL_CONTACT, AUTHORIZED_PERSON, OTHER
+  department            String?
+  position              String?
+  startDate             DateTime?    @default(now())
+  endDate               DateTime?
+  isPrimaryContact      Boolean      @default(false)
+  isFinanceContact      Boolean      @default(false)
+  isLegalContact        Boolean      @default(false)
+  isAuthorizedSignatory Boolean      @default(false)
+  status                String       @default("ACTIVE") // ACTIVE, FORMER, LEAVE
+  createdAt             DateTime     @default(now())
+  updatedAt             DateTime     @updatedAt
+
+  person                Person       @relation(fields: [personId], references: [id], onDelete: Cascade)
+  organization          Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([personId])
+  @@index([organizationId])
+  @@index([role])
+  @@index([status])
+}
+
+model EntrepreneurOrganization {
+  id             String       @id @default(uuid())
+  entrepreneurId String
+  organizationId String
+  relationType   String       @default("PRIMARY") // PRIMARY, SUBSIDIARY, SPIN_OFF, HOLDING
+  isPrimary      Boolean      @default(true)
+  startDate      DateTime?    @default(now())
+  endDate        DateTime?
+  status         String       @default("ACTIVE")
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  entrepreneur   Entrepreneur @relation(fields: [entrepreneurId], references: [id], onDelete: Cascade)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([entrepreneurId, organizationId])
+  @@index([entrepreneurId])
+  @@index([organizationId])
+}
+
+model StakeholderRelationship {
+  id                 String        @id @default(uuid())
+  entityType         String        @default("ORGANIZATION") // PERSON, ORGANIZATION
+  personId           String?
+  organizationId     String?
+  stakeholderType    String        @default("COLLABORATION_PARTNER") // COLLABORATION_PARTNER, INVESTOR_PARTNER, ACADEMIC_PARTNER, PUBLIC_AGENCY, SUPPLIER, SPONSOR, OTHER
+  relationshipStatus String        @default("ACTIVE") // ACTIVE, POTENTIAL, FORMER, SUSPENDED
+  ownerUserId        String?
+  startedAt          DateTime?     @default(now())
+  endedAt            DateTime?
+  notes              String?       @db.Text
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  person             Person?       @relation(fields: [personId], references: [id], onDelete: Cascade)
+  organization       Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([entityType])
+  @@index([personId])
+  @@index([organizationId])
+  @@index([stakeholderType])
+}
+
+// ----------------------------------------------------------------------------
+// AI OPERATIONS LAYER (COPILOT, DOMAIN ACTIONS & REVERSIBLE CHANGESETS)
+// ----------------------------------------------------------------------------
+
+model AiChangeSet {
+  id             String    @id @default(uuid())
+  userId         String
+  userEmail      String?
+  userName       String?
+  requestPrompt  String    @db.Text
+  intent         String    // e.g. "cms.banner.create", "user.invite", "report.daily", "rent.payment"
+  riskLevel      String    @default("MEDIUM") // LOW, MEDIUM, HIGH, CRITICAL
+  actionsJson    String    @db.Text // JSON array of performed actions
+  beforeState    String?   @db.Text // JSON snapshot before mutation
+  afterState     String?   @db.Text // JSON snapshot after mutation
+  summary        String?   @db.Text
+  status         String    @default("COMPLETED") // DRAFT, PENDING_CONFIRMATION, EXECUTING, COMPLETED, FAILED, ROLLED_BACK
+  rollbackStatus String?   // NOT_ROLLED_BACK, ROLLED_BACK, ROLLBACK_FAILED
+  rollbackError  String?   @db.Text
+  executedAt     DateTime  @default(now())
+  rolledBackAt   DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([intent])
+  @@index([status])
+  @@index([createdAt])
+}
