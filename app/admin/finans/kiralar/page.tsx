@@ -318,6 +318,7 @@ export default function RentManagementPage() {
             <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 flex flex-col md:flex-row items-center justify-between gap-4">
                 <div className="flex items-center gap-2">
                     <button
+                        id="tab-entrepreneurs"
                         onClick={() => setViewMode('ENTREPRENEURS')}
                         className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                             viewMode === 'ENTREPRENEURS'
@@ -328,6 +329,7 @@ export default function RentManagementPage() {
                         Tüm Girişimciler ({entrepreneurs.length})
                     </button>
                     <button
+                        id="tab-accruals"
                         onClick={() => setViewMode('ACCRUALS')}
                         className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                             viewMode === 'ACCRUALS'
@@ -479,7 +481,7 @@ export default function RentManagementPage() {
                                                     <div className="flex items-center justify-end gap-2">
                                                         {ent.currentMonthAccrual && ent.currentMonthAccrual.status !== 'PAID' && (
                                                             <button
-                                                                id={`rent-pay-btn-${ent.id}`}
+                                                                id={`record-payment-btn-${ent.currentMonthAccrual.id}`}
                                                                 onClick={() => {
                                                                     setPaymentItem({
                                                                         accrualId: ent.currentMonthAccrual!.id,

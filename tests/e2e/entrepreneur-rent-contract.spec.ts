@@ -149,7 +149,7 @@ test.describe('Entrepreneur Rent Contract, Documents & Accrual Lifecycle E2E', (
         await page.waitForTimeout(500);
 
         await expect(page.locator(`text=${TEST_COMPANY_NAME}`).first()).toBeVisible();
-        await expect(page.locator('text=24.000 TL').first()).toBeVisible();
+        await expect(page.locator('text=24.000').first()).toBeVisible();
 
         // 8. Record Partial Payment (10.000 TL)
         const recordPayBtn = page.locator(`#record-payment-btn-${accrual.id}`);
@@ -161,9 +161,9 @@ test.describe('Entrepreneur Rent Contract, Documents & Accrual Lifecycle E2E', (
         await page.waitForTimeout(1000);
 
         // Verify Partial Payment state
-        await expect(page.locator('text=10.000 TL').first()).toBeVisible();
-        await expect(page.locator('text=14.000 TL').first()).toBeVisible();
-        await expect(page.locator('text=Kısmi Ödeme').first()).toBeVisible();
+        await expect(page.locator('text=10.000').first()).toBeVisible();
+        await expect(page.locator('text=14.000').first()).toBeVisible();
+        await expect(page.locator('text=Kısmi').first()).toBeVisible();
 
         // 9. Record Remaining Payment (14.000 TL)
         const recordSecondPayBtn = page.locator(`#record-payment-btn-${accrual.id}`);

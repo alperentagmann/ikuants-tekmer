@@ -33,8 +33,11 @@ test.describe('Project Finance Ledger & Budget vs Actuals E2E', () => {
         // 2. Add Funding Source (600,000 TL awarded)
         await page.locator('#add-funding-btn').click();
         await page.locator('#funding-awarded-amount').fill('600000');
-        await page.locator('#save-funding-btn').click();
-        await page.waitForTimeout(1000);
+        await Promise.all([
+            page.waitForResponse(res => res.url().includes('/funding') && (res.status() === 201 || res.status() === 200)),
+            page.locator('#save-funding-btn').click()
+        ]);
+        await page.waitForTimeout(500);
 
         const funding = await prisma.fundingSource.findFirst({
             where: { projectId: project.id },
@@ -45,8 +48,11 @@ test.describe('Project Finance Ledger & Budget vs Actuals E2E', () => {
         if (funding) {
             await page.locator(`#add-receipt-btn-${funding.id}`).click();
             await page.locator('#receipt-amount').fill('300000');
-            await page.locator('#save-receipt-btn').click();
-            await page.waitForTimeout(1000);
+            await Promise.all([
+                page.waitForResponse(res => res.url().includes('/funding') && (res.status() === 201 || res.status() === 200)),
+                page.locator('#save-receipt-btn').click()
+            ]);
+            await page.waitForTimeout(500);
         }
 
         // 4. Add Expense (100,000 TL spent)
@@ -54,8 +60,11 @@ test.describe('Project Finance Ledger & Budget vs Actuals E2E', () => {
         await page.locator('#expense-amount').fill('100000');
         await page.locator('#expense-vendor').fill('Yazilim Donanim Ltd');
         await page.locator('#expense-desc').fill('Server Lisans Bedeli');
-        await page.locator('#save-expense-btn').click();
-        await page.waitForTimeout(1500);
+        await Promise.all([
+            page.waitForResponse(res => res.url().includes('/expenses') && (res.status() === 201 || res.status() === 200)),
+            page.locator('#save-expense-btn').click()
+        ]);
+        await page.waitForTimeout(500);
 
         // 5. Verify real-time computed Ledger KPIs on page:
         // Budget = 1,000,000 TL
