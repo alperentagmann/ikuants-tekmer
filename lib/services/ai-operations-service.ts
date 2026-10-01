@@ -37,6 +37,81 @@ export interface ParseDailyWorkResult {
 
 export const AiOperationsService = {
     /**
+     * Calls external LLM Provider (OpenAI / Gemini / Anthropic) if configured via environment variables.
+     */
+    async callExternalLlmProvider(
+        prompt: string,
+        actor: { id: string; email: string; name: string; isSuperAdmin: boolean },
+        context?: {
+            currentRoute?: string;
+            selectedEntityId?: string;
+            selectedEntityType?: string;
+            attachmentUrl?: string;
+            attachmentType?: string;
+        }
+    ): Promise<AiChatMessage | null> {
+        const apiKey = process.env.OPENAI_API_KEY || process.env.GEMINI_API_KEY || process.env.ANTHROPIC_API_KEY;
+        if (!apiKey) return null;
+
+        try {
+            if (process.env.OPENAI_API_KEY) {
+                const model = process.env.AI_MODEL || 'gpt-4o';
+                const baseUrl = process.env.AI_BASE_URL || 'https://api.openai.com/v1';
+
+                const systemPrompt = `Sen İKÜANTS TEKMER AI Asistanısın. Kullanıcı mesajlarını analiz ederek uygun domain action planı ve parametreleri üretirsin.
+Kullanıcı Yetkisi: Super Admin: ${actor.isSuperAdmin}, Kullanıcı: ${actor.name} (${actor.email}).
+Mevcut Sayfa/Bağlam: ${JSON.stringify(context || {})}.
+İzin Verilen Action'lar:
+1. cms.banner.create: { title, mediaUrl, primaryCtaText, primaryCtaLink } (Super Admin gerektirir)
+2. user.invite: { name, email, roleSlug } (Super Admin gerektirir, roleSlug: admin | content-editor | finance-manager | viewer)
+3. crm.program.assign: { entrepreneurId, programId, cohort, status }
+4. rent.payment.record: { accrualId, amount, paymentMethod }
+5. interaction.create: { contactName, organizationName, subject, notes, followUpDate }
+6. task.create: { title, description, dueDate, priority }
+7. report.monthly.generate: { month, year }
+
+Yanıtını her zaman JSON formatında ver:
+{
+  "content": "Kullanıcıya gösterilecek açıklama ve onay mesajı",
+  "requiresConfirmation": true,
+  "confirmationPayload": { "actionId": "...", "params": { ... } }
+}`;
+
+                const res = await fetch(`${baseUrl}/chat/completions`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+                    },
+                    body: JSON.stringify({
+                        model,
+                        messages: [
+                            { role: 'system', content: systemPrompt },
+                            { role: 'user', content: prompt }
+                        ],
+                        response_format: { type: 'json_object' },
+                        temperature: 0.1,
+                    }),
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    const parsed = JSON.parse(data.choices[0].message.content);
+                    return {
+                        role: 'assistant',
+                        content: parsed.content || 'İsteğiniz için eylem planı hazırlandı.',
+                        requiresConfirmation: parsed.requiresConfirmation ?? true,
+                        confirmationPayload: parsed.confirmationPayload,
+                    };
+                }
+            }
+        } catch (err) {
+            console.error('[AI Provider Error]:', err);
+        }
+        return null;
+    },
+
+    /**
      * Natural language intent resolution and domain parameter extraction.
      */
     async processUserPrompt(
@@ -50,6 +125,11 @@ export const AiOperationsService = {
             attachmentType?: string;
         }
     ): Promise<AiChatMessage> {
+        // 1. Try external LLM provider if configured
+        const externalResult = await this.callExternalLlmProvider(prompt, actor, context);
+        if (externalResult) return externalResult;
+
+        // 2. Deterministic Action Engine Intent Resolution
         const lower = prompt.toLowerCase();
 
         // 1. BANNER / HOMEPAGE CREATION

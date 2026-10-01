@@ -35,6 +35,10 @@ export async function GET() {
         const isMetaConfigured = Boolean(process.env.META_ACCESS_TOKEN || process.env.INSTAGRAM_ACCESS_TOKEN);
         const metaStatus = isMetaConfigured ? 'CONNECTED' : 'NOT_CONFIGURED_EXTERNAL';
 
+        // AI Provider Check
+        const isAiConfigured = Boolean(process.env.OPENAI_API_KEY || process.env.GEMINI_API_KEY || process.env.ANTHROPIC_API_KEY);
+        const aiStatus = isAiConfigured ? 'CONNECTED' : 'NOT_CONFIGURED';
+
         // Background Job / Outbox Metrics
         const pendingEmails = await prisma.emailOutbox.count({ where: { status: 'PENDING' } }).catch(() => 0);
         const pendingTasks = await prisma.task.count({ where: { status: { not: 'COMPLETED' }, isArchived: false } }).catch(() => 0);
@@ -65,6 +69,11 @@ export async function GET() {
                     status: emailStatus,
                     provider: isEmailConfigured ? process.env.SMTP_HOST : 'None (Mock Outbox Active)',
                     pendingOutboxCount: pendingEmails,
+                },
+                aiProvider: {
+                    status: aiStatus,
+                    provider: process.env.OPENAI_API_KEY ? 'OpenAI' : process.env.GEMINI_API_KEY ? 'Google Gemini' : process.env.ANTHROPIC_API_KEY ? 'Anthropic' : 'None',
+                    model: process.env.AI_MODEL || (process.env.OPENAI_API_KEY ? 'gpt-4o' : process.env.GEMINI_API_KEY ? 'gemini-1.5-pro' : 'none'),
                 },
                 integrations: {
                     microsoft365: m365Status,
