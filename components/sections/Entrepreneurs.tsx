@@ -7,15 +7,16 @@ import { Rocket, Shield, Globe, Cpu, Zap, Activity } from "lucide-react";
 
 export const Entrepreneurs = () => {
     const { entrepreneurs: defaultData } = siteContent;
-    const [list, setList] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
+    // Static list renders first and stays when the database is empty or unreachable
+    // (e.g. production schema behind pending migrations), so the page is never blank.
+    const [list, setList] = useState<any[]>(defaultData.list);
 
     useEffect(() => {
         const load = async () => {
             try {
                 const res = await fetch('/api/public/entrepreneurs');
                 const data = await res.json();
-                if (data.success && Array.isArray(data.entrepreneurs)) {
+                if (data.success && Array.isArray(data.entrepreneurs) && data.entrepreneurs.length > 0) {
                     setList(data.entrepreneurs.map((ent: any, i: number) => ({
                         id: ent.id || `ent-${i}`,
                         name: ent.name,
@@ -26,13 +27,9 @@ export const Entrepreneurs = () => {
                         icon: Rocket,
                         color: "text-primary",
                     })));
-                } else {
-                    setList([]);
                 }
             } catch {
-                setList([]);
-            } finally {
-                setLoading(false);
+                // Keep the static list
             }
         };
         load();

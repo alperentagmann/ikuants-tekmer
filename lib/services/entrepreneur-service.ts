@@ -80,7 +80,8 @@ export const EntrepreneurService = {
                 ...item,
                 keywords: item.keywords ? (typeof item.keywords === 'string' ? JSON.parse(item.keywords) : item.keywords) : [],
             }));
-        } catch {
+        } catch (error) {
+            console.error('Error fetching public entrepreneurs:', error);
             return [];
         }
     },

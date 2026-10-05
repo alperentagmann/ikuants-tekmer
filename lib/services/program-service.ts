@@ -159,7 +159,8 @@ export const ProgramService = {
             });
 
             return list.map(formatProgramItem);
-        } catch {
+        } catch (error) {
+            console.error('Error fetching public programs:', error);
             return [];
         }
     },
