@@ -10,12 +10,9 @@ export async function GET() {
             success: true,
             slides,
         });
-    } catch (e: any) {
+    } catch (e) {
+        // Database unreachable: the hero keeps its static slides. Internal errors stay in the server log.
         console.error('Error fetching public slides:', e);
-        return NextResponse.json({
-            success: false,
-            slides: [],
-            error: e.message || 'Internal error',
-        }, { status: 500 });
+        return NextResponse.json({ success: true, slides: [] });
     }
 }

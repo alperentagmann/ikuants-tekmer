@@ -11,7 +11,9 @@ export async function GET() {
             success: true,
             sections: activeSections,
         });
-    } catch (e: any) {
-        return NextResponse.json({ success: false, message: e.message || 'Hata' }, { status: 500 });
+    } catch (e) {
+        // Internal errors (e.g. database connection details) stay in the server log
+        console.error('Error fetching public homepage sections:', e);
+        return NextResponse.json({ success: false, message: 'Ana sayfa bölümleri şu anda yüklenemiyor.' }, { status: 503 });
     }
 }

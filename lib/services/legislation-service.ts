@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import { LEGISLATION_DEFAULTS } from '@/data/public-defaults';
 import { logAuditEvent } from '@/lib/audit';
 
 export interface LegislationData {
@@ -25,7 +26,8 @@ export const LegislationService = {
             });
         } catch (error) {
             console.error('Error fetching public legislations:', error);
-            return [];
+            // Database unreachable: show the original website content instead of an empty page
+            return LEGISLATION_DEFAULTS.filter((r) => !category || r.category === category.toUpperCase()).map((r, i) => ({ id: `default-legislation-${i}`, ...r, isActive: true }));
         }
     },
 

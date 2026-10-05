@@ -1,6 +1,6 @@
 /**
  * Public content of the original İKÜANTS TEKMER website (mentors, programs, team, boards,
- * partners, facilities, services). Single source for the seed scripts and the fallback the
+ * partners, facilities, services, legislation). Single source for the seed scripts and the fallback the
  * public services return when the database is unreachable (e.g. a deploy without
  * DATABASE_URL). Once seeded, the content is managed in admin; these values never
  * override database records.
@@ -349,5 +349,58 @@ export const SERVICE_DEFAULTS = [
             "Teknoloji geliştirme bölgesi avantajları"
         ]),
         sortOrder: 5,
+    },
+];
+
+/** Legislation documents as listed on the original website. */
+export const LEGISLATION_DEFAULTS = [
+    {
+        title: "KOSGEB Destek Programları Yönetmeliği",
+        externalUrl: "https://ikuantstekmer.com/sites/default/files/portfolio/tekmer/kosgeb-destek-programlari-yonetmeligi.pdf",
+        description: "Küçük ve Orta Ölçekli İşletmeleri Geliştirme ve Destekleme İdaresi Başkanlığı destek programları",
+        category: "YONETMELIK",
+        sortOrder: 1,
+    },
+    {
+        title: "Cumhurbaşkanlığı Kararnamesi",
+        externalUrl: "https://ikuantstekmer.com/sites/default/files/portfolio/tekmer/cumhurbaskanligi-kararnamesi.pdf",
+        description: "Teknoloji geliştirme bölgelerine ilişkin Cumhurbaşkanlığı kararnamesi",
+        category: "KARARNAME",
+        sortOrder: 2,
+    },
+    {
+        title: "7263 Sayılı Kanun",
+        externalUrl: "https://ikuantstekmer.com/sites/default/files/portfolio/tekmer/7263-sayili-kanun.pdf",
+        description: "Teknoloji Geliştirme Bölgeleri Kanunu ile bazı kanunlarda değişiklik yapılmasına dair kanun",
+        category: "KANUN",
+        sortOrder: 3,
+    },
+    {
+        title: "5746 Ar-Ge Faaliyetlerinin Desteklenmesi Kanunu Yönetmeliği",
+        externalUrl: "https://ikuantstekmer.com/sites/default/files/portfolio/tekmer/5746-arge-faaliyetlerinin-desteklenmesi-kanunu-yonetmeligi.pdf",
+        description: "Araştırma, geliştirme ve tasarım faaliyetlerinin desteklenmesine ilişkin yönetmelik",
+        category: "YONETMELIK",
+        sortOrder: 4,
+    },
+    {
+        title: "4691 Sayılı Teknoloji Geliştirme Bölgeleri Yönetmeliği",
+        externalUrl: "https://ikuantstekmer.com/sites/default/files/portfolio/tekmer/4691-sayili-teknoloji-gelistirme-bolgeleri-yonetmeligi.pdf",
+        description: "Teknoloji geliştirme bölgelerinin kuruluşu, işleyişi ve denetimine ilişkin yönetmelik",
+        category: "YONETMELIK",
+        sortOrder: 5,
+    },
+    {
+        title: "4691-5746 Kanunlarında Değişiklik Düzenlemesi",
+        externalUrl: "https://ikuantstekmer.com/sites/default/files/portfolio/tekmer/4691-5746-kanunlarinda-degisiklik-duzenlenmesi.pdf",
+        description: "İlgili kanunlarda yapılan değişiklik ve düzenlemeler",
+        category: "TEBLIG",
+        sortOrder: 6,
+    },
+    {
+        title: "4691 Sayılı Teknoloji Geliştirme Bölgeleri Kanunu",
+        externalUrl: "https://ikuantstekmer.com/sites/default/files/portfolio/tekmer/4691-sayili-teknoloji-gelistirme-bolgeleri-kanunu.pdf",
+        description: "Teknoloji geliştirme bölgelerinin kuruluşu, yönetimi ve çalışmalarına ilişkin ana kanun",
+        category: "KANUN",
+        sortOrder: 7,
     },
 ];
