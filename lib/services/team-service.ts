@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import { TEAM_DEFAULTS } from '@/data/public-defaults';
 import { logAuditEvent } from '@/lib/audit';
 
 export interface TeamMemberData {
@@ -23,7 +24,8 @@ export const TeamService = {
             });
         } catch (error) {
             console.error('Error fetching public team members:', error);
-            return [];
+            // Database unreachable: show the original website content instead of an empty page
+            return TEAM_DEFAULTS.map((t, i) => ({ id: `default-team-${i}`, ...t, isActive: true }));
         }
     },
 

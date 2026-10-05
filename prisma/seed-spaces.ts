@@ -11,18 +11,7 @@
 import { prisma } from '../lib/prisma';
 import { SpaceDomainService } from '../lib/services/space-domain-service';
 import { MACHINE_SEEDS } from '../lib/machines';
-
-const VERIFIED_SPACES: { title: string; code: string; type: string; capacity: number | null; equipment: string | null; description: string }[] = [
-    { title: 'Broadcasting Stüdyosu', code: 'STUDIO-01', type: 'STUDIO', capacity: null, equipment: 'Kamera sistemi, ses yalıtımı, canlı yayın altyapısı', description: 'Profesyonel yayın ve podcast kayıtları için tam donanımlı stüdyo. Yüksek kaliteli ses ve görüntü ekipmanları ile içerik üreticilerine hizmet vermektedir.' },
-    { title: 'AR/VR Stüdyosu', code: 'STUDIO-02', type: 'STUDIO', capacity: null, equipment: "VR Headset'ler, motion capture, 3D modelleme istasyonları", description: "Artırılmış ve sanal gerçeklik projelerinin geliştirilmesi için özel donanımlı laboratuvar. VR headset'ler ve geliştirme araçları mevcuttur." },
-    { title: 'Sanal Çekim Stüdyosu', code: 'STUDIO-03', type: 'STUDIO', capacity: null, equipment: 'Green screen, profesyonel aydınlatma, sanal set yazılımları', description: 'Green screen ve sanal set teknolojileri ile profesyonel video prodüksiyon imkanı sunan çekim stüdyosu.' },
-    { title: 'Prototipleme Laboratuvarı', code: 'LAB-01', type: 'LAB', capacity: null, equipment: null, description: 'Prototip geliştirme çalışmaları için laboratuvar alanı.' },
-    { title: 'Seminer Alanı', code: 'SEMINAR-01', type: 'SEMINAR_AREA', capacity: null, equipment: null, description: 'Seminer, eğitim ve sunumlar için kullanılan alan.' },
-    { title: 'Kapalı Toplantı Odası', code: 'MEETING-01', type: 'MEETING_ROOM', capacity: null, equipment: null, description: 'Kapalı toplantı odası.' },
-    { title: 'Açık Toplantı Masası 1 — 8 Kişilik', code: 'OPEN-TABLE-01', type: 'OPEN_MEETING_TABLE', capacity: 8, equipment: null, description: '8 kişilik açık toplantı masası.' },
-    { title: 'Açık Toplantı Masası 2 — 8 Kişilik', code: 'OPEN-TABLE-02', type: 'OPEN_MEETING_TABLE', capacity: 8, equipment: null, description: '8 kişilik açık toplantı masası.' },
-    { title: 'Açık Toplantı Masası — 20 Kişilik', code: 'OPEN-TABLE-03', type: 'OPEN_MEETING_TABLE', capacity: 20, equipment: null, description: '20 kişilik açık toplantı masası.' },
-];
+import { VERIFIED_SPACES } from '../data/public-defaults';
 
 export async function seedVerifiedSpaces() {
     let created = 0;

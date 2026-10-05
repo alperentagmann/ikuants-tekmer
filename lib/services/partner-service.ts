@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import { PARTNER_DEFAULTS } from '@/data/public-defaults';
 import { logAuditEvent } from '@/lib/audit';
 
 export interface PartnerData {
@@ -25,7 +26,8 @@ export const PartnerService = {
             });
         } catch (error) {
             console.error('Error fetching public partners:', error);
-            return [];
+            // Database unreachable: show the original website content instead of an empty page
+            return PARTNER_DEFAULTS.filter((p) => !partnerGroup || p.partnerGroup === partnerGroup.toUpperCase()).map((p, i) => ({ id: `default-partner-${i}`, ...p, isActive: true }));
         }
     },
 

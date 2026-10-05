@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import { PROGRAM_DEFAULTS } from '@/data/public-defaults';
 import { logAuditEvent } from '@/lib/audit';
 import { createRevision } from '@/lib/revision';
 import { resolveProgramTheme, sanitizeProgramTheme } from '@/lib/program-theme';
@@ -147,6 +148,19 @@ function safeStringify(val: any): string | null {
     }
 }
 
+/** Original website programs, shaped like public program rows (used when the database is unreachable). */
+function defaultPrograms() {
+    return PROGRAM_DEFAULTS.map((p, i) => formatProgramItem({ id: `default-program-${i}`, ...p, isPublished: true, isArchived: false }));
+}
+
+/** Same slug aliases and name match as getProgramBySlug, against the default programs. */
+function findDefaultProgram(slug: string) {
+    const aliases = [slug, slug.replace(/-/g, ''), `${slug}-on-kulucka`, `${slug}-kulucka`, `${slug}-programi`];
+    const name = slug.replace(/-/g, ' ').toLocaleLowerCase('tr');
+    const list = defaultPrograms();
+    return list.find((p) => aliases.includes(p?.slug)) ?? list.find((p) => p?.name.toLocaleLowerCase('tr').includes(name)) ?? null;
+}
+
 const CAMPAIGN_INCLUDE = { campaigns: { where: { status: { not: 'ARCHIVED' } }, select: { status: true, form: { select: { publicPath: true, slug: true } } } } } as const;
 
 export const ProgramService = {
@@ -161,7 +175,8 @@ export const ProgramService = {
             return list.map(formatProgramItem);
         } catch (error) {
             console.error('Error fetching public programs:', error);
-            return [];
+            // Database unreachable: show the original website content instead of an empty page
+            return defaultPrograms();
         }
     },
 
@@ -195,7 +210,7 @@ export const ProgramService = {
 
             return formatProgramItem(item);
         } catch {
-            return null;
+            return findDefaultProgram(slug);
         }
     },
 

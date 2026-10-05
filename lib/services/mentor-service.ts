@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import { MENTOR_DEFAULTS } from '@/data/public-defaults';
 import { logAuditEvent } from '@/lib/audit';
 import { createRevision } from '@/lib/revision';
 
@@ -61,8 +62,24 @@ export const MentorService = {
                 expertiseAreas: m.expertiseAreas ? (typeof m.expertiseAreas === 'string' ? JSON.parse(m.expertiseAreas) : m.expertiseAreas) : [],
                 mentorAreas: m.mentorAreas ? (typeof m.mentorAreas === 'string' ? JSON.parse(m.mentorAreas) : m.mentorAreas) : [],
             }));
-        } catch {
-            return [];
+        } catch (error) {
+            console.error('Error fetching public mentors:', error);
+            // Database unreachable: show the original website content instead of an empty page
+            return MENTOR_DEFAULTS.map((m, i) => ({
+                id: `default-mentor-${i}`,
+                name: m.name,
+                surname: m.surname,
+                fullName: `${m.name} ${m.surname}`.trim(),
+                company: m.company,
+                title: m.title,
+                bio: null,
+                imageUrl: m.imageUrl,
+                linkedin: m.linkedin,
+                website: null,
+                isFeatured: i < 6,
+                expertiseAreas: [],
+                mentorAreas: [],
+            }));
         }
     },
 

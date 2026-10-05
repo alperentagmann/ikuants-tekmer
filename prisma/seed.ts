@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { MENTOR_DEFAULTS, PROGRAM_DEFAULTS } from '../data/public-defaults';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { syncRbacDefinitions } from '../lib/rbac-sync';
@@ -114,30 +115,7 @@ async function main() {
 
     // 4. MENTORS SEED
     console.log('Seeding existing mentors...');
-    const initialMentors = [
-        { name: "Zico Ufuk", surname: "Batum", company: "Ventures & Mentors League", title: "Founder", imageUrl: "/images/zico-ufuk-batum.jpg", linkedin: "https://www.linkedin.com/in/zico-ufuk-batum-51238950/" },
-        { name: "Onur", surname: "Yolay", company: "Innoway R&D Kft.", title: "Co-Founder", imageUrl: "/images/onur-yolay.jpg", linkedin: "https://www.linkedin.com/in/onuryolay/" },
-        { name: "Nizamettin Sami", surname: "Harputlu", company: "Startup Centrum", title: "Co-Founder", imageUrl: "/images/nizamettin-harputlu.jpg", linkedin: "https://www.linkedin.com/in/nizamettinsamiharputlu/" },
-        { name: "Abdulsamet", surname: "Ekşi", company: "Türk Havacılık ve Uzay Sanayii", title: "Technology and Innovation Management", imageUrl: "/images/abdulsamet-eksi.jpg", linkedin: "https://www.linkedin.com/in/abdulsameteksi/" },
-        { name: "Bikem", surname: "İnce İnanç", company: "Malogra Danışmanlık", title: "Founder", imageUrl: "/images/bikem-ince.jpg", linkedin: "https://www.linkedin.com/in/bikeminceinanc/" },
-        { name: "Büşra", surname: "Altınsoy", company: "Pexa Boru Sanayi", title: "Yönetim Kurulu Üyesi", imageUrl: "/images/busra-altinsoy.jpg", linkedin: "https://www.linkedin.com/in/busraaltinsoy/" },
-        { name: "Sıla", surname: "Dinçer", company: "Ödeal", title: "R&D Manager", imageUrl: "/images/sila-dincer.jpg", linkedin: "https://www.linkedin.com/in/siladincer/" },
-        { name: "Filiz", surname: "Aksoy", company: "Bilişim Teknolojileri", title: "Proje ve Ürün Yöneticisi", imageUrl: "/images/filiz-aksoy.png", linkedin: "https://www.linkedin.com/in/filiz-aksoy/" },
-        { name: "Pelin", surname: "Özkuzey", company: "Satış & Pazarlama", title: "Danışman", imageUrl: "/images/pelin-ozkuzey.jpg", linkedin: "https://www.linkedin.com/in/pelin-ozkuzey-71223712/" },
-        { name: "Belma", surname: "Tost", company: "Pluxee Türkiye", title: "Senior Service & Experience Designer", imageUrl: "/images/belma-tost.jpg", linkedin: "https://www.linkedin.com/in/belma-tost" },
-        { name: "Dr. Öğr. Üyesi Burçin", surname: "Ataseven Doğru", company: "İstanbul Kültür Üniversitesi", title: "İktisadi ve İdari Bilimler Fakültesi", imageUrl: "/images/burcin-ataseven.jpg", linkedin: "https://www.linkedin.com/in/dr-bur%C3%A7in-ataseven-do%C4%9Fru-689800250/" },
-        { name: "Öğr. Gör. Ezgi", surname: "Delen", company: "İzmir Bakırçay Üniversitesi", title: "Girişimcilik Atölyesi ve Yarışmalar Koordinatörlüğü", imageUrl: "/images/ezgi-delen.jpg", linkedin: "https://www.linkedin.com/in/ezgi-delen" },
-        { name: "Kenan", surname: "Keleş", company: "Palmiye Yazılım Teknolojileri Tic. Ltd. Şti.", title: "Co-Founder", imageUrl: "/images/kenan-keles.jpg", linkedin: "https://www.linkedin.com/in/mak-m%C3%BCh-kenan-kele%C5%9F-b4336a38/" },
-        { name: "Süleyman", surname: "Bayramoğlu", company: "Pexa Boru Sanayi Anonim Şirketi", title: "CEO", imageUrl: "/images/suleyman-bayramoglu.jpg", linkedin: "https://www.linkedin.com/in/suleyman-bayramoglu/" },
-        { name: "Günalp", surname: "Uysal", company: "Beezsoft", title: "Founder", imageUrl: "/images/gunalp-uysal.jpg", linkedin: "https://www.linkedin.com/in/gunalpuysal/" },
-        { name: "Emre", surname: "Gül", company: "FiProduct – VRHistoria", title: "Product Manager", imageUrl: "/images/emre-gul.jpg", linkedin: "https://www.fiproduct.com/" },
-        { name: "Melis Dünya", surname: "Sezer Türker", company: "FiProduct - VRHistoria", title: "Kreatif Direktör", imageUrl: "/images/melis-dunya-sezer.jpg", linkedin: "https://www.fiproduct.com/" },
-        { name: "Müge", surname: "Bezgin", company: "Startup Centrum", title: "Co-Founder", imageUrl: "/images/muge-bezgin.jpg", linkedin: "https://www.linkedin.com/in/mugebezgin/" },
-        { name: "Doç. Dr. Meri", surname: "Taksi Deveciyan", company: "İstanbul Kültür Üniversitesi", title: "İktisadi ve İdari Bilimler Fakültesi", imageUrl: "/images/meri-taksi.jpg", linkedin: "https://www.linkedin.com/in/meritaksideveciyan/" },
-        { name: "Doğukan", surname: "Gözalp", company: "Startup Centrum", title: "Business Developer & Start-up Mentor", imageUrl: "/images/dogukan-gozalp.jpg", linkedin: "https://www.linkedin.com/in/dogukanozalp/" },
-        { name: "Tuncay", surname: "Işıkçı", company: "Malogra Danışmanlık", title: "Finansal Yönetim Ekip Lideri", imageUrl: "/images/tuncay-isikci.jpg", linkedin: "https://www.linkedin.com/in/tuncay-i%C5%9F%C4%B1k%C3%A7%C4%B1-20b978222/" },
-        { name: "Yusuf", surname: "Kelpetin", company: "AtakDx", title: "Founder", imageUrl: "/images/yusuf-yilmaz-mentor.jpg", linkedin: "https://www.linkedin.com/in/yusuf-kelpetin-a016533a/" },
-    ];
+    const initialMentors = MENTOR_DEFAULTS;
 
     for (let i = 0; i < initialMentors.length; i++) {
         const m = initialMentors[i];
@@ -259,52 +237,7 @@ async function main() {
 
     // 7. PROGRAMS SEED
     console.log('Seeding programs...');
-    const initialPrograms = [
-        {
-            name: "ANTSPARK Ön Kuluçka Programı",
-            slug: "antspark-on-kulucka",
-            programType: "PRE_INCUBATION",
-            tagline: "Fikirden Ticarileşmeye Hızlı Başlangıç",
-            shortDesc: "Erken aşama teknoloji girişimcilerine yönelik 12 haftalık hızlandırma ve mentörlük programı.",
-            duration: "12 Hafta",
-            quota: "20 Girişim",
-            mentorHours: "70+ Saat",
-            applyStatus: "OPEN",
-            ctaText: "ANTSPARK'A BAŞVUR",
-            ctaLink: "/antspark-basvuru",
-            isFeatured: true,
-            sortOrder: 1,
-        },
-        {
-            name: "ANTSFire Kuluçka Programı",
-            slug: "antsfire-kulucka",
-            programType: "INCUBATION",
-            tagline: "Şirketleşen Girişimler İçin Büyüme ve Yatırım",
-            shortDesc: "Tescilli, şirketleşmiş teknoloji girişimleri için ofis, laboratuvar, yatırım erişimi ve küresel pazara açılma programı.",
-            duration: "24 Ay",
-            quota: "15 Şirket",
-            mentorHours: "150+ Saat",
-            applyStatus: "OPEN",
-            ctaText: "ANTSFIRE'A BAŞVUR",
-            ctaLink: "/antsfire-basvuru",
-            isFeatured: true,
-            sortOrder: 2,
-        },
-        {
-            name: "Glow Up Ideathon",
-            slug: "glow-up-ideathon",
-            programType: "IDEATHON",
-            tagline: "Yaratıcı Fikirlerin Yarıştığı 48 Saatlik İnovasyon Maratonu",
-            shortDesc: "Genç yenilikçiler ve öğrenciler için ödüllü hackathon & ideathon serisi.",
-            duration: "48 Saat",
-            quota: "100 Katılımcı",
-            applyStatus: "UPCOMING",
-            ctaText: "ETKİNLİK DETAYLARI",
-            ctaLink: "/glowup-basvuru",
-            isFeatured: false,
-            sortOrder: 3,
-        }
-    ];
+    const initialPrograms = PROGRAM_DEFAULTS;
 
     for (const prog of initialPrograms) {
         const existing = await prisma.program.findUnique({ where: { slug: prog.slug } });

@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import { SUPPORT_DEFAULTS } from '@/data/support-defaults';
 import { logAuditEvent } from '@/lib/audit';
 import { createRevision } from '@/lib/revision';
 
@@ -23,8 +24,10 @@ export const SupportService = {
                 where: { isActive: true, isArchived: false },
                 orderBy: { sortOrder: 'asc' },
             });
-        } catch {
-            return [];
+        } catch (error) {
+            console.error('Error fetching public supports:', error);
+            // Database unreachable: show the original website content instead of an empty page
+            return SUPPORT_DEFAULTS.map((s, i) => ({ ...s, id: `default-support-${s.id}`, legalBasis: null, ctaText: null, ctaLink: null, sourceUrl: null, sortOrder: i + 1, isActive: true, isArchived: false }));
         }
     },
 

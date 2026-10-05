@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import { BOARD_DEFAULTS } from '@/data/public-defaults';
 import { logAuditEvent } from '@/lib/audit';
 
 export interface BoardMemberData {
@@ -29,7 +30,20 @@ export const BoardService = {
             });
         } catch (error) {
             console.error('Error fetching public board members:', error);
-            return [];
+            // Database unreachable: show the original website content instead of an empty page
+            return BOARD_DEFAULTS.filter((b) => !boardType || b.boardType === boardType.toUpperCase()).map((b, i) => ({
+                id: `default-board-${i}`,
+                fullName: b.name,
+                title: b.title,
+                organization: b.organization || 'İKÜANTS TEKMER',
+                duty: b.duty,
+                boardType: b.boardType,
+                imageUrl: b.imageUrl,
+                imageStyle: b.imageStyle || null,
+                sortOrder: b.sortOrder,
+                isActive: true,
+                isPublished: true,
+            }));
         }
     },
 

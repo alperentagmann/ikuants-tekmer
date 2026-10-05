@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import { FACILITY_DEFAULTS, VERIFIED_SPACES } from '@/data/public-defaults';
 import { logAuditEvent } from '@/lib/audit';
 import { SpaceDomainService } from '@/lib/services/space-domain-service';
 import { FacilityExperienceService } from '@/lib/services/facility-experience-service';
@@ -11,6 +12,20 @@ export interface FacilityData {
     iconName?: string;
     sortOrder?: number;
     isActive?: boolean;
+}
+
+/** Original website facilities plus the verified shared spaces, shaped like public facility rows. */
+function defaultFacilities() {
+    const listed = FACILITY_DEFAULTS.map((f) => ({ ...f, featuresJson: f.featuresJson ?? null, iconName: f.iconName ?? 'Building' }));
+    const spaces = VERIFIED_SPACES.filter((s) => !listed.some((f) => f.title === s.title)).map((s, i) => ({
+        title: s.title,
+        description: s.description,
+        facilityType: s.type,
+        iconName: 'Building',
+        featuresJson: JSON.stringify({ spaceCode: s.code, capacity: s.capacity, equipment: s.equipment, status: 'AVAILABLE', reservationEnabled: true, publicVisible: true, approvalRequired: true }),
+        sortOrder: listed.length + i + 1,
+    }));
+    return [...listed, ...spaces].map((f, i) => ({ id: `default-facility-${i}`, ...f, isActive: true, has3D: false }));
 }
 
 export const FacilityService = {
@@ -35,7 +50,8 @@ export const FacilityService = {
                 .map((f) => ({ ...f, has3D: with3D.has(f.id) }));
         } catch (error) {
             console.error('Error fetching public facilities:', error);
-            return [];
+            // Database unreachable: show the original website content instead of an empty page
+            return defaultFacilities().filter((f) => !facilityType || f.facilityType === facilityType.toUpperCase());
         }
     },
 

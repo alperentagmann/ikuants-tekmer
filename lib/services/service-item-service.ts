@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import { SERVICE_DEFAULTS } from '@/data/public-defaults';
 import { logAuditEvent } from '@/lib/audit';
 
 export interface ServiceItemData {
@@ -23,7 +24,8 @@ export const ServiceItemService = {
             });
         } catch (error) {
             console.error('Error fetching public services:', error);
-            return [];
+            // Database unreachable: show the original website content instead of an empty page
+            return SERVICE_DEFAULTS.map((s, i) => ({ id: `default-service-${i}`, ...s, isActive: true }));
         }
     },
 
