@@ -64,23 +64,35 @@ export async function logAuditEvent(options: AuditLogOptions) {
             diff = diffSummary;
         }
 
-        await prisma.auditLog.create({
-            data: {
-                actorId: options.actorId,
-                actorEmail: options.actorEmail,
-                actorName: options.actorName,
-                action: options.action,
-                entityType: options.entityType,
-                entityId: options.entityId,
-                fieldName: options.fieldName,
-                oldValues: options.oldValues ? JSON.stringify(options.oldValues) : null,
-                newValues: options.newValues ? JSON.stringify(options.newValues) : null,
-                diff,
-                ipAddress: options.ipAddress,
-                userAgent: options.userAgent,
-                isPiiAccess: options.isPiiAccess || false,
-            },
-        });
+        const data = {
+            actorId: options.actorId,
+            actorEmail: options.actorEmail,
+            actorName: options.actorName,
+            action: options.action,
+            entityType: options.entityType,
+            entityId: options.entityId,
+            fieldName: options.fieldName,
+            oldValues: options.oldValues ? JSON.stringify(options.oldValues) : null,
+            newValues: options.newValues ? JSON.stringify(options.newValues) : null,
+            diff,
+            ipAddress: options.ipAddress,
+            userAgent: options.userAgent,
+            isPiiAccess: options.isPiiAccess || false,
+        };
+
+        try {
+            await prisma.auditLog.create({ data });
+        } catch (error) {
+            // The actor account may no longer exist (or be a non-user principal). The audit
+            // record is still written, keeping the actor's id in the diff for traceability.
+            if ((error as { code?: string }).code === 'P2003' && data.actorId) {
+                await prisma.auditLog.create({
+                    data: { ...data, actorId: null, diff: `${data.diff || ''}${data.diff ? ' ' : ''}[actorId: ${data.actorId}]` },
+                });
+                return;
+            }
+            throw error;
+        }
     } catch (error) {
         console.error('Audit log creation failed:', error);
     }

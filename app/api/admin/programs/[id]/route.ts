@@ -11,7 +11,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
             return NextResponse.json({ success: false, message: 'Yetkisiz' }, { status: 403 });
         }
 
-        const program = await ProgramService.getProgramBySlug(id);
+        // Admin screens pass the program id; slugs still work for older links
+        const program = (await ProgramService.getProgramById(id)) || (await ProgramService.getProgramBySlug(id));
         if (!program) return NextResponse.json({ success: false, message: 'Bulunamadı' }, { status: 404 });
 
         return NextResponse.json({ success: true, program });

@@ -52,8 +52,10 @@ test.describe('10. DESTEKLER — SUPPORTS E2E CRUD', () => {
         await descInput.fill(TEST_DESC);
 
         // Kaydet
-        await page.locator('button:has-text("Kaydet")').click();
-        await page.waitForTimeout(1000);
+        await Promise.all([
+            page.waitForResponse((r) => r.url().includes('/api/admin/supports') && r.request().method() === 'POST'),
+            page.locator('button:has-text("Kaydet")').click(),
+        ]);
 
         // 3. DB kontrolü
         const createdInDb = await prisma.support.findFirst({

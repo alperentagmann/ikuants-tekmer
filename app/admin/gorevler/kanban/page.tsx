@@ -6,7 +6,7 @@ import {
     CheckSquare, Clock, User, MessageSquare, Tag, AlertCircle,
     ChevronRight, MoreHorizontal, ArrowRight, CheckCircle2,
     Share2, ExternalLink, Sparkles, Filter, Search, Trash2,
-    Eye, Send, Paperclip
+    Eye, Send, Paperclip, RefreshCw
 } from 'lucide-react';
 
 interface ChecklistItem {
@@ -103,7 +103,7 @@ export default function KanbanStudioPage() {
                     title: t.title,
                     description: t.description,
                     priority: t.priority || 'MEDIUM',
-                    status: (t.status === 'COMPLETED' ? 'DONE' : t.status) || 'TODO',
+                    status: (t.status === 'COMPLETED' ? 'DONE' : t.status === 'REVIEW' ? 'IN_REVIEW' : t.status === 'CANCELLED' ? 'DONE' : t.status) || 'TODO',
                     dueDate: t.dueDate ? new Date(t.dueDate).toISOString().split('T')[0] : undefined,
                     tags: t.tags ? (typeof t.tags === 'string' ? JSON.parse(t.tags) : t.tags) : [],
                     assignees: t.assignees || [],
@@ -135,27 +135,37 @@ export default function KanbanStudioPage() {
         e.preventDefault();
     };
 
+    /** Every status change goes through the server lifecycle (same rules for buttons and drag & drop). */
+    const runTaskAction = async (task: KanbanTask, body: { action?: string; status?: string; comment?: string }, optimistic: KanbanTask['status'], successMessage: string) => {
+        const previous = task.status;
+        setTasks(prev => prev.map(t => t.id === task.id ? { ...t, status: optimistic } : t));
+        try {
+            const res = await fetch('/api/admin/tasks', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ taskId: task.id, ...body }),
+            });
+            const data = await res.json();
+            if (!res.ok || !data.success) throw new Error(data.message || 'Durum güncellenemedi');
+            showToast(successMessage);
+        } catch (err) {
+            setTasks(prev => prev.map(t => t.id === task.id ? { ...t, status: previous } : t));
+            showToast(err instanceof Error ? err.message : 'Durum güncellenemedi');
+        }
+    };
+
     const handleDrop = async (e: React.DragEvent, targetStatus: 'TODO' | 'IN_PROGRESS' | 'IN_REVIEW' | 'DONE') => {
         e.preventDefault();
         const taskId = draggedTaskId || e.dataTransfer.getData('text/plain');
-        if (!taskId) return;
-
-        // Optimistic update
-        setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: targetStatus } : t));
         setDraggedTaskId(null);
-
-        try {
-            const dbStatus = targetStatus === 'DONE' ? 'COMPLETED' : targetStatus;
-            await fetch('/api/admin/tasks', {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: taskId, status: dbStatus }),
-            });
-            showToast(`Görev durumu güncellendi: ${defaultColumns.find(c => c.id === targetStatus)?.title}`);
-        } catch (e) {
-            console.error('Failed to update task status:', e);
-            fetchTasks(); // Rollback
+        const task = tasks.find(t => t.id === taskId);
+        if (!task || task.status === targetStatus) return;
+        let comment: string | undefined;
+        if (task.status === 'IN_REVIEW' && (targetStatus === 'IN_PROGRESS' || targetStatus === 'TODO')) {
+            comment = window.prompt('Düzeltme açıklaması') || undefined;
+            if (!comment) return;
         }
+        await runTaskAction(task, { status: targetStatus, comment }, targetStatus, `Görev durumu güncellendi: ${defaultColumns.find(c => c.id === targetStatus)?.title}`);
     };
 
     const handleCreateTask = async (e: React.FormEvent) => {
@@ -165,7 +175,6 @@ export default function KanbanStudioPage() {
         const tagsArray = newTagInput ? newTagInput.split(',').map(s => s.trim()).filter(Boolean) : [];
 
         try {
-            const dbStatus = createColumnTarget === 'DONE' ? 'COMPLETED' : createColumnTarget;
             const res = await fetch('/api/admin/tasks', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -173,13 +182,20 @@ export default function KanbanStudioPage() {
                     title: newTitle,
                     description: newDesc,
                     priority: newPriority,
-                    status: dbStatus,
                     dueDate: newDueDate || undefined,
                     tags: tagsArray,
                 }),
             });
             const data = await res.json();
             if (data.success) {
+                // New tasks start in TODO; moving to another column goes through the lifecycle
+                if (createColumnTarget !== 'TODO' && data.task?.id) {
+                    await fetch('/api/admin/tasks', {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ taskId: data.task.id, status: createColumnTarget }),
+                    });
+                }
                 setIsCreateModalOpen(false);
                 setNewTitle('');
                 setNewDesc('');
@@ -520,6 +536,64 @@ export default function KanbanStudioPage() {
                                                                     </div>
                                                                 ))}
                                                             </div>
+                                                        )}
+                                                    </div>
+
+                                                    {/* Status Action Buttons (Sections 412-416) */}
+                                                    <div className="mt-2.5 pt-2 border-t border-white/5 flex items-center justify-between gap-1.5" onClick={(e) => e.stopPropagation()}>
+                                                        {task.status === 'TODO' && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => runTaskAction(task, { action: 'start' }, 'IN_PROGRESS', `Görev başlatıldı: "${task.title}"`)}
+                                                                className="w-full py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 rounded-lg text-[10px] font-bold flex items-center justify-center gap-1 transition-colors cursor-pointer"
+                                                            >
+                                                                <ArrowRight className="w-3 h-3" /> Başlat
+                                                            </button>
+                                                        )}
+                                                        {task.status === 'IN_PROGRESS' && (
+                                                            <div className="grid grid-cols-2 gap-1.5 w-full">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => runTaskAction(task, { action: 'submitForReview' }, 'IN_REVIEW', `Görev kontrole gönderildi: "${task.title}"`)}
+                                                                    className="py-1 bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 border border-purple-500/40 rounded-lg text-[10px] font-bold flex items-center justify-center gap-1 transition-colors cursor-pointer"
+                                                                >
+                                                                    <Clock className="w-3 h-3" /> Kontrole Gönder
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => runTaskAction(task, { action: 'complete' }, 'DONE', `Görev tamamlandı: "${task.title}"`)}
+                                                                    className="py-1 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 rounded-lg text-[10px] font-bold flex items-center justify-center gap-1 transition-colors cursor-pointer"
+                                                                >
+                                                                    <CheckCircle2 className="w-3 h-3" /> Tamamla
+                                                                </button>
+                                                            </div>
+                                                        )}
+                                                        {task.status === 'IN_REVIEW' && (
+                                                            <div className="grid grid-cols-2 gap-1.5 w-full">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => { const comment = window.prompt('Düzeltme açıklaması'); if (comment) runTaskAction(task, { action: 'returnForRevision', comment }, 'IN_PROGRESS', `Düzeltmeye gönderildi: "${task.title}"`); }}
+                                                                    className="py-1 bg-white/5 hover:bg-white/10 text-gray-300 border border-white/10 rounded-lg text-[10px] font-bold flex items-center justify-center gap-1 transition-colors cursor-pointer"
+                                                                >
+                                                                    Düzeltmeye Gönder
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => runTaskAction(task, { action: 'approve' }, 'DONE', `Onaylandı ve tamamlandı: "${task.title}"`)}
+                                                                    className="py-1 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 rounded-lg text-[10px] font-bold flex items-center justify-center gap-1 transition-colors cursor-pointer"
+                                                                >
+                                                                    <CheckCircle2 className="w-3 h-3" /> Onayla & Tamamla
+                                                                </button>
+                                                            </div>
+                                                        )}
+                                                        {task.status === 'DONE' && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => runTaskAction(task, { action: 'reopen' }, 'TODO', `Görev yeniden açıldı: "${task.title}"`)}
+                                                                className="w-full py-1 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white border border-white/10 rounded-lg text-[10px] font-mono flex items-center justify-center gap-1 transition-colors cursor-pointer"
+                                                            >
+                                                                <RefreshCw className="w-3 h-3" /> Yeniden Aç
+                                                            </button>
                                                         )}
                                                     </div>
                                                 </div>

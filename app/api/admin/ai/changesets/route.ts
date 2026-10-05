@@ -1,27 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { getAuthUser } from '@/lib/auth';
+import { requireAdmin, errorResponse } from '@/lib/api-guard';
+import { AiEngine } from '@/lib/ai/engine';
+import type { AiActor } from '@/lib/ai/types';
 
-export async function GET(req: NextRequest) {
-    const user = await getAuthUser(req);
-    if (!user) {
-        return NextResponse.json({ success: false, message: 'Yetkisiz erişim' }, { status: 401 });
-    }
-
+export async function GET(request: NextRequest) {
+    const auth = await requireAdmin(request, 'use', 'ai');
+    if (auth.error) return auth.error;
     try {
-        const { searchParams } = new URL(req.url);
-        const limit = searchParams.get('limit') ? Number(searchParams.get('limit')) : 50;
-
-        const where: any = user.isSuperAdmin ? {} : { userId: user.id };
-
-        const items = await prisma.aiChangeSet.findMany({
-            where,
-            orderBy: { createdAt: 'desc' },
-            take: limit,
-        });
-
-        return NextResponse.json({ success: true, items });
-    } catch (error: any) {
-        return NextResponse.json({ success: false, message: error.message }, { status: 500 });
+        const limit = Number(new URL(request.url).searchParams.get('limit') || 50);
+        return NextResponse.json({ success: true, items: await AiEngine.history(auth.user as AiActor, Number.isFinite(limit) ? limit : 50) });
+    } catch (error) {
+        return errorResponse(error, 'İşlem geçmişi alınamadı');
     }
 }

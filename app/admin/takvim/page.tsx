@@ -1,93 +1,56 @@
 "use client";
-import React, { useState, useEffect } from 'react';
-import { InteractiveCalendar } from '@/components/admin/InteractiveCalendar';
-import { Calendar as CalendarIcon, Download, Plus, Filter, RefreshCw } from 'lucide-react';
+import React, { useCallback, useEffect, useState } from 'react';
+import { InteractiveCalendar, type CalendarEventItem } from '@/components/admin/InteractiveCalendar';
+import { Calendar as CalendarIcon, RefreshCw } from 'lucide-react';
+
+/** First instant of a month in Istanbul (UTC+3, no DST). */
+const monthStart = (year: number, month: number) => new Date(`${year}-${String(month + 1).padStart(2, '0')}-01T00:00:00+03:00`);
 
 export default function CalendarPage() {
-    const [items, setItems] = useState<any[]>([]);
+    const [items, setItems] = useState<CalendarEventItem[]>([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [visible, setVisible] = useState(() => ({ year: new Date().getFullYear(), month: new Date().getMonth() }));
 
-    const fetchCalendarItems = async () => {
+    const load = useCallback(async () => {
         setLoading(true);
         try {
-            const res = await fetch('/api/admin/calendar');
+            // Load the visible month plus a week on both sides for the agenda view
+            const start = new Date(monthStart(visible.year, visible.month).getTime() - 7 * 86400000);
+            const end = new Date(monthStart(visible.month === 11 ? visible.year + 1 : visible.year, (visible.month + 1) % 12).getTime() + 7 * 86400000);
+            const res = await fetch(`/api/admin/calendar?startDate=${start.toISOString()}&endDate=${end.toISOString()}`, { cache: 'no-store' });
             const data = await res.json();
-            if (data.success) {
-                setItems(data.items);
-            }
+            if (!res.ok || !data.success) throw new Error(data.message || 'Takvim yüklenemedi');
+            setItems(data.items);
+            setError(null);
         } catch (e) {
-            console.error(e);
+            setError(e instanceof Error ? e.message : 'Takvim yüklenemedi');
         } finally {
             setLoading(false);
         }
-    };
+    }, [visible]);
 
     useEffect(() => {
-        fetchCalendarItems();
-    }, []);
-
-    const exportToICS = () => {
-        if (items.length === 0) return;
-        let icsContent = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//IKUANTS TEKMER//Operasyonel Takvim//TR\nCALSCALE:GREGORIAN\n";
-
-        items.forEach((item) => {
-            const startDate = new Date(item.startDate).toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
-            const endDate = item.endDate
-                ? new Date(item.endDate).toISOString().replace(/[-:]/g, "").split(".")[0] + "Z"
-                : startDate;
-
-            icsContent += `BEGIN:VEVENT\nSUMMARY:${item.title}\nDTSTART:${startDate}\nDTEND:${endDate}\nDESCRIPTION:${item.description || ''}\nLOCATION:${item.location || ''}\nEND:VEVENT\n`;
-        });
-
-        icsContent += "END:VCALENDAR";
-
-        const blob = new Blob([icsContent], { type: "text/calendar;charset=utf-8" });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.setAttribute("download", `ikuants-tekmer-takvim-${new Date().toISOString().slice(0, 10)}.ics`);
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    };
+        const t = setTimeout(load, 0);
+        return () => clearTimeout(t);
+    }, [load]);
 
     return (
         <div className="space-y-6">
-            {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
                 <div>
-                    <h1 className="text-2xl font-bold font-orbitron text-white flex items-center gap-3">
-                        <CalendarIcon className="w-7 h-7 text-primary" />
+                    <h1 className="flex items-center gap-3 font-orbitron text-2xl font-bold text-white">
+                        <CalendarIcon className="h-7 w-7 text-primary" />
                         Ortak Kurumsal Takvim
                     </h1>
-                    <p className="text-xs text-gray-400 mt-1">
-                        Eğitimler, etkinlikler, görev teslim tarihleri, toplantılar ve kurumsal faaliyetlerin birleşik ajandası.
-                    </p>
+                    <p className="mt-1 text-xs text-gray-400">Görev terminleri, eğitimler, etkinlikler, rezervasyonlar, görüşme takipleri, sözleşme bitişleri ve kira vadeleri. Yalnızca yetkili olduğunuz modüller gösterilir.</p>
                 </div>
-                <div className="flex items-center gap-3">
-                    <button
-                        onClick={fetchCalendarItems}
-                        className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 hover:text-white transition-all"
-                        title="Yenile"
-                    >
-                        <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-                    </button>
-                    <button
-                        onClick={exportToICS}
-                        className="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-semibold flex items-center gap-2 transition-all"
-                    >
-                        <Download className="w-4 h-4 text-primary" />
-                        Takvimi İndir (.ics)
-                    </button>
-                </div>
+                <button type="button" onClick={load} className="rounded-xl border border-white/10 bg-white/5 p-2.5 text-gray-300 hover:text-white" title="Yenile" aria-label="Yenile">
+                    <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                </button>
             </div>
-
-            {/* Calendar Container */}
-            {loading ? (
-                <div className="text-center py-20 text-xs font-mono text-gray-400">Takvim yükleniyor...</div>
-            ) : (
-                <InteractiveCalendar events={items} />
-            )}
+            {error && <div className="rounded-xl border border-rose-500/30 bg-rose-950/30 p-3 text-sm text-rose-200">{error}</div>}
+            <InteractiveCalendar events={items} onMonthChange={(year, month) => setVisible({ year, month })} />
         </div>
     );
 }

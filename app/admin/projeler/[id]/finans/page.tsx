@@ -40,47 +40,47 @@ export default function ProjectFinancePage() {
     const [fundingForm, setFundingForm] = useState({
         fundingSource: 'KOSGEB',
         organizationName: 'KOSGEB',
-        programName: 'TEKMER Destek Programı',
-        awardedAmount: '600000',
+        programName: '',
+        awardedAmount: '',
         currency: 'TRY',
-        agreementNo: 'KOSGEB-2026-01',
+        agreementNo: '',
         description: ''
     });
 
     const [receiptForm, setReceiptForm] = useState({
-        amount: '300000',
+        amount: '',
         currency: 'TRY',
         receivedDate: new Date().toISOString().split('T')[0],
         status: 'RECEIVED',
-        bankReferenceNo: 'TR-BANK-12345',
-        description: '1. Dilim Ödeme'
+        bankReferenceNo: '',
+        description: ''
     });
 
     const [expenseForm, setExpenseForm] = useState({
         fundingSourceId: '',
         budgetLineId: '',
         expenseDate: new Date().toISOString().split('T')[0],
-        category: 'Yazılım',
-        vendorName: 'Teknoloji A.Ş.',
-        description: 'Bulut Altyapı ve Sunucu Hizmeti',
-        amount: '100000',
+        category: '',
+        vendorName: '',
+        description: '',
+        amount: '',
         vatRate: '20',
-        vatAmount: '20000',
-        totalAmount: '120000',
+        vatAmount: '',
+        totalAmount: '',
         currency: 'TRY',
         paymentStatus: 'PAID',
         paymentDate: new Date().toISOString().split('T')[0],
         paymentMethod: 'BANK_TRANSFER',
-        invoiceNo: 'FAT-2026-009',
+        invoiceNo: '',
         approvalStatus: 'APPROVED'
     });
 
     const [budgetLineForm, setBudgetLineForm] = useState({
-        code: 'BL-01',
-        name: 'Personel Giderleri',
-        allocatedAmount: '250000',
+        code: '',
+        name: '',
+        allocatedAmount: '',
         currency: 'TRY',
-        description: 'Proje Ar-Ge personeli maaş bütçesi'
+        description: ''
     });
 
     const fetchLedger = async () => {

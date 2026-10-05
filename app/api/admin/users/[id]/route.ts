@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { getCurrentAdminUser } from '@/lib/auth';
 import { hasPermission, canAssignRole } from '@/lib/rbac';
 import { UserManagementService } from '@/lib/services/user-management-service';
+import { sanitizeStaffProfile } from '@/lib/hr';
 
 export async function GET(
     request: NextRequest,
@@ -25,6 +26,9 @@ export async function GET(
                 department: true,
                 phone: true,
                 avatarUrl: true,
+                employmentType: true,
+                sgkStatus: true,
+                hireDate: true,
                 isActive: true,
                 status: true,
                 isSuperAdmin: true,
@@ -68,6 +72,8 @@ export async function PUT(
 
         const body = await request.json();
         const { name, title, department, phone, avatarUrl, roleId, isSuperAdmin, isActive, status, mustChangePassword, notes } = body;
+        const staff = sanitizeStaffProfile(body);
+        const cleanAvatar = typeof avatarUrl === 'string' ? ((avatarUrl.startsWith('/') && !avatarUrl.startsWith('//')) || /^https:\/\//.test(avatarUrl) ? avatarUrl.slice(0, 500) : '') : undefined;
 
         // If updating roles or admin status, caller must have 'users:assign_role'
         if (roleId || isSuperAdmin !== undefined) {
@@ -89,13 +95,14 @@ export async function PUT(
             title,
             department,
             phone,
-            avatarUrl,
+            avatarUrl: cleanAvatar,
             roleId,
             isSuperAdmin: caller.isSuperAdmin ? isSuperAdmin : undefined,
             isActive,
             status,
             mustChangePassword,
             notes,
+            ...staff,
             actorId: caller.id,
         });
 

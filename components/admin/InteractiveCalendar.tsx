@@ -1,15 +1,14 @@
 "use client";
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import {
-    ChevronLeft, ChevronRight, Calendar as CalendarIcon,
-    Clock, MapPin, Download, Filter, AlertTriangle, CheckSquare,
-    BookOpen, Sparkles, Activity, Users
+    ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, MapPin, Download
 } from 'lucide-react';
 
 export interface CalendarEventItem {
     id: string;
     title: string;
-    type: 'TASK' | 'TRAINING' | 'EVENT' | 'MEETING' | 'ACTIVITY';
+    type: 'TASK' | 'TRAINING' | 'EVENT' | 'MEETING' | 'ACTIVITY' | 'RESERVATION' | 'CONTRACT' | 'RENT' | 'FOLLOW_UP';
     startDate: Date | string;
     endDate?: Date | string;
     location?: string;
@@ -21,12 +20,18 @@ export interface CalendarEventItem {
 interface InteractiveCalendarProps {
     events: CalendarEventItem[];
     onEventClick?: (event: CalendarEventItem) => void;
+    /** Called with the first and last instant of the visible month so the page can load that range. */
+    onMonthChange?: (year: number, month: number) => void;
 }
+
+const TYPE_LABEL: Record<CalendarEventItem['type'], string> = { TASK: 'Görev', TRAINING: 'Eğitim', EVENT: 'Etkinlik', MEETING: 'Toplantı', ACTIVITY: 'Faaliyet', RESERVATION: 'Rezervasyon', CONTRACT: 'Sözleşme', RENT: 'Kira', FOLLOW_UP: 'Takip' };
 
 export const InteractiveCalendar: React.FC<InteractiveCalendarProps> = ({
     events,
     onEventClick,
+    onMonthChange,
 }) => {
+    const router = useRouter();
     const [currentDate, setCurrentDate] = useState(new Date());
     const [viewMode, setViewMode] = useState<'MONTH' | 'WEEK' | 'AGENDA'>('MONTH');
     const [filterType, setFilterType] = useState<string>('ALL');
@@ -41,17 +46,13 @@ export const InteractiveCalendar: React.FC<InteractiveCalendarProps> = ({
 
     const daysOfWeek = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
 
-    const nextMonth = () => {
-        setCurrentDate(new Date(year, month + 1, 1));
+    const go = (d: Date) => {
+        setCurrentDate(d);
+        onMonthChange?.(d.getFullYear(), d.getMonth());
     };
-
-    const prevMonth = () => {
-        setCurrentDate(new Date(year, month - 1, 1));
-    };
-
-    const today = () => {
-        setCurrentDate(new Date());
-    };
+    const nextMonth = () => go(new Date(year, month + 1, 1));
+    const prevMonth = () => go(new Date(year, month - 1, 1));
+    const today = () => go(new Date());
 
     // Calculate Days for Month Grid
     const firstDayOfMonth = new Date(year, month, 1).getDay();
@@ -73,11 +74,12 @@ export const InteractiveCalendar: React.FC<InteractiveCalendarProps> = ({
         return ev.type === filterType;
     });
 
-    const getEventsForDay = (dateStr: string) => {
-        return filteredEvents.filter((ev) => {
-            const evDate = new Date(ev.startDate).toISOString().slice(0, 10);
-            return evDate === dateStr;
-        });
+    // Days are bucketed on the Istanbul calendar, not UTC
+    const istanbulDay = (d: Date | string) => new Date(d).toLocaleDateString('sv-SE', { timeZone: 'Europe/Istanbul' });
+    const getEventsForDay = (dateStr: string) => filteredEvents.filter((ev) => istanbulDay(ev.startDate) === dateStr);
+    const openEvent = (ev: CalendarEventItem) => {
+        if (onEventClick) onEventClick(ev);
+        else if (ev.url) router.push(ev.url);
     };
 
     const getTypeColor = (type: CalendarEventItem['type']) => {
@@ -92,6 +94,14 @@ export const InteractiveCalendar: React.FC<InteractiveCalendarProps> = ({
                 return 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30';
             case 'MEETING':
                 return 'bg-blue-500/20 text-blue-300 border-blue-500/30';
+            case 'RESERVATION':
+                return 'bg-sky-500/20 text-sky-300 border-sky-500/30';
+            case 'CONTRACT':
+                return 'bg-rose-500/20 text-rose-300 border-rose-500/30';
+            case 'RENT':
+                return 'bg-orange-500/20 text-orange-300 border-orange-500/30';
+            case 'FOLLOW_UP':
+                return 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30';
             default:
                 return 'bg-gray-500/20 text-gray-300 border-gray-500/30';
         }
@@ -101,7 +111,7 @@ export const InteractiveCalendar: React.FC<InteractiveCalendarProps> = ({
         let icsContent = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//IKUANTS TEKMER//Operasyon Takvimi//TR\nCALSCALE:GREGORIAN\n";
         filteredEvents.forEach((ev) => {
             const start = new Date(ev.startDate).toISOString().replace(/[-:]/g, "").slice(0, 15) + "Z";
-            icsContent += `BEGIN:VEVENT\nSUMMARY:${ev.title}\nDTSTART:${start}\nDESCRIPTION:${ev.type}\nLOCATION:${ev.location || "IKUANTS TEKMER"}\nEND:VEVENT\n`;
+            icsContent += `BEGIN:VEVENT\nSUMMARY:${ev.title}\nDTSTART:${start}\nDESCRIPTION:${ev.type}\nLOCATION:${ev.location || ""}\nEND:VEVENT\n`;
         });
         icsContent += "END:VCALENDAR";
 
@@ -143,7 +153,10 @@ export const InteractiveCalendar: React.FC<InteractiveCalendarProps> = ({
                         <option value="TRAINING">Eğitimler</option>
                         <option value="EVENT">Etkinlikler</option>
                         <option value="ACTIVITY">Faaliyetler</option>
-                        <option value="MEETING">Toplantılar</option>
+                        <option value="RESERVATION">Rezervasyonlar</option>
+                        <option value="FOLLOW_UP">Görüşme takipleri</option>
+                        <option value="CONTRACT">Sözleşme bitişleri</option>
+                        <option value="RENT">Kira vadeleri</option>
                     </select>
 
                     {/* View Switcher */}
@@ -226,7 +239,7 @@ export const InteractiveCalendar: React.FC<InteractiveCalendarProps> = ({
                             }
 
                             const dayEvents = getEventsForDay(cell.dateStr);
-                            const isToday = new Date().toISOString().slice(0, 10) === cell.dateStr;
+                            const isToday = istanbulDay(new Date()) === cell.dateStr;
 
                             return (
                                 <div
@@ -254,7 +267,7 @@ export const InteractiveCalendar: React.FC<InteractiveCalendarProps> = ({
                                             <button
                                                 key={ev.id}
                                                 type="button"
-                                                onClick={() => onEventClick && onEventClick(ev)}
+                                                onClick={() => openEvent(ev)}
                                                 className={`w-full text-left px-1.5 py-0.5 rounded border text-[10px] truncate block transition-all ${getTypeColor(
                                                     ev.type
                                                 )}`}
@@ -282,19 +295,19 @@ export const InteractiveCalendar: React.FC<InteractiveCalendarProps> = ({
                         filteredEvents.map((ev) => (
                             <div
                                 key={ev.id}
-                                onClick={() => onEventClick && onEventClick(ev)}
+                                onClick={() => openEvent(ev)}
                                 className="p-3.5 rounded-xl bg-white/[0.02] border border-white/10 hover:border-cyan-500/30 transition-all flex items-center justify-between cursor-pointer"
                             >
                                 <div className="flex items-center gap-3">
                                     <span className={`px-2 py-0.5 text-[10px] font-mono font-bold rounded border ${getTypeColor(ev.type)}`}>
-                                        {ev.type}
+                                        {TYPE_LABEL[ev.type] || ev.type}
                                     </span>
                                     <div>
                                         <div className="text-sm font-semibold text-white">{ev.title}</div>
                                         <div className="text-xs text-gray-400 flex items-center gap-3 font-mono mt-0.5">
                                             <span className="flex items-center gap-1">
                                                 <Clock className="w-3 h-3 text-cyan-400" />
-                                                {new Date(ev.startDate).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}
+                                                {new Date(ev.startDate).toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}
                                             </span>
                                             {ev.location && (
                                                 <span className="flex items-center gap-1">

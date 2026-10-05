@@ -1,343 +1,298 @@
-"use client";
-import React, { useState, useEffect } from 'react';
-import {
-    Plus, Trash2, Edit2, CheckSquare, Save, Eye, Layers,
-    MoveUp, MoveDown, ArrowRight, Check, X, Shield, Smartphone, Monitor
-} from 'lucide-react';
-import type { FormFieldInput } from '@/lib/types/form';
+'use client';
 
-export default function AdminFormBuilderPage() {
-    const [forms, setForms] = useState<any[]>([]);
-    const [selectedForm, setSelectedForm] = useState<any | null>(null);
-    const [fields, setFields] = useState<FormFieldInput[]>([]);
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { ClipboardList, Plus, Search, ExternalLink, Copy, Archive, RotateCcw, Download, Inbox, Pencil, FileStack } from 'lucide-react';
+import { PageHeader, Button, Card, Badge, EmptyState, Skeleton, Alert, Modal, Field, TextInput, Select, Toggle, api, formatDateTime, inputClass } from '@/components/admin/ui';
+import { FORM_TYPES, formTypeLabel, applicationTypeLabel } from '@/lib/forms/schema';
+
+interface FormRow {
+    id: string;
+    title: string;
+    slug: string;
+    formType: string;
+    isPublished: boolean;
+    isArchived: boolean;
+    isTemplate: boolean;
+    publicPath: string | null;
+    owner: { id: string; name: string } | null;
+    currentVersion: { id: string; versionNumber: number; publishedAt: string | null } | null;
+    hasDraft: boolean;
+    draftVersionNumber: number | null;
+    versionCount: number;
+    campaigns: { id: string; name: string; applicationType: string; status: string; publicPath: string | null; program: { id: string; name: string } | null }[];
+    submissionCount: number;
+    updatedAt: string;
+    updatedBy: string | null;
+}
+
+function slugify(text: string): string {
+    const map: Record<string, string> = { ç: 'c', ğ: 'g', ı: 'i', ö: 'o', ş: 's', ü: 'u', Ç: 'c', Ğ: 'g', İ: 'i', Ö: 'o', Ş: 's', Ü: 'u' };
+    return text.split('').map((c) => map[c] ?? c).join('').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 70);
+}
+
+export default function FormCenterPage() {
+    const router = useRouter();
+    const [forms, setForms] = useState<FormRow[]>([]);
     const [loading, setLoading] = useState(true);
-    const [saving, setSaving] = useState(false);
-    const [previewMode, setPreviewMode] = useState<'desktop' | 'mobile'>('desktop');
-    const [showPreview, setShowPreview] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [notice, setNotice] = useState<string | null>(null);
+    const [search, setSearch] = useState('');
+    const [formType, setFormType] = useState('');
+    const [includeArchived, setIncludeArchived] = useState(false);
 
-    // New field draft
-    const [newFieldLabel, setNewFieldLabel] = useState('');
-    const [newFieldKey, setNewFieldKey] = useState('');
-    const [newFieldType, setNewFieldType] = useState('TEXT');
-    const [newFieldRequired, setNewFieldRequired] = useState(false);
-    const [newFieldStep, setNewFieldStep] = useState(1);
+    const [createOpen, setCreateOpen] = useState(false);
+    const [mode, setMode] = useState<'blank' | 'copy' | 'template'>('blank');
+    const [newTitle, setNewTitle] = useState('');
+    const [newSlug, setNewSlug] = useState('');
+    const [newType, setNewType] = useState('CUSTOM');
+    const [sourceId, setSourceId] = useState('');
+    const [creating, setCreating] = useState(false);
+    const [createError, setCreateError] = useState<string | null>(null);
 
-    const fetchForms = async () => {
+    const load = useCallback(async () => {
         setLoading(true);
+        setError(null);
         try {
-            const res = await fetch('/api/admin/forms');
-            const data = await res.json();
-            if (data.success) {
-                setForms(data.forms || []);
-                if (data.forms?.length > 0 && !selectedForm) {
-                    loadForm(data.forms[0]);
-                }
-            }
+            const params = new URLSearchParams();
+            if (includeArchived) params.set('includeArchived', 'true');
+            const data = await api<{ forms: FormRow[] }>(`/api/admin/forms?${params.toString()}`);
+            setForms(data.forms);
         } catch (e) {
-            console.error(e);
+            setError(e instanceof Error ? e.message : 'Formlar yüklenemedi');
         } finally {
             setLoading(false);
         }
-    };
+    }, [includeArchived]);
 
     useEffect(() => {
-        fetchForms();
-    }, []);
+        load();
+    }, [load]);
 
-    const loadForm = (form: any) => {
-        setSelectedForm(form);
-        const latestVersion = form.versions?.[0];
-        if (latestVersion && latestVersion.fields) {
-            setFields(latestVersion.fields);
-        } else {
-            setFields([]);
+    // Deep link from the form editor: /admin/form-builder?copy=<formId>
+    useEffect(() => {
+        if (loading || forms.length === 0 || typeof window === 'undefined') return;
+        const copyId = new URLSearchParams(window.location.search).get('copy');
+        const source = copyId ? forms.find((f) => f.id === copyId) : null;
+        if (source) {
+            openCreate('copy', source);
+            window.history.replaceState(null, '', '/admin/form-builder');
+        }
+    }, [loading, forms]);
+
+    const filtered = useMemo(() => {
+        const q = search.trim().toLocaleLowerCase('tr');
+        return forms.filter((f) => {
+            if (formType && f.formType !== formType) return false;
+            if (!q) return true;
+            return [f.title, f.slug, ...f.campaigns.map((c) => c.name), ...f.campaigns.map((c) => c.program?.name || '')].some((v) => v.toLocaleLowerCase('tr').includes(q));
+        });
+    }, [forms, search, formType]);
+
+    const templates = forms.filter((f) => f.isTemplate && !f.isArchived);
+
+    const openCreate = (m: 'blank' | 'copy' | 'template', source?: FormRow) => {
+        setMode(m);
+        setCreateError(null);
+        setSourceId(source?.id || '');
+        setNewTitle(source ? `${source.title} (Kopya)` : '');
+        setNewSlug(source ? `${source.slug}-kopya` : '');
+        setNewType(source?.formType || 'CUSTOM');
+        setCreateOpen(true);
+    };
+
+    const submitCreate = async () => {
+        setCreating(true);
+        setCreateError(null);
+        try {
+            const body = mode === 'blank'
+                ? { title: newTitle, slug: newSlug, formType: newType, theme: 'site', fields: [], sections: [{ stepNumber: 1, title: 'Bölüm 1' }] }
+                : { title: newTitle, slug: newSlug, sourceFormId: sourceId };
+            const data = await api<{ form: { id: string } }>('/api/admin/forms', { method: 'POST', json: body });
+            setCreateOpen(false);
+            router.push(`/admin/form-builder/${data.form.id}`);
+        } catch (e) {
+            setCreateError(e instanceof Error ? e.message : 'Form oluşturulamadı');
+        } finally {
+            setCreating(false);
         }
     };
 
-    const handleAddField = () => {
-        if (!newFieldLabel.trim()) return;
-
-        const fieldKey = newFieldKey.trim() || newFieldLabel.toLowerCase().replace(/[^a-z0-9]/g, '_');
-
-        const field: FormFieldInput = {
-            fieldKey,
-            label: newFieldLabel.trim(),
-            fieldType: newFieldType,
-            isRequired: newFieldRequired,
-            stepNumber: Number(newFieldStep) || 1,
-            sortOrder: fields.length,
-        };
-
-        setFields([...fields, field]);
-        setNewFieldLabel('');
-        setNewFieldKey('');
-        setNewFieldRequired(false);
-    };
-
-    const handleRemoveField = (index: number) => {
-        setFields(fields.filter((_, i) => i !== index));
-    };
-
-    const handlePublishVersion = async () => {
-        if (!selectedForm) return;
-        setSaving(true);
+    const toggleArchive = async (row: FormRow) => {
         try {
-            const res = await fetch(`/api/admin/forms/${selectedForm.id}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    fields,
-                    publishImmediately: true,
-                }),
-            });
-            const data = await res.json();
-            if (data.success) {
-                alert(`Yeni Form Sürümü (v${data.version.versionNumber}) başarıyla yayınlandı!`);
-                await fetchForms();
-            } else {
-                alert(data.message || 'Yayınlanamadı');
-            }
-        } catch {
-            alert('Hata oluştu');
-        } finally {
-            setSaving(false);
+            await api(`/api/admin/forms/${row.id}`, { method: 'POST', json: { action: row.isArchived ? 'restore' : 'archive' } });
+            setNotice(row.isArchived ? `"${row.title}" geri yüklendi.` : `"${row.title}" arşivlendi.`);
+            load();
+        } catch (e) {
+            setError(e instanceof Error ? e.message : 'İşlem başarısız');
         }
     };
 
     return (
-        <div className="space-y-6">
-            {/* Header */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div>
-                    <h1 className="font-orbitron font-bold text-2xl text-white">Dinamik Form Builder & Sürümleme</h1>
-                    <p className="text-xs font-mono text-gray-400 mt-1">
-                        Sitedeki başvuru, staj ve mentör formlarının alanlarını kodsuz düzenleyin
-                    </p>
-                </div>
+        <div>
+            <PageHeader
+                title="Form Merkezi"
+                icon={ClipboardList}
+                description="Sitedeki tüm başvuru, iletişim, kayıt ve talep formları buradan yönetilir. Yayındaki versiyon değişmez; düzenlemeler taslakta yapılır ve yayınlandığında yeni versiyon oluşur."
+                actions={
+                    <>
+                        <Button icon={Copy} onClick={() => openCreate('copy')}>Mevcut Formu Kopyala</Button>
+                        <Button data-intent="create" variant="primary" icon={Plus} onClick={() => openCreate('blank')}>Yeni Form</Button>
+                    </>
+                }
+            />
 
-                <div className="flex items-center gap-3">
-                    <button
-                        onClick={() => setShowPreview(!showPreview)}
-                        className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-gray-300 hover:text-white transition-colors"
-                    >
-                        <Eye className="w-4 h-4 text-primary" />
-                        {showPreview ? 'Editöre Dön' : 'Canlı Önizleme'}
-                    </button>
+            {notice && <div className="mb-4"><Alert tone="success" onClose={() => setNotice(null)}>{notice}</Alert></div>}
+            {error && <div className="mb-4"><Alert tone="danger" onClose={() => setError(null)}>{error}</Alert></div>}
 
-                    <button
-                        onClick={handlePublishVersion}
-                        disabled={saving}
-                        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90 text-white text-xs font-semibold shadow-lg shadow-primary/25 disabled:opacity-50 transition-all"
-                    >
-                        <Save className="w-4 h-4" />
-                        {saving ? 'Yayınlanıyor...' : 'Yeni Sürümü Yayınla'}
-                    </button>
-                </div>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                {/* Form Selector (3 cols) */}
-                <div className="lg:col-span-3 space-y-3">
-                    <div className="bg-[#0e0e18] border border-white/10 rounded-2xl p-4 shadow-xl">
-                        <div className="text-xs font-mono font-bold text-gray-400 uppercase mb-3">
-                            Mevcut Formlar
-                        </div>
-                        <div className="space-y-2">
-                            {forms.map((f) => {
-                                const isSelected = selectedForm?.id === f.id;
-                                const latestV = f.versions?.[0];
-                                return (
-                                    <div
-                                        key={f.id}
-                                        onClick={() => loadForm(f)}
-                                        className={`p-3 rounded-xl cursor-pointer transition-all border ${
-                                            isSelected
-                                                ? 'bg-primary/20 border-primary/40 text-white'
-                                                : 'bg-black/30 border-white/5 text-gray-400 hover:bg-white/5 hover:text-white'
-                                        }`}
-                                    >
-                                        <div className="font-semibold text-xs mb-1">{f.title}</div>
-                                        <div className="flex items-center justify-between text-[10px] font-mono text-gray-500">
-                                            <span>Sürüm: v{latestV?.versionNumber || 1}</span>
-                                            <span className="text-primary">{f.formType}</span>
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
+            <Card className="mb-4" padded={false}>
+                <div className="flex flex-col gap-3 p-3 md:flex-row md:items-center">
+                    <div className="relative flex-1">
+                        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" aria-hidden="true" />
+                        <input aria-label="Formlarda ara" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Form adı, adres, kampanya veya program ara..." className={`${inputClass} pl-9`} />
                     </div>
+                    <Select aria-label="Form türü" value={formType} onChange={(e) => setFormType(e.target.value)} options={FORM_TYPES} placeholder="Tüm form türleri" className="md:w-64" />
+                    <Toggle id="archived" checked={includeArchived} onChange={setIncludeArchived} label="Arşivi göster" />
                 </div>
+            </Card>
 
-                {/* Form Editor or Live Preview (9 cols) */}
-                <div className="lg:col-span-9 space-y-6">
-                    {showPreview ? (
-                        /* Live Form Preview */
-                        <div className="bg-[#0e0e18] border border-white/10 rounded-2xl p-6 shadow-xl">
-                            <div className="flex items-center justify-between pb-4 mb-6 border-b border-white/10">
-                                <div className="text-sm font-orbitron font-bold text-white">
-                                    Canlı Form Görünümü ({fields.length} Alan)
-                                </div>
-                                <div className="flex items-center gap-1 bg-black/40 p-0.5 rounded-lg border border-white/10">
-                                    <button
-                                        onClick={() => setPreviewMode('desktop')}
-                                        className={`p-1.5 rounded-md ${previewMode === 'desktop' ? 'bg-primary text-white' : 'text-gray-400'}`}
-                                    >
-                                        <Monitor className="w-4 h-4" />
-                                    </button>
-                                    <button
-                                        onClick={() => setPreviewMode('mobile')}
-                                        className={`p-1.5 rounded-md ${previewMode === 'mobile' ? 'bg-primary text-white' : 'text-gray-400'}`}
-                                    >
-                                        <Smartphone className="w-4 h-4" />
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div className={`mx-auto transition-all ${previewMode === 'mobile' ? 'max-w-sm border-x border-white/10 px-4' : 'w-full'}`}>
-                                <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
-                                    {fields.map((f, idx) => (
-                                        <div key={f.id || idx}>
-                                            <label className="block text-xs font-mono text-gray-300 mb-1">
-                                                {f.label} {f.isRequired && <span className="text-rose-400">*</span>}
-                                            </label>
-                                            {f.fieldType === 'TEXTAREA' ? (
-                                                <textarea
-                                                    rows={2}
-                                                    placeholder={f.placeholder || ''}
-                                                    className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-xs text-white placeholder-gray-600 outline-none"
-                                                />
+            {loading ? (
+                <Skeleton rows={6} />
+            ) : filtered.length === 0 ? (
+                <EmptyState
+                    icon={FileStack}
+                    title={forms.length === 0 ? 'Henüz form yok.' : 'Filtreye uyan form bulunamadı.'}
+                    description="Yeni bir form oluşturabilir veya mevcut bir formu kopyalayarak başlayabilirsiniz."
+                    action={<Button variant="primary" icon={Plus} onClick={() => openCreate('blank')}>Form Oluştur</Button>}
+                />
+            ) : (
+                <Card padded={false} className="overflow-x-auto">
+                    <table className="w-full min-w-[1000px] text-left text-sm">
+                        <thead className="border-b border-white/10 text-[11px] uppercase tracking-wide text-gray-500">
+                            <tr>
+                                <th className="px-4 py-3 font-medium">Form</th>
+                                <th className="px-4 py-3 font-medium">Tür</th>
+                                <th className="px-4 py-3 font-medium">Durum</th>
+                                <th className="px-4 py-3 font-medium">Kullanıldığı Yer</th>
+                                <th className="px-4 py-3 font-medium text-right">Gönderim</th>
+                                <th className="px-4 py-3 font-medium">Güncelleme</th>
+                                <th className="px-4 py-3 font-medium text-right">İşlemler</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-white/5">
+                            {filtered.map((f) => (
+                                <tr key={f.id} className="align-top hover:bg-white/[0.02]">
+                                    <td className="px-4 py-3">
+                                        <Link href={`/admin/form-builder/${f.id}`} className="font-medium text-white hover:text-primary">{f.title}</Link>
+                                        <div className="mt-0.5 font-mono text-[11px] text-gray-500">{f.slug}</div>
+                                        {f.isTemplate && <div className="mt-1"><Badge tone="info">Şablon</Badge></div>}
+                                    </td>
+                                    <td className="px-4 py-3 text-gray-300">{formTypeLabel(f.formType)}</td>
+                                    <td className="px-4 py-3">
+                                        <div className="flex flex-wrap gap-1">
+                                            {f.isArchived ? (
+                                                <Badge>Arşiv</Badge>
+                                            ) : f.isPublished && f.currentVersion ? (
+                                                <Badge tone="success">Yayında · v{f.currentVersion.versionNumber}</Badge>
+                                            ) : f.currentVersion ? (
+                                                <Badge tone="warning">Yayında değil · v{f.currentVersion.versionNumber}</Badge>
                                             ) : (
-                                                <input
-                                                    type="text"
-                                                    placeholder={f.placeholder || ''}
-                                                    className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-gray-600 outline-none"
-                                                />
+                                                <Badge tone="warning">Yayınlanmadı</Badge>
                                             )}
+                                            {f.hasDraft && <Badge tone="primary">Taslak v{f.draftVersionNumber}</Badge>}
                                         </div>
-                                    ))}
-                                    <button
-                                        type="button"
-                                        className="w-full py-3 bg-gradient-to-r from-primary to-purple-600 text-white font-semibold text-xs rounded-xl shadow-lg shadow-primary/25 mt-4"
-                                    >
-                                        BAŞVURUYU GÖNDER (ÖNİZLEME)
-                                    </button>
-                                </form>
-                            </div>
-                        </div>
-                    ) : (
-                        /* Field Editor */
-                        <div className="space-y-6">
-                            {/* Add Field Bar */}
-                            <div className="bg-[#0e0e18] border border-white/10 rounded-2xl p-5 shadow-xl">
-                                <div className="text-xs font-orbitron font-bold text-white mb-3">
-                                    Forma Yeni Alan Ekle
-                                </div>
-                                <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
-                                    <div className="sm:col-span-4">
-                                        <label className="block text-[11px] font-mono text-gray-400 mb-1">Alan Başlığı (Label) *</label>
-                                        <input
-                                            type="text"
-                                            value={newFieldLabel}
-                                            onChange={(e) => setNewFieldLabel(e.target.value)}
-                                            placeholder="Örn: Proje Özeti"
-                                            className="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-primary"
-                                        />
-                                    </div>
-                                    <div className="sm:col-span-3">
-                                        <label className="block text-[11px] font-mono text-gray-400 mb-1">Alan Tipi</label>
-                                        <select
-                                            value={newFieldType}
-                                            onChange={(e) => setNewFieldType(e.target.value)}
-                                            className="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-primary [&>option]:bg-[#0e0e18]"
-                                        >
-                                            <option value="TEXT">Kısa Metin</option>
-                                            <option value="TEXTAREA">Uzun Metin (Açıklama)</option>
-                                            <option value="EMAIL">E-Posta</option>
-                                            <option value="PHONE">Telefon</option>
-                                            <option value="NUMBER">Sayısal Değer</option>
-                                            <option value="DATE">Tarih</option>
-                                            <option value="TC_NO">T.C. Kimlik No</option>
-                                            <option value="FILE">Dosya Yükleme (Pitch Deck vb.)</option>
-                                            <option value="KVKK">KVKK Onay Kutusu</option>
-                                        </select>
-                                    </div>
-                                    <div className="sm:col-span-2">
-                                        <label className="block text-[11px] font-mono text-gray-400 mb-1">Adım (Step)</label>
-                                        <input
-                                            type="number"
-                                            min={1}
-                                            value={newFieldStep}
-                                            onChange={(e) => setNewFieldStep(Number(e.target.value))}
-                                            className="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-primary"
-                                        />
-                                    </div>
-                                    <div className="sm:col-span-3 flex items-center gap-3">
-                                        <label className="flex items-center gap-1.5 text-xs text-gray-300 cursor-pointer">
-                                            <input
-                                                type="checkbox"
-                                                checked={newFieldRequired}
-                                                onChange={(e) => setNewFieldRequired(e.target.checked)}
-                                                className="rounded bg-black/40 border-white/20 text-primary"
-                                            />
-                                            Zorunlu
-                                        </label>
-                                        <button
-                                            type="button"
-                                            onClick={handleAddField}
-                                            className="flex-1 py-2 bg-primary hover:bg-primary/90 text-white text-xs font-semibold rounded-xl transition-colors"
-                                        >
-                                            Ekle
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Existing Fields List */}
-                            <div className="bg-[#0e0e18] border border-white/10 rounded-2xl p-5 shadow-xl">
-                                <div className="text-xs font-orbitron font-bold text-white pb-3 mb-4 border-b border-white/10 flex items-center justify-between">
-                                    <span>Mevcut Form Alanları ({fields.length})</span>
-                                    <span className="text-[10px] font-mono text-gray-500">Immutable UUID Protected</span>
-                                </div>
-
-                                <div className="space-y-2.5">
-                                    {fields.length === 0 ? (
-                                        <div className="p-8 text-center text-gray-500 font-mono text-xs">
-                                            Bu formda henüz alan bulunmuyor.
-                                        </div>
-                                    ) : (
-                                        fields.map((field, idx) => (
-                                            <div
-                                                key={field.id || idx}
-                                                className="p-3 rounded-xl bg-black/30 border border-white/5 flex items-center justify-between text-xs"
-                                            >
-                                                <div className="flex items-center gap-3">
-                                                    <span className="text-gray-500 font-mono text-[10px]">#{idx + 1}</span>
-                                                    <div>
-                                                        <div className="font-semibold text-white">
-                                                            {field.label} {field.isRequired && <span className="text-rose-400">*</span>}
-                                                        </div>
-                                                        <div className="text-[10px] font-mono text-gray-500">
-                                                            Key: <span className="text-cyan-400">{field.fieldKey}</span> • Tip: <span className="text-purple-400">{field.fieldType}</span> • Adım: {field.stepNumber}
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleRemoveField(idx)}
-                                                    className="p-1.5 text-gray-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors"
-                                                >
-                                                    <Trash2 className="w-4 h-4" />
-                                                </button>
+                                    </td>
+                                    <td className="px-4 py-3 text-xs text-gray-300">
+                                        {f.campaigns.length === 0 && !f.publicPath && <span className="text-gray-600">Bağlı değil</span>}
+                                        {f.campaigns.map((c) => (
+                                            <div key={c.id}>
+                                                <span className="text-gray-500">{applicationTypeLabel(c.applicationType)}</span>
+                                                {' · '}
+                                                <Link href={`/admin/basvuru-kampanyalari?campaignId=${c.id}`} className="hover:text-primary">{c.program ? `${c.program.name}` : c.name}</Link>
                                             </div>
-                                        ))
-                                    )}
-                                </div>
-                            </div>
-                        </div>
+                                        ))}
+                                        {f.publicPath && <div className="font-mono text-[11px] text-gray-500">{f.publicPath}</div>}
+                                    </td>
+                                    <td className="px-4 py-3 text-right">
+                                        <Link href={`/admin/form-builder/${f.id}?tab=submissions`} className="font-medium text-white hover:text-primary">{f.submissionCount}</Link>
+                                    </td>
+                                    <td className="px-4 py-3 text-xs text-gray-400">
+                                        <div>{formatDateTime(f.updatedAt)}</div>
+                                        {f.updatedBy && <div className="text-gray-500">{f.updatedBy}</div>}
+                                    </td>
+                                    <td className="px-4 py-3">
+                                        <div className="flex flex-wrap justify-end gap-1">
+                                            <Link href={`/admin/form-builder/${f.id}`} className="inline-flex items-center gap-1 rounded-md bg-white/5 px-2 py-1 text-xs text-gray-200 hover:bg-white/10"><Pencil className="h-3.5 w-3.5" />Düzenle</Link>
+                                            <Link href={`/admin/form-builder/${f.id}?tab=submissions`} className="inline-flex items-center gap-1 rounded-md bg-white/5 px-2 py-1 text-xs text-gray-200 hover:bg-white/10"><Inbox className="h-3.5 w-3.5" />Gönderimler</Link>
+                                            {f.publicPath && f.isPublished && (
+                                                <a href={f.publicPath} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 rounded-md bg-white/5 px-2 py-1 text-xs text-gray-200 hover:bg-white/10" aria-label={`${f.title} public sayfasını aç`}><ExternalLink className="h-3.5 w-3.5" />Public</a>
+                                            )}
+                                            <button type="button" onClick={() => openCreate('copy', f)} className="inline-flex items-center gap-1 rounded-md bg-white/5 px-2 py-1 text-xs text-gray-200 hover:bg-white/10"><Copy className="h-3.5 w-3.5" />Kopyala</button>
+                                            <a href={`/api/admin/forms/${f.id}/submissions?export=csv`} className="inline-flex items-center gap-1 rounded-md bg-white/5 px-2 py-1 text-xs text-gray-200 hover:bg-white/10"><Download className="h-3.5 w-3.5" />CSV</a>
+                                            <button type="button" onClick={() => toggleArchive(f)} className="inline-flex items-center gap-1 rounded-md bg-white/5 px-2 py-1 text-xs text-gray-200 hover:bg-white/10">
+                                                {f.isArchived ? <><RotateCcw className="h-3.5 w-3.5" />Geri Yükle</> : <><Archive className="h-3.5 w-3.5" />Arşivle</>}
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </Card>
+            )}
+
+            <Modal
+                open={createOpen}
+                onClose={() => setCreateOpen(false)}
+                title={mode === 'blank' ? 'Yeni Form' : mode === 'template' ? 'Şablondan Form' : 'Mevcut Formu Kopyala'}
+                description={mode === 'blank' ? 'Boş bir taslak oluşturulur; soruları ekleyip yayınlayabilirsiniz.' : 'Kopya bağımsız bir formdur; kaynak formdaki değişiklikler kopyayı etkilemez.'}
+                footer={
+                    <>
+                        <Button onClick={() => setCreateOpen(false)}>Vazgeç</Button>
+                        <Button variant="primary" loading={creating} onClick={submitCreate} disabled={!newTitle.trim() || !newSlug.trim() || (mode !== 'blank' && !sourceId)}>Oluştur ve Düzenle</Button>
+                    </>
+                }
+            >
+                <div className="space-y-4">
+                    <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Oluşturma yöntemi">
+                        {([['blank', 'Yeni Boş Form'], ['copy', 'Mevcut Formu Kopyala'], ['template', 'Form Şablonu Kullan']] as const).map(([value, label]) => (
+                            <button key={value} type="button" role="radio" aria-checked={mode === value} onClick={() => setMode(value)} className={`rounded-lg border px-3 py-1.5 text-xs ${mode === value ? 'border-primary bg-primary/10 text-white' : 'border-white/10 text-gray-400 hover:text-white'}`}>{label}</button>
+                        ))}
+                    </div>
+                    {mode !== 'blank' && (
+                        <Field label={mode === 'template' ? 'Şablon' : 'Kaynak form'} htmlFor="source" required>
+                            <Select
+                                id="source"
+                                value={sourceId}
+                                onChange={(e) => {
+                                    const src = forms.find((f) => f.id === e.target.value);
+                                    setSourceId(e.target.value);
+                                    if (src) {
+                                        setNewTitle(`${src.title} (Kopya)`);
+                                        setNewSlug(`${src.slug}-kopya`);
+                                    }
+                                }}
+                                placeholder="Seçin..."
+                                options={(mode === 'template' ? templates : forms.filter((f) => !f.isArchived)).map((f) => ({ value: f.id, label: f.title }))}
+                            />
+                            {mode === 'template' && templates.length === 0 && <p className="mt-1 text-[11px] text-gray-500">Henüz şablon işaretlenmiş form yok. Form ayarlarından &quot;Şablon olarak kullan&quot; seçeneğini açabilirsiniz.</p>}
+                        </Field>
                     )}
+                    <Field label="Form adı" htmlFor="title" required>
+                        <TextInput id="title" value={newTitle} onChange={(e) => { setNewTitle(e.target.value); if (mode === 'blank') setNewSlug(slugify(e.target.value)); }} />
+                    </Field>
+                    <Field label="Form adresi (slug)" htmlFor="slug" required hint="Küçük harf, rakam ve tire. Public form bu adresle yüklenir.">
+                        <TextInput id="slug" value={newSlug} onChange={(e) => setNewSlug(slugify(e.target.value))} />
+                    </Field>
+                    {mode === 'blank' && (
+                        <Field label="Form türü" htmlFor="type">
+                            <Select id="type" value={newType} onChange={(e) => setNewType(e.target.value)} options={FORM_TYPES} />
+                        </Field>
+                    )}
+                    {createError && <Alert tone="danger">{createError}</Alert>}
                 </div>
-            </div>
+            </Modal>
         </div>
     );
 }

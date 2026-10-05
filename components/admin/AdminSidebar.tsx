@@ -2,13 +2,9 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+import { NAV_SECTIONS } from './nav-config';
 import {
-    LayoutDashboard, FileText, Users, UserCheck, Rocket, Newspaper,
-    HelpCircle, Mail, Folder, Shield, Settings, Activity, History,
-    LogOut, ChevronLeft, ChevronRight, Sparkles, Navigation, Globe,
-    Calendar, Building2, CheckSquare, Layers, ShieldAlert, Sun,
-    BarChart3, MessageSquare, Send, Inbox, Star, Search, ChevronDown,
-    DollarSign, Receipt, ShieldCheck
+    LogOut, ChevronLeft, ChevronRight, Star, Search, ChevronDown
 } from 'lucide-react';
 
 interface AdminSidebarProps {
@@ -18,23 +14,14 @@ interface AdminSidebarProps {
         name: string;
         email: string;
         isSuperAdmin: boolean;
+        permissions?: string[];
     } | null;
+    mobileOpen?: boolean;
+    onCloseMobile?: () => void;
 }
 
-interface NavItem {
-    title: string;
-    href: string;
-    icon: any;
-    badge?: string;
-}
 
-interface NavSection {
-    id: string;
-    title: string;
-    items: NavItem[];
-}
-
-export const AdminSidebar: React.FC<AdminSidebarProps> = ({ isCollapsed, onToggle, user }) => {
+export const AdminSidebar: React.FC<AdminSidebarProps> = ({ isCollapsed, onToggle, user, mobileOpen = false, onCloseMobile }) => {
     const pathname = usePathname();
     const router = useRouter();
 
@@ -88,116 +75,15 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ isCollapsed, onToggl
     };
 
     const isSuper = Boolean(user?.isSuperAdmin);
+    const permissions = new Set(user?.permissions || []);
+    /** Mirrors server-side hasPermission for menu visibility; the server still enforces access. */
+    const can = (perm?: string) => {
+        if (!perm || isSuper) return true;
+        const [action, resource] = perm.split(':');
+        return permissions.has(perm) || permissions.has(`*:${resource}`) || permissions.has(`${action}:*`) || permissions.has('*:*');
+    };
 
-    const rawNavSections: NavSection[] = [
-        {
-            id: 'dashboard',
-            title: 'DASHBOARD & ÇALIŞMA ALANI',
-            items: [
-                { title: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
-                { title: 'Benim Günüm', href: '/admin/benim-gunum', icon: Sun },
-                { title: 'Günlük Görüşmeler', href: '/admin/gorusmeler', icon: MessageSquare },
-            ],
-        },
-        {
-            id: 'finance',
-            title: 'FİNANS & TAHSİLAT',
-            items: [
-                { title: 'Finans Dashboard', href: '/admin/finans', icon: DollarSign },
-                { title: 'Kira Yönetimi', href: '/admin/finans/kiralar', icon: Receipt },
-                { title: 'Kira Hatırlatma Ayarları', href: '/admin/finans/kira-ayarlari', icon: Settings },
-            ],
-        },
-        {
-            id: 'tasks',
-            title: 'İŞ YÖNETİMİ & TAKİP',
-            items: [
-                { title: 'Görevler & To-Do', href: '/admin/gorevler', icon: CheckSquare },
-                { title: 'Kanban Studio', href: '/admin/gorevler/kanban', icon: Layers },
-                { title: 'Ortak Takvim', href: '/admin/takvim', icon: Calendar },
-                { title: 'Onay Bekleyenler', href: '/admin/onaylar', icon: ShieldAlert },
-            ],
-        },
-        {
-            id: 'crm',
-            title: 'CRM & BAŞVURU',
-            items: [
-                { title: 'Başvuru Pipeline', href: '/admin/basvurular', icon: FileText },
-                { title: 'Pipeline Durumları', href: '/admin/durumlar', icon: Layers },
-                { title: 'Girişimciler', href: '/admin/girisimciler', icon: Rocket },
-                { title: 'Mentörler', href: '/admin/mentorler', icon: UserCheck },
-                { title: 'Paydaş & Kişi Rehberi', href: '/admin/rehber', icon: Users },
-                { title: 'İletişim & Randevular', href: '/admin/iletisim', icon: Mail },
-                { title: 'KVKK & Veri İzinleri', href: '/admin/kvkk', icon: ShieldCheck },
-            ],
-        },
-        {
-            id: 'programs',
-            title: 'PROGRAM & PROJE YÖNETİMİ',
-            items: [
-                { title: 'Programlar & Eğitim', href: '/admin/programlar', icon: Layers },
-                { title: 'Projeler & Hibe', href: '/admin/projeler', icon: Folder },
-                { title: 'Kurumsal Faaliyetler', href: '/admin/faaliyetler', icon: Activity },
-                { title: 'Etkinlik Yönetimi', href: '/admin/etkinlikler', icon: Calendar },
-                { title: 'Destek & Teşvikler', href: '/admin/destekler', icon: HelpCircle },
-            ],
-        },
-        {
-            id: 'cms',
-            title: 'İÇERİK & WEB SİTESİ (CMS)',
-            items: [
-                { title: 'Hakkımızda Studio', href: '/admin/hakkimizda', icon: Building2 },
-                { title: 'Haberler & Editör', href: '/admin/haberler', icon: Newspaper },
-                ...(isSuper ? [{ title: 'Sayfa Yönetimi', href: '/admin/sayfalar', icon: FileText }] : []),
-                { title: 'Ana Sayfa & Banner', href: '/admin/anasayfa', icon: Building2 },
-                ...(isSuper ? [{ title: 'Form Builder', href: '/admin/form-builder', icon: Sparkles }] : []),
-                { title: 'Medya Kütüphanesi', href: '/admin/medya', icon: Folder },
-                ...(isSuper ? [{ title: 'Partner & Logolar', href: '/admin/partnerler', icon: Sparkles }] : []),
-                ...(isSuper ? [{ title: 'Menü Yönetimi', href: '/admin/menuler', icon: Navigation }] : []),
-            ],
-        },
-        {
-            id: 'reports',
-            title: 'RAPORLAMA MERKEZİ',
-            items: [
-                { title: 'Rapor Merkezi', href: '/admin/raporlar', icon: BarChart3 },
-                { title: 'Günlük Rapor', href: '/admin/raporlar/gunluk', icon: Calendar },
-                { title: 'Aylık Rapor', href: '/admin/raporlar/aylik', icon: Calendar },
-                ...(isSuper ? [{ title: 'Yıllık Rapor', href: '/admin/raporlar/yillik', icon: FileText }] : []),
-                { title: 'Ekip Raporu', href: '/admin/raporlar/ekip', icon: Users },
-                { title: 'Kullanıcı Raporu', href: '/admin/raporlar/kullanici', icon: Users },
-                ...(isSuper ? [{ title: 'Sosyal Medya Raporu', href: '/admin/raporlar/sosyal-medya', icon: MessageSquare }] : []),
-                ...(isSuper ? [{ title: 'Özel Rapor Builder', href: '/admin/raporlar/ozel', icon: Sparkles }] : []),
-            ],
-        },
-        {
-            id: 'social',
-            title: 'SOSYAL MEDYA',
-            items: [
-                ...(isSuper ? [{ title: 'Entegrasyon Merkezi', href: '/admin/entegrasyonlar/sosyal-medya', icon: Send }] : []),
-                { title: 'Gelen Kutusu', href: '/admin/sosyal-medya/gelen-kutusu', icon: Inbox },
-            ],
-        },
-        ...(isSuper ? [
-            {
-                id: 'system',
-                title: 'SİSTEM & GÜVENLİK',
-                items: [
-                    { title: 'Kullanıcı & Roller', href: '/admin/kullanicilar', icon: Users },
-                    { title: 'Roller & İzinler', href: '/admin/roller', icon: Shield },
-                    { title: 'Güvenlik Merkezi', href: '/admin/guvenlik', icon: ShieldAlert },
-                    { title: 'Sistem Durumu', href: '/admin/sistem-durumu', icon: Activity },
-                    { title: 'Site Ayarları', href: '/admin/ayarlar', icon: Settings },
-                    { title: 'E-Posta Merkezi', href: '/admin/eposta-merkezi', icon: Mail },
-                    { title: 'E-Posta Şablonları', href: '/admin/eposta-sablonlari', icon: Mail },
-                    { title: 'Audit Log (Denetim)', href: '/admin/audit-log', icon: History },
-                    { title: 'SEO & Redirects', href: '/admin/seo-redirects', icon: Globe },
-                    { title: 'Terim & Etiketler', href: '/admin/terimler', icon: Sparkles },
-                    { title: 'Özel Alanlar', href: '/admin/ozel-alanlar', icon: Folder },
-                ],
-            }
-        ] : []),
-    ];
+    const rawNavSections = NAV_SECTIONS.map((section) => ({ ...section, items: section.items.filter((item) => can(item.perm)) }));
 
     const navSections = rawNavSections.filter(section => section.items.length > 0);
 
@@ -207,44 +93,48 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ isCollapsed, onToggl
 
     return (
         <aside
-            className={`fixed top-0 left-0 h-screen bg-[#090912] border-r border-white/10 flex flex-col z-40 transition-all duration-300 ${
-                isCollapsed ? 'w-20' : 'w-64'
+            aria-label="Yönetim menüsü"
+            className={`glass-sidebar fixed top-0 left-0 h-dvh max-h-screen bg-[#090912] border-r border-white/10 flex flex-col z-40 transition-all duration-300 select-none ${
+                mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+            } ${
+                isCollapsed ? 'w-64 lg:w-20' : 'w-64'
             }`}
         >
-            {/* Header / Brand */}
-            <div className="h-16 px-4 border-b border-white/10 flex items-center justify-between">
+            {/* Header / Brand - Fixed, never compressed */}
+            <div className="flex-shrink-0 h-16 px-4 border-b border-white/10 flex items-center justify-between bg-[#090912] z-10">
                 {!isCollapsed ? (
-                    <Link href="/admin/dashboard" className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-primary to-purple-600 flex items-center justify-center font-orbitron font-bold text-white shadow-lg shadow-primary/20">
+                    <Link href="/admin/dashboard" className="flex items-center gap-2.5 min-w-0">
+                        <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-primary to-purple-600 flex items-center justify-center font-orbitron font-bold text-white shadow-lg shadow-primary/20 flex-shrink-0">
                             İK
                         </div>
-                        <div>
-                            <div className="font-orbitron font-bold text-xs text-white tracking-wider">
+                        <div className="min-w-0 flex-1">
+                            <div className="font-orbitron font-bold text-xs text-white tracking-wider truncate">
                                 İKÜANTS TEKMER
                             </div>
-                            <div className="text-[10px] font-mono text-primary font-semibold">
+                            <div className="text-[10px] font-mono text-primary font-semibold truncate">
                                 OPERASYON MERKEZİ
                             </div>
                         </div>
                     </Link>
                 ) : (
-                    <div className="mx-auto w-8 h-8 rounded-lg bg-gradient-to-tr from-primary to-purple-600 flex items-center justify-center font-orbitron font-bold text-white text-xs">
+                    <div className="mx-auto w-8 h-8 rounded-lg bg-gradient-to-tr from-primary to-purple-600 flex items-center justify-center font-orbitron font-bold text-white text-xs flex-shrink-0">
                         İK
                     </div>
                 )}
                 <button
-                    onClick={onToggle}
-                    className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 border border-transparent hover:border-white/10 transition-colors cursor-pointer"
+                    onClick={() => (mobileOpen && onCloseMobile ? onCloseMobile() : onToggle())}
+                    aria-label={mobileOpen ? 'Menüyü kapat' : isCollapsed ? 'Menüyü genişlet' : 'Menüyü daralt'}
+                    className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 border border-transparent hover:border-white/10 transition-colors cursor-pointer flex-shrink-0"
                 >
                     {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
                 </button>
             </div>
 
-            {/* Menu Search */}
+            {/* Menu Search - Fixed, never compressed */}
             {!isCollapsed && (
-                <div className="p-3 border-b border-white/5">
+                <div className="flex-shrink-0 p-3 border-b border-white/5 bg-[#090912] z-10">
                     <div className="flex items-center gap-2 bg-black/40 px-3 py-1.5 rounded-xl border border-white/10">
-                        <Search className="w-3.5 h-3.5 text-gray-400" />
+                        <Search className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
                         <input
                             type="text"
                             placeholder="Menüde ara... (Ctrl+K)"
@@ -256,8 +146,8 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ isCollapsed, onToggl
                 </div>
             )}
 
-            {/* Navigation items */}
-            <div className="flex-1 overflow-y-auto px-3 py-3 space-y-4 scrollbar-thin scrollbar-thumb-white/10">
+            {/* Navigation items - The ONLY scrolling container */}
+            <div className="flex-1 overflow-y-auto px-3 py-3 space-y-4 scrollbar-thin scrollbar-thumb-white/10 min-h-0">
                 {/* Favorites Group (if any) */}
                 {!isCollapsed && favoriteItems.length > 0 && !menuSearch && (
                     <div className="space-y-1 pb-2 border-b border-white/5">
@@ -363,8 +253,8 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ isCollapsed, onToggl
                 })}
             </div>
 
-            {/* User profile & Logout footer */}
-            <div className="p-3 border-t border-white/10 bg-black/30">
+            {/* User profile & Logout footer - Fixed, never compressed */}
+            <div className="flex-shrink-0 p-3 border-t border-white/10 bg-black/30">
                 {!isCollapsed ? (
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2.5 overflow-hidden">

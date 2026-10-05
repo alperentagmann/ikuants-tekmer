@@ -1,75 +1,63 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { getCurrentAdminUser } from '@/lib/auth';
-import { hasPermission } from '@/lib/rbac';
+import { requireAdmin, errorResponse, DomainError } from '@/lib/api-guard';
 import { EmailOutboxService } from '@/lib/services/email-outbox-service';
+import { EmailCenterService, EMAIL_TABS, TEMPLATE_VARIABLES, type ComposeInput, type EmailTab } from '@/lib/services/email-center-service';
 
 export async function GET(request: NextRequest) {
+    const auth = await requireAdmin(request, 'manage', 'email_outbox');
+    if (auth.error) return auth.error;
     try {
-        const caller = await getCurrentAdminUser();
-        if (!caller || (!hasPermission(caller, 'manage', 'settings') && !caller.isSuperAdmin)) {
-            return NextResponse.json({ success: false, message: 'Yetkisiz erişim.' }, { status: 403 });
-        }
-
-        const { searchParams } = new URL(request.url);
-        const status = searchParams.get('status');
-        const page = parseInt(searchParams.get('page') || '1', 10);
-        const limit = parseInt(searchParams.get('limit') || '20', 10);
-        const skip = (page - 1) * limit;
-
-        const where: any = {};
-        if (status) where.status = status;
-
-        const [items, total, stats] = await Promise.all([
-            prisma.emailOutbox.findMany({
-                where,
-                skip,
-                take: limit,
-                orderBy: { createdAt: 'desc' },
-            }),
-            prisma.emailOutbox.count({ where }),
-            EmailOutboxService.getOutboxStats(),
-        ]);
-
-        return NextResponse.json({
-            success: true,
-            items,
-            total,
-            page,
-            totalPages: Math.ceil(total / limit),
-            stats,
-        });
-    } catch (e: any) {
-        return NextResponse.json({ success: false, message: e.message || 'Hata oluştu.' }, { status: 500 });
+        const sp = new URL(request.url).searchParams;
+        const id = sp.get('id');
+        if (id) return NextResponse.json({ success: true, item: await EmailCenterService.get(id) });
+        const tabParam = sp.get('tab') || 'outbox';
+        const tab = (tabParam in EMAIL_TABS || tabParam === 'all' ? tabParam : 'outbox') as EmailTab | 'all';
+        const data = await EmailCenterService.list({ tab, search: sp.get('search') || undefined, page: Number(sp.get('page') || 1) });
+        return NextResponse.json({ success: true, ...data, provider: EmailCenterService.providerStatus(), variables: TEMPLATE_VARIABLES });
+    } catch (error) {
+        return errorResponse(error, 'E-postalar alınamadı');
     }
 }
 
+type Body = Partial<ComposeInput> & { action?: string; id?: string };
+
 export async function POST(request: NextRequest) {
+    const auth = await requireAdmin(request, 'manage', 'email_outbox');
+    if (auth.error) return auth.error;
     try {
-        const caller = await getCurrentAdminUser();
-        if (!caller || (!hasPermission(caller, 'manage', 'settings') && !caller.isSuperAdmin)) {
-            return NextResponse.json({ success: false, message: 'Yetkisiz erişim.' }, { status: 403 });
+        const body = (await request.json()) as Body;
+        const compose: Omit<ComposeInput, 'mode'> = {
+            to: String(body.to || ''),
+            cc: body.cc || null,
+            subject: String(body.subject || ''),
+            body: String(body.body || ''),
+            templateKey: body.templateKey || null,
+            entityType: body.entityType || null,
+            entityId: body.entityId || null,
+            scheduledAt: body.scheduledAt || null,
+        };
+        switch (body.action) {
+            case 'compose': {
+                const mode = body.mode === 'draft' || body.mode === 'schedule' ? body.mode : 'send';
+                return NextResponse.json({ success: true, ...(await EmailCenterService.compose({ ...compose, mode }, auth.actor)) });
+            }
+            case 'preview':
+                return NextResponse.json({ success: true, ...(await EmailCenterService.preview(compose)) });
+            case 'updateDraft':
+                return NextResponse.json({ success: true, item: await EmailCenterService.updateDraft(String(body.id), compose, auth.actor) });
+            case 'sendDraft':
+                return NextResponse.json({ success: true, ...(await EmailCenterService.sendDraft(String(body.id), auth.actor, body.scheduledAt || null)) });
+            case 'cancel':
+                await EmailCenterService.cancel(String(body.id), auth.actor);
+                return NextResponse.json({ success: true });
+            case 'retry':
+                return NextResponse.json({ success: true, item: await EmailCenterService.retry(String(body.id), auth.actor) });
+            case 'processQueue':
+                return NextResponse.json({ success: true, result: await EmailOutboxService.processPendingEmails(50) });
+            default:
+                throw new DomainError('Geçersiz işlem.');
         }
-
-        const body = await request.json();
-        const { action, emailId } = body;
-
-        if (action === 'PROCESS_QUEUE') {
-            const results = await EmailOutboxService.processPendingEmails(20);
-            return NextResponse.json({ success: true, ...results, message: 'Kuyruk işlendi.' });
-        } else if (action === 'RETRY' && emailId) {
-            const updated = await EmailOutboxService.retryEmail(emailId);
-            return NextResponse.json({ success: true, item: updated, message: 'E-posta tekrar kuyruğa alındı.' });
-        } else if (action === 'CANCEL' && emailId) {
-            const updated = await EmailOutboxService.cancelEmail(emailId);
-            return NextResponse.json({ success: true, item: updated, message: 'E-posta iptal edildi.' });
-        } else if (action === 'SEND_NOW' && emailId) {
-            const updated = await EmailOutboxService.sendEmailImmediately(emailId);
-            return NextResponse.json({ success: true, item: updated, message: 'E-posta gönderildi.' });
-        } else {
-            return NextResponse.json({ success: false, message: 'Geçersiz aksiyon.' }, { status: 400 });
-        }
-    } catch (e: any) {
-        return NextResponse.json({ success: false, message: e.message || 'Hata oluştu.' }, { status: 400 });
+    } catch (error) {
+        return errorResponse(error, 'E-posta işlemi başarısız');
     }
 }

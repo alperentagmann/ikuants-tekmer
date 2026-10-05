@@ -1,100 +1,90 @@
 import { NextResponse } from 'next/server';
+import os from 'os';
 import { prisma } from '@/lib/prisma';
 import { getCurrentAdminUser } from '@/lib/auth';
-import os from 'os';
+import { hasPermission } from '@/lib/rbac';
+import { getStorageStatus } from '@/lib/storage';
+import { isSchedulerConfigured } from '@/lib/env';
+import { EmailCenterService } from '@/lib/services/email-center-service';
+import { getAiProviderStatus } from '@/lib/ai/provider';
+import packageJson from '../../../../../package.json';
 
+type ServiceStatus = 'OK' | 'PENDING_EXTERNAL_CONFIGURATION' | 'WARNING' | 'ERROR';
+type Service = { key: string; label: string; status: ServiceStatus; detail: string; facts?: Record<string, string | number | null> };
+
+/**
+ * Live system status. Every status reflects real configuration or a real check;
+ * integrations without credentials are reported as PENDING_EXTERNAL_CONFIGURATION.
+ */
 export async function GET() {
+    const user = await getCurrentAdminUser();
+    if (!user) return NextResponse.json({ success: false, message: 'Oturum açılmadı' }, { status: 401 });
+    if (!hasPermission(user, 'view', 'system_health')) return NextResponse.json({ success: false, message: 'Bu işlem için yetkiniz yok' }, { status: 403 });
+
+    const started = Date.now();
+    let dbStatus: 'ONLINE' | 'ERROR' = 'ONLINE';
+    let dbLatency = '0ms';
     try {
-        const user = await getCurrentAdminUser();
-        if (!user) {
-            return NextResponse.json({ success: false, message: 'Yetkisiz erişim' }, { status: 401 });
-        }
-
-        const startTime = Date.now();
-        let dbStatus = 'ONLINE';
-        let dbLatency = '0ms';
-        let dbError = null;
-
-        try {
-            await prisma.$queryRaw`SELECT 1`;
-            dbLatency = `${Date.now() - startTime}ms`;
-        } catch (err: any) {
-            dbStatus = 'ERROR';
-            dbError = err.message;
-        }
-
-        // Email Provider Check
-        const isEmailConfigured = Boolean(process.env.SMTP_HOST && process.env.SMTP_USER);
-        const emailStatus = isEmailConfigured ? 'CONNECTED' : 'NOT_CONFIGURED_EXTERNAL';
-
-        // Microsoft 365 Check
-        const isM365Configured = Boolean(process.env.AZURE_CLIENT_ID && process.env.AZURE_CLIENT_SECRET);
-        const m365Status = isM365Configured ? 'CONNECTED' : 'NOT_CONFIGURED_EXTERNAL';
-
-        // Meta / Instagram Check
-        const isMetaConfigured = Boolean(process.env.META_ACCESS_TOKEN || process.env.INSTAGRAM_ACCESS_TOKEN);
-        const metaStatus = isMetaConfigured ? 'CONNECTED' : 'NOT_CONFIGURED_EXTERNAL';
-
-        // AI Provider Check
-        const isAiConfigured = Boolean(process.env.OPENAI_API_KEY || process.env.GEMINI_API_KEY || process.env.ANTHROPIC_API_KEY);
-        const aiStatus = isAiConfigured ? 'CONNECTED' : 'NOT_CONFIGURED';
-
-        // Background Job / Outbox Metrics
-        const pendingEmails = await prisma.emailOutbox.count({ where: { status: 'PENDING' } }).catch(() => 0);
-        const pendingTasks = await prisma.task.count({ where: { status: { not: 'COMPLETED' }, isArchived: false } }).catch(() => 0);
-
-        return NextResponse.json({
-            success: true,
-            status: dbStatus === 'ONLINE' ? 'HEALTHY' : 'DEGRADED',
-            timestamp: new Date().toISOString(),
-            checks: {
-                database: {
-                    status: dbStatus,
-                    latency: dbLatency,
-                    provider: 'PostgreSQL (Prisma)',
-                    error: dbError,
-                },
-                storage: {
-                    status: 'ONLINE',
-                    provider: 'Unified Object Storage',
-                    publicBucket: 'ikuants-public-media',
-                    privateBucket: 'ikuants-private-documents',
-                },
-                auth: {
-                    status: 'ONLINE',
-                    sessionType: 'HttpOnly Server Cookie (AES-GCM / Jose)',
-                    mfaSupported: true,
-                },
-                email: {
-                    status: emailStatus,
-                    provider: isEmailConfigured ? process.env.SMTP_HOST : 'None (Mock Outbox Active)',
-                    pendingOutboxCount: pendingEmails,
-                },
-                aiProvider: {
-                    status: aiStatus,
-                    provider: process.env.OPENAI_API_KEY ? 'OpenAI' : process.env.GEMINI_API_KEY ? 'Google Gemini' : process.env.ANTHROPIC_API_KEY ? 'Anthropic' : 'None',
-                    model: process.env.AI_MODEL || (process.env.OPENAI_API_KEY ? 'gpt-4o' : process.env.GEMINI_API_KEY ? 'gemini-1.5-pro' : 'none'),
-                },
-                integrations: {
-                    microsoft365: m365Status,
-                    metaInstagram: metaStatus,
-                },
-                jobs: {
-                    status: 'ONLINE',
-                    pendingTasks,
-                    pendingEmails,
-                },
-            },
-            system: {
-                nodeVersion: process.version,
-                nextVersion: '16.1.1',
-                environment: process.env.NODE_ENV || 'development',
-                uptimeSeconds: Math.floor(process.uptime()),
-                memoryUsageMb: Math.round(process.memoryUsage().rss / (1024 * 1024)),
-                platform: `${os.platform()} (${os.arch()})`,
-            }
-        });
-    } catch (e: any) {
-        return NextResponse.json({ success: false, message: e.message || 'Health check failed' }, { status: 500 });
+        await prisma.$queryRaw`SELECT 1`;
+        dbLatency = `${Date.now() - started}ms`;
+    } catch (error) {
+        dbStatus = 'ERROR';
+        console.error('Health DB check failed:', error);
     }
+
+    const [pendingEmails, failedEmails, scheduledEmails, lastAutoReport, migrations] = await Promise.all([
+        prisma.emailOutbox.count({ where: { status: 'PENDING' } }).catch(() => null),
+        prisma.emailOutbox.count({ where: { status: 'FAILED' } }).catch(() => null),
+        prisma.emailOutbox.count({ where: { status: 'PENDING', scheduledAt: { gt: new Date() } } }).catch(() => null),
+        prisma.operationalReport.findFirst({ where: { isAutoGenerated: true }, orderBy: { createdAt: 'desc' }, select: { createdAt: true, periodKey: true } }).catch(() => null),
+        prisma.$queryRaw<{ migration_name: string; finished_at: Date | null }[]>`SELECT migration_name, finished_at FROM "_prisma_migrations" ORDER BY started_at DESC LIMIT 1`.catch(() => null),
+    ]);
+
+    const storage = getStorageStatus();
+    const email = EmailCenterService.providerStatus();
+    const ai = getAiProviderStatus();
+    const scheduler = isSchedulerConfigured();
+    const identityKey = Boolean(process.env.IDENTITY_ENCRYPTION_KEY);
+    const isProd = process.env.NODE_ENV === 'production';
+    const m365 = Boolean(process.env.AZURE_CLIENT_ID && process.env.AZURE_CLIENT_SECRET && process.env.AZURE_TENANT_ID);
+    const meta = Boolean(process.env.META_ACCESS_TOKEN || process.env.INSTAGRAM_ACCESS_TOKEN);
+
+    const services: Service[] = [
+        { key: 'database', label: 'PostgreSQL Veritabanı', status: dbStatus === 'ONLINE' ? 'OK' : 'ERROR', detail: dbStatus === 'ONLINE' ? 'Bağlantı başarılı.' : 'Veritabanına bağlanılamadı.', facts: { Gecikme: dbLatency, 'Son migration': migrations?.[0]?.migration_name || 'Bilinmiyor' } },
+        { key: 'storage', label: 'Depolama Servisi', status: storage.status === 'CONFIGURED' ? 'OK' : 'PENDING_EXTERNAL_CONFIGURATION', detail: storage.detail, facts: { Sağlayıcı: storage.provider === 's3' ? 'S3 uyumlu nesne depolama' : 'Yerel dosya sistemi' } },
+        {
+            key: 'security',
+            label: 'Kimlik & Güvenlik',
+            status: identityKey || !isProd ? 'OK' : 'ERROR',
+            detail: identityKey ? 'Oturumlar HttpOnly çerezle, T.C. kimlik numaraları ayrı anahtarla şifrelenir.' : isProd ? 'IDENTITY_ENCRYPTION_KEY tanımlı değil; production için zorunludur.' : 'Geliştirme ortamı: kimlik şifreleme anahtarı oturum anahtarından türetiliyor.',
+            facts: { MFA: 'TOTP + tek kullanımlık kurtarma kodları', 'Kimlik şifreleme anahtarı': identityKey ? 'Tanımlı' : 'Tanımlı değil' },
+        },
+        { key: 'email', label: 'E-Posta Servisi (SMTP)', status: email.configured ? 'OK' : 'PENDING_EXTERNAL_CONFIGURATION', detail: email.message, facts: { Gönderen: email.from, 'Kuyrukta bekleyen': pendingEmails, Zamanlanmış: scheduledEmails, Başarısız: failedEmails } },
+        { key: 'scheduler', label: 'Zamanlanmış İşler', status: scheduler ? 'OK' : 'PENDING_EXTERNAL_CONFIGURATION', detail: scheduler ? 'CRON_SECRET tanımlı. /api/cron/process-jobs zamanlayıcı tarafından çağrılmalıdır.' : 'CRON_SECRET tanımlı değil: zamanlanmış e-postalar, haber yayınları ve otomatik raporlar yalnızca elle tetiklenebilir.', facts: { 'Son otomatik rapor': lastAutoReport ? `${lastAutoReport.periodKey} · ${lastAutoReport.createdAt.toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul' })}` : 'Henüz yok' } },
+        { key: 'ai', label: 'AI Dil Modeli', status: ai.configured ? 'OK' : 'PENDING_EXTERNAL_CONFIGURATION', detail: ai.configured ? 'Dil modeli yalnızca komutu kayıtlı bir işleme eşlemek için kullanılır; veritabanı içeriği gönderilmez.' : 'Sağlayıcı anahtarı yok. AI Komuta Merkezi tanımlı Türkçe komutlarla çalışmaya devam eder.', facts: { Sağlayıcı: ai.provider, Model: ai.model } },
+        { key: 'integrations', label: 'Dış Entegrasyonlar', status: m365 && meta ? 'OK' : 'PENDING_EXTERNAL_CONFIGURATION', detail: 'Microsoft 365 ve Meta/Instagram bağlantıları kimlik bilgileri tanımlandığında etkinleşir.', facts: { 'Microsoft 365': m365 ? 'Yapılandırıldı' : 'Yapılandırılmadı', 'Meta / Instagram': meta ? 'Yapılandırıldı' : 'Yapılandırılmadı' } },
+    ];
+
+    const overall = services.some((s) => s.status === 'ERROR') ? 'DEGRADED' : 'HEALTHY';
+    return NextResponse.json({
+        success: true,
+        status: overall,
+        timestamp: new Date().toISOString(),
+        services,
+        checks: {
+            database: { status: dbStatus, latency: dbLatency, provider: 'PostgreSQL (Prisma)' },
+            storage: { status: storage.status, provider: storage.provider },
+            email: { status: email.status, pendingOutboxCount: pendingEmails },
+            aiProvider: { status: ai.status, provider: ai.provider, model: ai.model },
+            scheduler: { status: scheduler ? 'CONFIGURED' : 'PENDING_EXTERNAL_CONFIGURATION' },
+        },
+        system: {
+            nodeVersion: process.version,
+            nextVersion: packageJson.dependencies?.next || 'unknown',
+            environment: process.env.NODE_ENV || 'development',
+            uptimeSeconds: Math.floor(process.uptime()),
+            memoryUsageMb: Math.round(process.memoryUsage().rss / (1024 * 1024)),
+            platform: `${os.platform()} (${os.arch()})`,
+        },
+    });
 }

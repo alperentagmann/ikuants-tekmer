@@ -31,20 +31,62 @@ export interface UserWithPermissions {
     }>;
 }
 
+export function isSensitiveIdentityAction(action: string, resource: string): boolean {
+    const act = action.toLowerCase();
+    const res = resource.toLowerCase();
+
+    // Explicit person identity capabilities (e.g. person:identity:view)
+    if (
+        act === 'person:identity:view' ||
+        act === 'person:identity:edit' ||
+        act === 'person:sensitive_export'
+    ) {
+        return true;
+    }
+
+    // Only restricted to explicit capability when the target resource is persons / person
+    if (res === 'persons' || res === 'person') {
+        return (
+            act === 'identity_view' ||
+            act === 'identity_edit' ||
+            act === 'sensitive_export' ||
+            act.includes('identity') ||
+            act.includes('sensitive')
+        );
+    }
+
+    return false;
+}
+
 export function hasPermission(
     user: UserWithPermissions | null | undefined,
     action: string,
-    resource: string
+    resource: string = '*'
 ): boolean {
     if (!user || !user.isActive) return false;
-    if (user.isSuperAdmin) return true; // Super admin has full bypass access
+
+    // Normalizing colon syntax like "person:identity:view"
+    if (action.includes(':') && resource === '*') {
+        const parts = action.split(':');
+        if (parts.length === 3) {
+            resource = parts[0] + 's';
+            action = parts[1] + '_' + parts[2];
+        } else if (parts.length === 2) {
+            resource = parts[0] + 's';
+            action = parts[1];
+        }
+    }
+
+    const isSensitive = isSensitiveIdentityAction(action, resource);
 
     // 1. Check direct user explicit overrides
     if (user.userPermissions) {
         const explicit = user.userPermissions.find(
-            (up) =>
-                (up.permission.action === action || up.permission.action === '*') &&
-                (up.permission.resource === resource || up.permission.resource === '*')
+            (up) => {
+                const actMatch = up.permission.action === action || up.permission.action === '*';
+                const resMatch = up.permission.resource === resource || up.permission.resource === '*';
+                return actMatch && resMatch;
+            }
         );
         if (explicit !== undefined) {
             return explicit.isGranted;
@@ -55,15 +97,39 @@ export function hasPermission(
     if (user.userRoles) {
         for (const userRole of user.userRoles) {
             const match = userRole.role.permissions.some(
-                (rp) =>
-                    (rp.permission.action === action || rp.permission.action === '*') &&
-                    (rp.permission.resource === resource || rp.permission.resource === '*')
+                (rp) => {
+                    // For sensitive identity, wildcard does not blindly bypass unless specific permission assigned
+                    if (isSensitive && rp.permission.action === '*' && rp.permission.resource === '*') {
+                        return false;
+                    }
+                    const actMatch = rp.permission.action === action || (rp.permission.action === '*' && !isSensitive);
+                    const resMatch = rp.permission.resource === resource || (rp.permission.resource === '*' && !isSensitive);
+                    return actMatch && resMatch;
+                }
             );
             if (match) return true;
         }
     }
 
+    // 3. Super admin bypass: Super admins have global access to general operations,
+    // but sensitive identity reveal requires explicit capability (e.g. person:identity:view).
+    if (user.isSuperAdmin) {
+        return !isSensitive;
+    }
+
     return false;
+}
+
+export function canViewSensitiveIdentity(user: UserWithPermissions | null | undefined): boolean {
+    return hasPermission(user, 'identity_view', 'persons');
+}
+
+export function canEditSensitiveIdentity(user: UserWithPermissions | null | undefined): boolean {
+    return hasPermission(user, 'identity_edit', 'persons');
+}
+
+export function canExportSensitiveData(user: UserWithPermissions | null | undefined): boolean {
+    return hasPermission(user, 'sensitive_export', 'persons');
 }
 
 export async function checkPermission(
@@ -247,6 +313,53 @@ export const SYSTEM_PERMISSIONS = [
     { action: 'delete', resource: 'interactions', description: 'Görüşme veya ziyaret kaydı silme' },
     { action: 'export', resource: 'interactions', description: 'Görüşme ve ziyaret listesini dışa aktarma' },
 
+    
+    // Persons & Enterprise CRM Directory
+    { action: 'view', resource: 'persons', description: 'Kişi rehberini ve temel profilleri görüntüleme' },
+    { action: 'create', resource: 'persons', description: 'Yeni kişi kaydı ve kurum bağlantısı oluşturma' },
+    { action: 'update', resource: 'persons', description: 'Kişi ve iletişim bilgilerini düzenleme' },
+    { action: 'delete', resource: 'persons', description: 'Kişi kaydını arşivleme veya silme' },
+    { action: 'identity_view', resource: 'persons', description: 'T.C. Kimlik No gibi hassas kimlik verilerini tam görme (person:identity:view)' },
+    { action: 'identity_edit', resource: 'persons', description: 'T.C. Kimlik No ve hassas kimlik verilerini güncelleme (person:identity:edit)' },
+    { action: 'privacy_view', resource: 'persons', description: 'KVKK ve açık rıza geçmişini inceleme (person:privacy:view)' },
+    { action: 'privacy_edit', resource: 'persons', description: 'KVKK ve iletişim izinlerini düzenleme veya geri çekme (person:privacy:edit)' },
+    { action: 'sensitive_export', resource: 'persons', description: 'Hassas kimlik ve kişisel verileri dışa aktarma (person:sensitive_export)' },
+
+    // Task assignment scope (task:assign is different from task:view_all)
+    { action: 'assign', resource: 'tasks', description: 'Başkalarına görev atama (task:assign)' },
+    { action: 'view_all', resource: 'tasks', description: 'Kurumdaki tüm görevleri görme (task:view_all)' },
+    { action: 'approve', resource: 'tasks', description: 'Kontrole gönderilen görevi onaylama / düzeltmeye gönderme' },
+
+    // Facilities, space assignments & reservations
+    { action: 'view', resource: 'facilities', description: 'Kullanım alanlarını ve tahsisleri görüntüleme' },
+    { action: 'create', resource: 'facilities', description: 'Yeni alan oluşturma' },
+    { action: 'update', resource: 'facilities', description: 'Alan bilgileri, 3D/360 medya ve tahsisleri düzenleme' },
+    { action: 'delete', resource: 'facilities', description: 'Alanı pasife alma / arşivleme' },
+    { action: 'view', resource: 'reservations', description: 'Rezervasyon taleplerini görüntüleme' },
+    { action: 'approve', resource: 'reservations', description: 'Rezervasyon onaylama, reddetme, alternatif önerme' },
+    { action: 'create', resource: 'reservations', description: 'Admin adına rezervasyon oluşturma' },
+
+    // Document center
+    { action: 'view', resource: 'documents', description: 'Doküman merkezini görüntüleme' },
+    { action: 'upload', resource: 'documents', description: 'Doküman yükleme ve kayda bağlama' },
+    { action: 'delete', resource: 'documents', description: 'Dokümanı arşivleme' },
+    { action: 'view_restricted', resource: 'documents', description: 'Kısıtlı (hassas) dokümanları görme' },
+
+    // Reports
+    { action: 'view', resource: 'reports', description: 'Raporları görüntüleme' },
+    { action: 'create', resource: 'reports', description: 'Rapor oluşturma ve düzenleme' },
+    { action: 'approve', resource: 'reports', description: 'Rapor onaylama' },
+    { action: 'publish', resource: 'reports', description: 'Rapor yayınlama' },
+    { action: 'export', resource: 'reports', description: 'Rapor dışa aktarma (PDF/Excel)' },
+
+    // CMS publishing
+    { action: 'publish', resource: 'cms', description: 'Web sitesi içeriğini yayınlama (cms:publish)' },
+    { action: 'edit', resource: 'cms', description: 'Ana sayfa, menü, footer ve sayfa içeriklerini düzenleme' },
+
+    // AI operations
+    { action: 'use', resource: 'ai', description: 'İKÜANTS AI Komuta & Operasyon Merkezini kullanma' },
+    { action: 'high_risk_action', resource: 'ai', description: 'AI ile yüksek riskli işlemleri onaylayıp çalıştırma (ai:high_risk_action)' },
+
     // KVKK & Consent Management
     { action: 'view', resource: 'kvkk', description: 'KVKK ve veri izinleri merkezini görüntüleme' },
     { action: 'create', resource: 'kvkk', description: 'Yeni KVKK açık rıza kaydı oluşturma' },
@@ -274,6 +387,15 @@ export const SYSTEM_PERMISSIONS = [
     { action: 'view', resource: 'invoice', description: 'Fatura ve finansal belgeleri görüntüleme' },
     { action: 'create', resource: 'invoice', description: 'Yeni fatura kaydı ve belge bağlama' },
     { action: 'view_sensitive', resource: 'invoice', description: 'Hassas fatura ve banka dekontlarını görüntüleme' },
+
+    // Work OS: teams and automations
+    { action: 'view', resource: 'teams', description: 'Ekipleri ve ekip panolarını görüntüleme' },
+    { action: 'manage', resource: 'teams', description: 'Ekip oluşturma, üye ve lider atama' },
+    { action: 'manage', resource: 'automations', description: 'Görev şablonları ve otomasyon kurallarını yönetme' },
+
+    // Integration hub
+    { action: 'view', resource: 'integrations', description: 'Entegrasyon bağlantılarını ve kayıtlarını görüntüleme' },
+    { action: 'manage', resource: 'integrations', description: 'Entegrasyon, webhook ve API anahtarı yönetimi' },
 ];
 
 export const DEFAULT_ROLES = [
@@ -300,6 +422,7 @@ export const DEFAULT_ROLES = [
             { action: '*', resource: 'contacts' },
             { action: '*', resource: 'media' },
             { action: '*', resource: 'tasks' },
+            { action: 'view', resource: 'teams' },
             { action: '*', resource: 'activities' },
             { action: '*', resource: 'projects' },
             { action: '*', resource: 'trainings' },
@@ -309,6 +432,42 @@ export const DEFAULT_ROLES = [
             { action: '*', resource: 'redirects' },
             { action: 'view', resource: 'audit_logs' },
             { action: 'view', resource: 'system_health' },
+            { action: 'view', resource: 'persons' },
+            { action: 'create', resource: 'persons' },
+            { action: 'update', resource: 'persons' },
+            { action: 'privacy_view', resource: 'persons' },
+            { action: '*', resource: 'interactions' },
+            { action: '*', resource: 'facilities' },
+            { action: '*', resource: 'reservations' },
+            { action: 'view', resource: 'documents' },
+            { action: 'upload', resource: 'documents' },
+            { action: 'view', resource: 'reports' },
+            { action: 'create', resource: 'reports' },
+            { action: 'export', resource: 'reports' },
+            { action: 'view', resource: 'kvkk' },
+            { action: 'edit', resource: 'cms' },
+            { action: 'use', resource: 'ai' },
+        ],
+    },
+    {
+        name: 'Finans Sorumlusu',
+        slug: 'finance-manager',
+        description: 'Kira, sözleşme, tahakkuk, fatura ve tahsilat süreçlerini yönetme.',
+        isSystem: true,
+        permissions: [
+            { action: 'view', resource: 'dashboard' },
+            { action: '*', resource: 'finance' },
+            { action: '*', resource: 'rent' },
+            { action: '*', resource: 'invoice' },
+            { action: '*', resource: 'finance_project' },
+            { action: 'view', resource: 'entrepreneurs' },
+            { action: 'view', resource: 'persons' },
+            { action: 'view', resource: 'facilities' },
+            { action: 'view', resource: 'documents' },
+            { action: 'upload', resource: 'documents' },
+            { action: 'view', resource: 'reports' },
+            { action: 'export', resource: 'reports' },
+            { action: 'use', resource: 'ai' },
         ],
     },
     {
@@ -320,6 +479,10 @@ export const DEFAULT_ROLES = [
             { action: 'view', resource: 'dashboard' },
             { action: '*', resource: 'news' },
             { action: '*', resource: 'media' },
+            { action: 'edit', resource: 'cms' },
+            { action: 'view', resource: 'menus' },
+            { action: 'view', resource: 'facilities' },
+            { action: 'use', resource: 'ai' },
             { action: 'view', resource: 'entrepreneurs' },
             { action: 'view', resource: 'mentors' },
             { action: 'view', resource: 'programs' },
@@ -405,6 +568,10 @@ export const DEFAULT_ROLES = [
             { action: 'view', resource: 'applications' },
             { action: 'view', resource: 'contacts' },
             { action: 'view', resource: 'media' },
+            { action: 'view', resource: 'facilities' },
+            { action: 'view', resource: 'reservations' },
+            { action: 'view', resource: 'reports' },
+            { action: 'view', resource: 'tasks' },
         ],
     },
 ];

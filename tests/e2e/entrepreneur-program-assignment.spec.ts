@@ -62,4 +62,50 @@ test.describe('Entrepreneur Multi-Program Assignment & History E2E', () => {
             await prisma.entrepreneurProgram.delete({ where: { id: dbAssignment.id } });
         }
     });
+    test('offers Yer Edinme, ANTSPARK, ANTSFire and a free-text "Diğer" track', async ({ page }) => {
+        const entrepreneur = await prisma.entrepreneur.findFirst({ where: { isArchived: false } });
+        expect(entrepreneur).not.toBeNull();
+        if (!entrepreneur) return;
+        const originalProgram = entrepreneur.program;
+        const otherName = `QA Diğer Süreç ${Date.now()}`;
+        const createdIds: string[] = [];
+        try {
+            await page.goto(`/admin/girisimciler/${entrepreneur.id}`);
+            await page.locator('#tab-programlar').click();
+            await page.locator('#assign-program-btn').click();
+
+            const select = page.locator('#assign-program-select');
+            const labels = (await select.locator('option').allInnerTexts()).map((t) => t.trim());
+            expect(labels[1]).toBe('TEKMER Yer Edinme');
+            expect(labels[2]).toMatch(/ANTSPARK/);
+            expect(labels[3]).toMatch(/ANTSFire/);
+            expect(labels[labels.length - 1]).toMatch(/^Diğer/);
+
+            // "Diğer" opens a text box and stores the typed name
+            await select.selectOption('__other__');
+            await page.locator('#input-other-program').fill(otherName);
+            await Promise.all([
+                page.waitForResponse((r) => r.url().includes('/programs') && r.request().method() === 'POST' && r.ok()),
+                page.locator('#submit-assign-program-btn').click(),
+            ]);
+            const other = await prisma.entrepreneurProgram.findFirst({ where: { entrepreneurId: entrepreneur.id, programLabel: otherName } });
+            expect(other?.programId).toBeNull();
+            if (other) createdIds.push(other.id);
+            await expect(page.getByRole('heading', { name: otherName })).toBeVisible();
+
+            // Yer Edinme is stored without a Program row
+            await page.locator('#assign-program-btn').click();
+            await select.selectOption('__placement__');
+            await Promise.all([
+                page.waitForResponse((r) => r.url().includes('/programs') && r.request().method() === 'POST' && r.ok()),
+                page.locator('#submit-assign-program-btn').click(),
+            ]);
+            const placement = await prisma.entrepreneurProgram.findFirst({ where: { entrepreneurId: entrepreneur.id, programLabel: 'TEKMER Yer Edinme', id: { notIn: createdIds } }, orderBy: { createdAt: 'desc' } });
+            expect(placement?.programId).toBeNull();
+            if (placement) createdIds.push(placement.id);
+        } finally {
+            await prisma.entrepreneurProgram.deleteMany({ where: { id: { in: createdIds } } });
+            await prisma.entrepreneur.update({ where: { id: entrepreneur.id }, data: { program: originalProgram } });
+        }
+    });
 });

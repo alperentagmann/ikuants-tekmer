@@ -1,51 +1,48 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { FormService } from '@/lib/services/form-service';
-import { getCurrentAdminUser } from '@/lib/auth';
-import { hasPermission } from '@/lib/rbac';
+import { requireAdmin, errorResponse } from '@/lib/api-guard';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+    const auth = await requireAdmin(request, 'view', 'forms');
+    if (auth.error) return auth.error;
     try {
-        const user = await getCurrentAdminUser();
-        if (!user || !hasPermission(user, 'view', 'forms')) {
-            return NextResponse.json({ success: false, message: 'Yetkisiz' }, { status: 403 });
-        }
-
-        const forms = await FormService.getAdminForms();
+        const sp = request.nextUrl.searchParams;
+        const forms = await FormService.listForms({
+            includeArchived: sp.get('includeArchived') === 'true',
+            search: sp.get('search') || undefined,
+            formType: sp.get('formType') || undefined,
+        });
         return NextResponse.json({ success: true, forms });
-    } catch {
-        return NextResponse.json({ success: false, message: 'Hata' }, { status: 500 });
+    } catch (error) {
+        return errorResponse(error, 'Formlar yüklenemedi');
     }
 }
 
 export async function POST(request: NextRequest) {
+    const auth = await requireAdmin(request, 'create', 'forms');
+    if (auth.error) return auth.error;
     try {
-        const user = await getCurrentAdminUser();
-        if (!user || !hasPermission(user, 'create', 'forms')) {
-            return NextResponse.json({ success: false, message: 'Yetkisiz' }, { status: 403 });
-        }
-
         const body = await request.json();
-        const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim();
-        const userAgent = request.headers.get('user-agent') || '';
-
-        const result = await FormService.createFormWithVersion({
-            title: body.title,
-            slug: body.slug,
-            description: body.description,
-            formType: body.formType,
-            fields: body.fields || [],
-            publishImmediately: body.publishImmediately,
-            actor: {
-                id: user.id,
-                name: user.name,
-                email: user.email,
-                ip,
-                userAgent,
+        if (body.sourceFormId) {
+            const result = await FormService.duplicateForm(body.sourceFormId, { title: body.title, slug: body.slug, asTemplate: body.isTemplate }, auth.actor);
+            return NextResponse.json({ success: true, form: result.form, version: result.version });
+        }
+        const result = await FormService.createForm(
+            {
+                title: body.title,
+                slug: body.slug,
+                formType: body.formType,
+                description: body.description,
+                theme: body.theme,
+                publicPath: body.publicPath,
+                sections: body.sections,
+                fields: body.fields || [],
+                isTemplate: body.isTemplate,
             },
-        });
-
-        return NextResponse.json({ success: true, ...result });
-    } catch (e: any) {
-        return NextResponse.json({ success: false, message: e.message || 'Hata' }, { status: 500 });
+            auth.actor
+        );
+        return NextResponse.json({ success: true, form: result.form, version: result.version });
+    } catch (error) {
+        return errorResponse(error, 'Form oluşturulamadı');
     }
 }

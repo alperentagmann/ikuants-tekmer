@@ -3,6 +3,8 @@ import { prisma } from '@/lib/prisma';
 import { getCurrentAdminUser } from '@/lib/auth';
 import { hasPermission } from '@/lib/rbac';
 import { logAuditEvent } from '@/lib/audit';
+import { TaskWorkflowService } from '@/lib/services/task-workflow-service';
+import { getTimelineEvents } from '@/lib/timeline';
 
 export async function GET(
     req: NextRequest,
@@ -32,14 +34,25 @@ export async function GET(
                 entrepreneur: { select: { id: true, name: true } },
                 mentor: { select: { id: true, name: true, surname: true } },
                 program: { select: { id: true, name: true } },
+                application: { select: { id: true, applicationNumber: true, applicantName: true } },
+                person: { select: { id: true, fullName: true } },
+                organization: { select: { id: true, name: true } },
+                project: { select: { id: true, title: true } },
+                team: { select: { id: true, name: true, color: true } },
+                parentTask: { select: { id: true, title: true } },
+                subTasks: { where: { isArchived: false }, orderBy: { createdAt: 'asc' }, select: { id: true, title: true, status: true, dueDate: true, assignees: { select: { user: { select: { id: true, name: true, avatarUrl: true } } } } } },
+                watchers: { select: { user: { select: { id: true, name: true, avatarUrl: true } } } },
+                reservation: { select: { id: true, title: true, startTime: true } },
+                rentContract: { select: { id: true, contractNo: true } },
             },
         });
 
-        if (!task) {
+        if (!task || task.isArchived || !TaskWorkflowService.canSee(task, user as never)) {
             return NextResponse.json({ success: false, message: 'Görev bulunamadı' }, { status: 404 });
         }
 
-        return NextResponse.json({ success: true, task });
+        const timeline = await getTimelineEvents('Task', id);
+        return NextResponse.json({ success: true, task, timeline });
     } catch (e: any) {
         return NextResponse.json({ success: false, message: e.message || 'Sunucu hatası' }, { status: 500 });
     }
@@ -61,18 +74,19 @@ export async function DELETE(
             return NextResponse.json({ success: false, message: 'Görev bulunamadı' }, { status: 404 });
         }
 
-        await prisma.task.delete({ where: { id } });
+        // Tasks are archived, not deleted, so history and audit stay intact.
+        await prisma.task.update({ where: { id }, data: { isArchived: true } });
 
         await logAuditEvent({
             actorId: user.id,
             actorName: user.name,
-            action: 'DELETE',
+            action: 'ARCHIVE',
             entityType: 'Task',
             entityId: id,
-            diff: `Görev silindi: ${task.title}`,
+            diff: `Görev arşivlendi: ${task.title}`,
         });
 
-        return NextResponse.json({ success: true, message: 'Görev silindi' });
+        return NextResponse.json({ success: true, message: 'Görev arşivlendi' });
     } catch (e: any) {
         return NextResponse.json({ success: false, message: e.message || 'Sunucu hatası' }, { status: 500 });
     }

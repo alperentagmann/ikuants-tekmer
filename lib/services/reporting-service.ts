@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import { istanbulDayKey, istanbulDayRange, istanbulMonthRange } from '@/lib/time';
 import { logAuditEvent } from '@/lib/audit';
 
 export interface ReportFilterConfig {
@@ -14,11 +15,9 @@ export interface ReportFilterConfig {
 export const ReportingService = {
     // 1. Kullanıcı Günlük Raporu (Daily Operational Auto-Draft)
     async generateDailyReportData(userId: string, targetDate = new Date()) {
-        const startOfDay = new Date(targetDate);
-        startOfDay.setHours(0, 0, 0, 0);
-
-        const endOfDay = new Date(targetDate);
-        endOfDay.setHours(23, 59, 59, 999);
+        const dayKey = istanbulDayKey(targetDate);
+        const { start: startOfDay, end: dayEnd } = istanbulDayRange(dayKey);
+        const endOfDay = new Date(dayEnd.getTime() - 1);
 
         const [
             user,
@@ -89,7 +88,7 @@ export const ReportingService = {
         ].filter(Boolean).join(' ');
 
         return {
-            date: startOfDay.toISOString().split('T')[0],
+            date: dayKey,
             user,
             department: user?.department || 'Operasyon',
             completedTasks,
@@ -112,8 +111,9 @@ export const ReportingService = {
 
     // 2. Aylık Kullanıcı Raporu
     async generateMonthlyUserReportData(userId: string, month: number, year: number) {
-        const startOfMonth = new Date(year, month - 1, 1);
-        const endOfMonth = new Date(year, month, 0, 23, 59, 59, 999);
+        const monthRange = istanbulMonthRange(year, month);
+        const startOfMonth = monthRange.start;
+        const endOfMonth = new Date(monthRange.end.getTime() - 1);
 
         const [
             user,
@@ -182,8 +182,8 @@ export const ReportingService = {
 
     // 3. Super Admin Yıllık Kurumsal Rapor (10 Bölüm)
     async generateYearlyCorporateReportData(year: number) {
-        const startOfYear = new Date(year, 0, 1);
-        const endOfYear = new Date(year, 11, 31, 23, 59, 59, 999);
+        const startOfYear = istanbulMonthRange(year, 1).start;
+        const endOfYear = new Date(istanbulMonthRange(year, 12).end.getTime() - 1);
 
         const [
             totalEntrepreneurs,

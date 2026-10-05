@@ -140,7 +140,7 @@ export default function EventsPage() {
                         Çok oturumlu etkinlikler, konuşmacı havuzu, bilet/kayıt yönetimi ve kapı QR check-in operasyonları.
                     </p>
                 </div>
-                <button
+                <button data-intent="create"
                     onClick={() => setIsCreateModalOpen(true)}
                     className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90 text-white text-xs font-semibold flex items-center gap-2 shadow-lg shadow-primary/20 transition-all"
                 >

@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { prisma } from '../../lib/prisma';
 import { loginAsAdmin } from './helpers/auth';
+import { clickAndWaitForSave } from './helpers/mutation';
 
 test.describe('1. HAKKIMIZDA — KURUL ÜYESİ E2E CRUD', () => {
     const TEST_NAME = 'E2E TEST PROF. DR. AHMET YILMAZ';
@@ -56,7 +57,7 @@ test.describe('1. HAKKIMIZDA — KURUL ÜYESİ E2E CRUD', () => {
         await inputs.nth(1).fill(TEST_TITLE);
 
         // Kaydet
-        await modal.getByRole('button', { name: 'Kaydet' }).click();
+        await clickAndWaitForSave(page, modal.getByRole('button', { name: 'Kaydet' }));
         await page.waitForTimeout(1000);
 
         // 4. DB'de oluştuğunu kontrol et
@@ -115,7 +116,7 @@ test.describe('1. HAKKIMIZDA — KURUL ÜYESİ E2E CRUD', () => {
 
         const updatedCard = page.locator('div.rounded-xl').filter({ hasText: UPDATED_NAME }).first();
         const deleteBtn = updatedCard.locator('button').nth(1);
-        await deleteBtn.click();
+        await clickAndWaitForSave(page, deleteBtn);
         await page.waitForTimeout(1000);
 
         // 10. Public'tan kaybolduğunu doğrula

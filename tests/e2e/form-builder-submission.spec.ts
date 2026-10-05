@@ -48,19 +48,22 @@ test.describe('Form Builder & Submission Pipeline', () => {
                 }
             });
 
-            expect(app.id).toBeDefined();
+            try {
+                expect(app.id).toBeDefined();
 
-            // Verify in admin list with authenticated context request
-            const adminRes = await context.request.get('/api/admin/applications');
-            expect(adminRes.status()).toBe(200);
-            const adminData = await adminRes.json();
-            const list = adminData.items || adminData.applications || [];
-            const found = list.some((a: any) => a.id === app.id || a.applicationNumber === appNo);
-            expect(found).toBe(true);
-
-            // Cleanup test record
-            await prisma.application.delete({ where: { id: app.id } });
-            await prisma.submission.delete({ where: { id: sub.id } });
+                // Verify in admin list with authenticated context request
+                const adminRes = await context.request.get('/api/admin/applications');
+                expect(adminRes.status()).toBe(200);
+                const adminData = await adminRes.json();
+                const list = adminData.items || adminData.applications || [];
+                const found = list.some((a: { id: string; applicationNumber: string }) => a.id === app.id || a.applicationNumber === appNo);
+                expect(found).toBe(true);
+            } finally {
+                // Cleanup by exact id even when an assertion fails
+                await prisma.activityTimeline.deleteMany({ where: { entityId: app.id } });
+                await prisma.application.deleteMany({ where: { id: app.id } });
+                await prisma.submission.deleteMany({ where: { id: sub.id } });
+            }
         }
     });
 });

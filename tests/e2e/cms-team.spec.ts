@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { prisma } from '../../lib/prisma';
 import { loginAsAdmin } from './helpers/auth';
+import { clickAndWaitForSave } from './helpers/mutation';
 
 test.describe('2. HAKKIMIZDA — EKİP ÜYESİ E2E CRUD', () => {
     const TEST_NAME = 'E2E TEST EKİP ÜYESİ ALPEREN';
@@ -55,7 +56,7 @@ test.describe('2. HAKKIMIZDA — EKİP ÜYESİ E2E CRUD', () => {
         await inputs.nth(1).fill(TEST_TITLE);
 
         // Kaydet
-        await modal.getByRole('button', { name: 'Kaydet' }).click();
+        await clickAndWaitForSave(page, modal.getByRole('button', { name: 'Kaydet' }));
         await page.waitForTimeout(1000);
 
         // 3. DB doğrulaması
@@ -82,7 +83,7 @@ test.describe('2. HAKKIMIZDA — EKİP ÜYESİ E2E CRUD', () => {
 
         const editModal = page.locator('div.fixed');
         await editModal.locator('input[type="text"]').nth(0).fill(UPDATED_NAME);
-        await editModal.getByRole('button', { name: 'Kaydet' }).click();
+        await clickAndWaitForSave(page, editModal.getByRole('button', { name: 'Kaydet' }));
         await page.waitForTimeout(1000);
 
         // 6. Public'ta değiştiğini doğrula
@@ -99,7 +100,7 @@ test.describe('2. HAKKIMIZDA — EKİP ÜYESİ E2E CRUD', () => {
 
         const updatedCard = page.locator('div.rounded-xl').filter({ hasText: UPDATED_NAME }).first();
         const deleteBtn = updatedCard.locator('button').nth(1);
-        await deleteBtn.click();
+        await clickAndWaitForSave(page, deleteBtn);
         await page.waitForTimeout(1000);
 
         // 8. Public'tan kaybolduğunu doğrula

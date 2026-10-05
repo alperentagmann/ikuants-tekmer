@@ -104,9 +104,9 @@ export default function YillikKurumsalRaporPage() {
                         onChange={(e) => setYear(parseInt(e.target.value, 10))}
                         className="bg-slate-900 border border-slate-800 rounded-xl px-4 py-2 text-xs font-semibold text-white focus:outline-none focus:border-cyan-500"
                     >
-                        <option value={2026}>2026 Yılı</option>
-                        <option value={2025}>2025 Yılı</option>
-                        <option value={2024}>2024 Yılı</option>
+                        {Array.from({ length: 7 }, (_, i) => new Date().getFullYear() - 3 + i).map((y) => (
+                            <option key={y} value={y}>{y} Yılı</option>
+                        ))}
                     </select>
 
                     <button

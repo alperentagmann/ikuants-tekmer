@@ -113,7 +113,7 @@ export default function ProjectsPage() {
                         KOSGEB, TÜBİTAK, İSTKA, AB Ufuk ve TEKMER Ar-Ge projelerinin bütçe, kilometre taşı ve risk takibi.
                     </p>
                 </div>
-                <button
+                <button data-intent="create"
                     onClick={() => setIsCreateModalOpen(true)}
                     className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90 text-white text-xs font-semibold flex items-center gap-2 shadow-lg shadow-primary/20 transition-all"
                 >

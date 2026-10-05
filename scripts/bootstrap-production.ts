@@ -1,27 +1,12 @@
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
+import { syncRbacDefinitions } from '../lib/rbac-sync';
+import { seedFormCenter } from '../prisma/seed-form-center';
+import { seedVerifiedSpaces } from '../prisma/seed-spaces';
+import { importLegacyNews } from './import-legacy-news';
+import { seedEmailTemplates } from '../prisma/seed-email-templates';
 
 const prisma = new PrismaClient();
-
-const SYSTEM_ROLES = [
-    { name: 'SUPER_ADMIN', slug: 'super-admin', description: 'Tüm sistem üzerinde tam yetki', isSystem: true },
-    { name: 'ADMIN', slug: 'admin', description: 'Operasyonel yönetim yetkisi', isSystem: true },
-    { name: 'COORDINATOR', slug: 'coordinator', description: 'Kuluçka ve etkinlik koordinasyonu', isSystem: true },
-    { name: 'EVALUATOR', slug: 'evaluator', description: 'Başvuru ve jüri puanlama yetkisi', isSystem: true },
-    { name: 'MENTOR', slug: 'mentor', description: 'Girişimci mentörlük yönetimi', isSystem: true },
-    { name: 'ENTREPRENEUR', slug: 'entrepreneur', description: 'Kendi şirket ve başvuru paneli', isSystem: true },
-    { name: 'VIEWER', slug: 'viewer', description: 'Salt okunur rapor ve metrik erişimi', isSystem: true },
-];
-
-const MODULES = [
-    'dashboard', 'applications', 'entrepreneurs', 'mentors', 'users', 'roles',
-    'settings', 'audit_logs', 'terminology', 'custom_fields', 'pipelines',
-    'email_templates', 'security', 'trainings', 'events', 'activities',
-    'projects', 'tasks', 'calendar', 'directory', 'forms', 'news', 'supports',
-    'menus', 'pages', 'media', 'revisions', 'system_health'
-];
-
-const ACTIONS = ['view', 'create', 'edit', 'delete', 'export', 'publish', 'approve', 'view_sensitive'];
 
 async function bootstrap() {
     const isDryRun = process.argv.includes('--dry-run');
@@ -31,45 +16,10 @@ async function bootstrap() {
         await prisma.$connect();
         console.log('✅ Veritabanı bağlantısı kuruldu.');
 
-        // 1. System Roles
-        console.log('\n[1] Sistem Rolleri Tanımlanıyor...');
-        for (const r of SYSTEM_ROLES) {
-            const existingRole = await prisma.role.findFirst({
-                where: { OR: [{ name: r.name }, { slug: r.slug }] }
-            });
-            if (!existingRole) {
-                if (!isDryRun) {
-                    await prisma.role.create({ data: r });
-                }
-                console.log(`  + Rol oluşturuldu: ${r.name}`);
-            } else {
-                console.log(`  • Rol mevcut: ${existingRole.name}`);
-            }
-        }
-
-        // 2. System Permissions
-        console.log('\n[2] Sistem İzinleri (Permissions) Tanımlanıyor...');
-        let permCount = 0;
-        for (const mod of MODULES) {
-            for (const act of ACTIONS) {
-                const existingPerm = await prisma.permission.findFirst({
-                    where: { resource: mod, action: act }
-                });
-                if (!existingPerm) {
-                    if (!isDryRun) {
-                        await prisma.permission.create({
-                            data: {
-                                resource: mod,
-                                action: act,
-                                description: `${mod} modülü için ${act} yetkisi`,
-                            }
-                        });
-                    }
-                    permCount++;
-                }
-            }
-        }
-        console.log(`  ✓ ${permCount} yeni izin eklendi / doğrulandı.`);
+        // 1-2. Permissions & default roles (additive; never removes admin customizations)
+        console.log('\n[1] Yetki ve rol tanımları senkronize ediliyor...');
+        const rbac = await syncRbacDefinitions(prisma, { dryRun: isDryRun });
+        console.log(`  ✓ ${rbac.permissionsCreated} yeni izin, ${rbac.rolesCreated} yeni rol, ${rbac.linksCreated} yeni rol-izin bağlantısı.`);
 
         // 3. Super Admin Account: bilgi@ikuantstekmer.com
         console.log('\n[3] Production Süper Yönetici Hesabı Yapılandırılıyor...');
@@ -120,7 +70,7 @@ async function bootstrap() {
 
         // Assign SUPER_ADMIN role to user
         if (!isDryRun && superAdminId) {
-            const superAdminRole = await prisma.role.findUnique({ where: { name: 'SUPER_ADMIN' } });
+            const superAdminRole = await prisma.role.findUnique({ where: { slug: 'super-admin' } });
             if (superAdminRole) {
                 const existingUserRole = await prisma.userRole.findFirst({
                     where: { userId: superAdminId, roleId: superAdminRole.id }
@@ -168,6 +118,18 @@ async function bootstrap() {
                 }
                 console.log(`  + Ayar oluşturuldu: ${setting.key}`);
             }
+        }
+
+        // 6. Form Center: KVKK texts, public business forms and application campaigns (create-only)
+        console.log('\n[6] Form Merkezi başlangıç içeriği kontrol ediliyor...');
+        if (!isDryRun) {
+            await seedFormCenter();
+            await seedVerifiedSpaces();
+            await seedEmailTemplates(prisma);
+            const news = await importLegacyNews(true);
+            console.log(`  • Haberler: ${news.created.length} oluşturuldu, ${news.completed.length} tamamlandı, ${news.skippedEdited.length} düzenlenmiş kayıt korundu.`);
+        } else {
+            console.log('  • [DRY RUN] Form Merkezi seed atlandı.');
         }
 
         console.log('\n============================================================');

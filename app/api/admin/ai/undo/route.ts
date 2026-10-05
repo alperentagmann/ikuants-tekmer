@@ -1,32 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { AiOperationsService } from '@/lib/services/ai-operations-service';
-import { getAuthUser } from '@/lib/auth';
+import { requireAdmin, errorResponse } from '@/lib/api-guard';
+import { AiEngine } from '@/lib/ai/engine';
+import type { AiActor } from '@/lib/ai/types';
 
-export async function POST(req: NextRequest) {
-    const user = await getAuthUser(req);
-    if (!user) {
-        return NextResponse.json({ success: false, message: 'Yetkisiz erişim' }, { status: 401 });
-    }
-
+export async function POST(request: NextRequest) {
+    const auth = await requireAdmin(request, 'use', 'ai');
+    if (auth.error) return auth.error;
     try {
-        const body = await req.json();
-        const { changeSetId } = body;
-
-        if (!changeSetId) {
-            return NextResponse.json({ success: false, message: 'ChangeSet ID zorunludur.' }, { status: 400 });
-        }
-
-        const result = await AiOperationsService.rollbackChangeSet(
-            changeSetId,
-            {
-                id: user.id,
-                email: user.email,
-                name: user.name,
-            }
-        );
-
-        return NextResponse.json(result, { status: result.success ? 200 : 400 });
-    } catch (error: any) {
-        return NextResponse.json({ success: false, message: error.message }, { status: 500 });
+        const body = (await request.json()) as { changeSetId?: unknown };
+        if (typeof body.changeSetId !== 'string') return NextResponse.json({ success: false, message: 'İşlem kimliği zorunludur.' }, { status: 400 });
+        const result = await AiEngine.undo(body.changeSetId, auth.user as AiActor);
+        return NextResponse.json(result);
+    } catch (error) {
+        return errorResponse(error, 'Geri alma başarısız');
     }
 }

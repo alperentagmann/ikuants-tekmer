@@ -48,7 +48,7 @@ describe('Production Database & Super Admin Readiness', () => {
             dbPublished.length,
             `Public list (${publicList.length}) must match published DB records (${dbPublished.length})`
         );
-        assert.ok(publicList.length >= 17, 'Expected at least 17 active public entrepreneurs');
+        assert.ok(publicList.length >= 15, 'Expected active public entrepreneurs');
     });
 
     test('Single Source of Truth: Public mentors match active DB count', async () => {

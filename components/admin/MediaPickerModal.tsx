@@ -31,9 +31,9 @@ export const MediaPickerModal: React.FC<MediaPickerModalProps> = ({
         try {
             const res = await fetch('/api/admin/media');
             const data = await res.json();
-            if (data.media) {
-                setMediaList(data.media);
-            }
+            // The API returns the list as `items`
+            const list = data.items || data.media;
+            if (Array.isArray(list)) setMediaList(list);
         } catch (e) {
             console.error('Failed to load media:', e);
         } finally {

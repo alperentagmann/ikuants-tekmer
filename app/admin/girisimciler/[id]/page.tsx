@@ -10,6 +10,7 @@ import {
     ExternalLink, Eye, EyeOff, Clock
 } from 'lucide-react';
 import { MediaPickerModal } from '@/components/admin/MediaPickerModal';
+import { TRACK_OTHER, assignmentLabel, trackOptions, trackToAssignment } from '@/lib/program-track';
 
 export default function EntrepreneurDetailPage() {
     const params = useParams();
@@ -116,7 +117,8 @@ export default function EntrepreneurDetailPage() {
     const [showAssignProgramModal, setShowAssignProgramModal] = useState(false);
     const [programFormData, setProgramFormData] = useState({
         programId: '',
-        cohort: '2026-1',
+        otherProgram: '',
+        cohort: '',
         status: 'ACTIVE',
         joinedAt: new Date().toISOString().split('T')[0],
         notes: ''
@@ -217,9 +219,6 @@ export default function EntrepreneurDetailPage() {
             const data = await res.json();
             const list = Array.isArray(data) ? data : (data.items || data.programs || []);
             setAvailablePrograms(list);
-            if (list.length > 0) {
-                setProgramFormData(prev => ({ ...prev, programId: prev.programId || list[0].id }));
-            }
         } catch (e) {
             console.error(e);
         }
@@ -235,11 +234,17 @@ export default function EntrepreneurDetailPage() {
 
     const handleAssignProgram = async (e: React.FormEvent) => {
         e.preventDefault();
+        const { otherProgram, programId: track, ...rest } = programFormData;
+        const target = trackToAssignment(track, otherProgram);
+        if (!target.programId && !target.programLabel) {
+            showToast('Hata: "Diğer" için program adını yazın.');
+            return;
+        }
         try {
             const res = await fetch(`/api/admin/entrepreneurs/${id}/programs`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(programFormData)
+                body: JSON.stringify({ ...rest, ...target })
             });
 
             if (!res.ok) {
@@ -249,6 +254,7 @@ export default function EntrepreneurDetailPage() {
 
             showToast('Program başarıyla atandı.');
             setShowAssignProgramModal(false);
+            setProgramFormData((prev) => ({ ...prev, programId: '', otherProgram: '' }));
             fetchAssignedPrograms();
             fetchDetail();
         } catch (err: any) {
@@ -389,7 +395,8 @@ export default function EntrepreneurDetailPage() {
         );
     }
 
-    const activeProgramName = assignedPrograms.find(p => p.status === 'ACTIVE' || p.status === 'ACCEPTED')?.program?.name || entrepreneur.program;
+    const activeAssignment = assignedPrograms.find(p => p.status === 'ACTIVE' || p.status === 'ACCEPTED');
+    const activeProgramName = (activeAssignment ? assignmentLabel(activeAssignment) : null) || entrepreneur.program;
 
     return (
         <div className="space-y-6 max-w-7xl mx-auto">
@@ -734,7 +741,7 @@ export default function EntrepreneurDetailPage() {
                                 >
                                     <div className="space-y-1">
                                         <div className="flex items-center gap-2">
-                                            <h4 className="font-bold text-white text-sm">{ap.program?.name || 'Program'}</h4>
+                                            <h4 className="font-bold text-white text-sm">{assignmentLabel(ap)}</h4>
                                             <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-purple-500/20 text-purple-400 border border-purple-500/30">
                                                 Dönem / Cohort: {ap.cohort || '-'}
                                             </span>
@@ -1005,10 +1012,23 @@ export default function EntrepreneurDetailPage() {
                                     className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:border-primary outline-none"
                                 >
                                     <option value="">-- Program Seçin --</option>
-                                    {availablePrograms.map((p) => (
-                                        <option key={p.id} value={p.id}>{p.name}</option>
+                                    {trackOptions(availablePrograms).map((o) => (
+                                        <option key={o.value} value={o.value}>{o.label}</option>
                                     ))}
                                 </select>
+                                {programFormData.programId === TRACK_OTHER && (
+                                    <input
+                                        id="input-other-program"
+                                        type="text"
+                                        required
+                                        autoFocus
+                                        maxLength={120}
+                                        placeholder="Program / süreç adını yazın"
+                                        value={programFormData.otherProgram}
+                                        onChange={(e) => setProgramFormData({ ...programFormData, otherProgram: e.target.value })}
+                                        className="mt-2 w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:border-primary outline-none"
+                                    />
+                                )}
                             </div>
 
                             <div className="grid grid-cols-2 gap-3">

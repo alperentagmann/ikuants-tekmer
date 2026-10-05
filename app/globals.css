@@ -159,3 +159,88 @@ option {
   background-color: #020617;
   color: #f8fafc;
 }
+/* ================================================================
+   Admin glassmorphism
+   Translucent surfaces over a soft, slowly drifting colour field.
+   backdrop-filter is used only on full-viewport overlays, the sticky
+   header and the sidebar: on ordinary containers it would turn them into
+   containing blocks for inline `position: fixed` modals.
+   ================================================================ */
+.admin-glass {
+    background-color: #05050b;
+}
+.admin-glass-field {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    overflow: hidden;
+}
+.admin-glass-field span {
+    position: absolute;
+    border-radius: 9999px;
+    filter: blur(80px);
+    opacity: 1;
+    animation: admin-orb-drift 28s ease-in-out infinite alternate;
+}
+.admin-glass-field span:nth-child(1) { width: 46vw; height: 46vw; left: -12vw; top: -14vw; background: radial-gradient(circle, rgba(124, 58, 237, 0.42), transparent 68%); }
+.admin-glass-field span:nth-child(2) { width: 40vw; height: 40vw; right: -10vw; top: 18vh; background: radial-gradient(circle, rgba(37, 99, 235, 0.32), transparent 68%); animation-delay: -9s; }
+.admin-glass-field span:nth-child(3) { width: 38vw; height: 38vw; left: 28vw; bottom: -20vw; background: radial-gradient(circle, rgba(6, 182, 212, 0.24), transparent 68%); animation-delay: -17s; }
+.admin-glass-field::after {
+    /* fine grain keeps large gradients from banding */
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+    background-size: 3px 3px;
+}
+@keyframes admin-orb-drift {
+    from { transform: translate3d(0, 0, 0) scale(1); }
+    to { transform: translate3d(4vw, 3vh, 0) scale(1.12); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .admin-glass-field span { animation: none; }
+}
+
+/* Panels and cards used across admin screens */
+.admin-glass :is(
+    [class~="bg-[#0e0e18]"], [class~="bg-[#090912]"], [class~="bg-[#090912]/80"], [class~="bg-[#0d0e1a]"],
+    [class~="bg-[#0e0e1a]"], [class~="bg-[#0e0e1a]/90"], [class~="bg-[#0f0f1c]"], [class~="bg-[#121222]"],
+    [class~="bg-[#0d0e1b]/80"], [class~="bg-[#121324]"], [class~="bg-[#11111c]"], [class~="bg-[#0f0f18]"],
+    .glass-card
+) {
+    background-color: rgba(22, 22, 42, 0.52);
+    background-image: linear-gradient(145deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.012) 40%, transparent 70%);
+    border-color: rgba(255, 255, 255, 0.09);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 10px 40px -12px rgba(0, 0, 0, 0.55);
+}
+.admin-glass .glass-card {
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.admin-glass .glass-card:hover {
+    border-color: rgba(255, 255, 255, 0.14);
+}
+/* Overlays, dialogs and drawers */
+.admin-glass .glass-overlay {
+    backdrop-filter: blur(10px) saturate(120%);
+    -webkit-backdrop-filter: blur(10px) saturate(120%);
+}
+.admin-glass .glass-panel {
+    background-color: rgba(16, 16, 32, 0.82);
+    background-image: linear-gradient(160deg, rgba(255, 255, 255, 0.06), transparent 45%);
+    border-color: rgba(255, 255, 255, 0.12);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 30px 80px -20px rgba(0, 0, 0, 0.8);
+}
+/* Chrome */
+.admin-glass .glass-chrome {
+    background-color: rgba(9, 9, 18, 0.62);
+    backdrop-filter: blur(20px) saturate(150%);
+    -webkit-backdrop-filter: blur(20px) saturate(150%);
+}
+.admin-glass .glass-sidebar {
+    background-color: rgba(9, 9, 18, 0.78);
+    background-image: none;
+    box-shadow: none;
+    backdrop-filter: blur(24px) saturate(150%);
+    -webkit-backdrop-filter: blur(24px) saturate(150%);
+}

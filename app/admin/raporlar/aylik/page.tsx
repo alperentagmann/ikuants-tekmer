@@ -23,7 +23,9 @@ import {
 export default function AylikRaporPage() {
     const [loading, setLoading] = useState(true);
     const [reportData, setReportData] = useState<any>(null);
-    const [selectedMonth, setSelectedMonth] = useState('2026-09');
+    const now = new Date();
+    const currentYearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const [selectedMonth, setSelectedMonth] = useState(currentYearMonth);
 
     // Form fields
     const [title, setTitle] = useState('');
@@ -50,7 +52,7 @@ export default function AylikRaporPage() {
             if (data.success && data.data) {
                 const d = data.data;
                 setReportData(d);
-                setTitle(`${year} Yılı ${month}. Ay - Aylık Operasyon & Yönetim Raporu`);
+                setTitle(`${year} Yılı ${month}. Ay - Aylık Operasyon & Faaliyet Raporu`);
                 setExecutiveSummary(d.autoSummaryText || `${monthStr} dönemi kurumsal faaliyet, girişimci başvuru ve mentörlük seansları özeti.`);
                 setKpiAnalysis(`Tamamlanan Görevler: ${d.facts?.tasksCompletedCount || 0}, Faaliyetler: ${d.facts?.activitiesCount || 0}, Başvurular: ${d.facts?.applicationsCount || 0}`);
             }
@@ -117,7 +119,7 @@ export default function AylikRaporPage() {
                     </div>
                     <h1 className="text-2xl font-bold font-orbitron text-white mt-1 flex items-center gap-2.5">
                         <Calendar className="w-6 h-6 text-primary" />
-                        Aylık Faaliyet & Performans Raporu
+                        Aylık Operasyon & Faaliyet Raporu
                     </h1>
                 </div>
 
@@ -126,7 +128,7 @@ export default function AylikRaporPage() {
                         type="month"
                         value={selectedMonth}
                         onChange={(e) => setSelectedMonth(e.target.value)}
-                        className="bg-[#0e0e18] border border-white/10 rounded-xl px-3 py-2 text-xs font-mono text-white focus:outline-none focus:border-primary"
+                        className="bg-[#0e0e18] border border-white/10 rounded-xl px-3 py-2 text-xs font-mono text-white focus:outline-none focus:border-primary cursor-pointer"
                     />
                     <button
                         onClick={() => handleSave('DRAFT')}

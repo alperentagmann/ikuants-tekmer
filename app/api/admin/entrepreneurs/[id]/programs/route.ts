@@ -31,13 +31,14 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const { id: entrepreneurId } = await params;
     try {
         const body = await req.json();
-        if (!body.programId) {
-            return NextResponse.json({ success: false, error: 'Program seçimi zorunludur' }, { status: 400 });
+        if (!body.programId && !String(body.programLabel || '').trim()) {
+            return NextResponse.json({ success: false, error: 'Program seçin veya "Diğer" için program adını yazın' }, { status: 400 });
         }
 
         const assignment = await EntrepreneurProgramService.assignProgram({
             entrepreneurId,
-            programId: body.programId,
+            programId: body.programId || null,
+            programLabel: body.programLabel || null,
             cohort: body.cohort,
             status: body.status || 'ACTIVE',
             joinedAt: body.joinedAt,

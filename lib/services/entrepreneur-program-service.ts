@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { logAuditEvent } from '@/lib/audit';
+import { assignmentLabel } from '@/lib/program-track';
 
 export class EntrepreneurProgramService {
     static async getEntrepreneurPrograms(entrepreneurId: string) {
@@ -32,7 +33,9 @@ export class EntrepreneurProgramService {
 
     static async assignProgram(data: {
         entrepreneurId: string;
-        programId: string;
+        /** Program row; null for TEKMER yer edinme or an "other" track (then programLabel is required). */
+        programId?: string | null;
+        programLabel?: string | null;
         cohort?: string;
         status?: string;
         joinedAt?: Date | string;
@@ -42,13 +45,17 @@ export class EntrepreneurProgramService {
         const entrepreneur = await prisma.entrepreneur.findUnique({ where: { id: data.entrepreneurId } });
         if (!entrepreneur) throw new Error('Girişimci bulunamadı');
 
-        const program = await prisma.program.findUnique({ where: { id: data.programId } });
-        if (!program) throw new Error('Program bulunamadı');
+        const program = data.programId ? await prisma.program.findUnique({ where: { id: data.programId } }) : null;
+        if (data.programId && !program) throw new Error('Program bulunamadı');
+        const programLabel = program ? null : (data.programLabel || '').trim();
+        if (!program && !programLabel) throw new Error('Program seçin veya "Diğer" için program adını yazın');
+        const trackName = program?.name || programLabel!;
 
         const assignment = await prisma.entrepreneurProgram.create({
             data: {
                 entrepreneurId: data.entrepreneurId,
-                programId: data.programId,
+                programId: program?.id || null,
+                programLabel,
                 cohort: data.cohort || null,
                 status: data.status || 'ACTIVE',
                 joinedAt: data.joinedAt ? new Date(data.joinedAt) : new Date(),
@@ -66,7 +73,7 @@ export class EntrepreneurProgramService {
         if (!entrepreneur.program) {
             await prisma.entrepreneur.update({
                 where: { id: data.entrepreneurId },
-                data: { program: program.name },
+                data: { program: trackName },
             });
         }
 
@@ -77,7 +84,7 @@ export class EntrepreneurProgramService {
             entityId: assignment.id,
             newValues: {
                 entrepreneurName: entrepreneur.name,
-                programName: program.name,
+                programName: trackName,
                 status: assignment.status,
                 cohort: assignment.cohort,
             },
@@ -154,19 +161,24 @@ export class EntrepreneurProgramService {
         });
         if (!existing) throw new Error('Program atama kaydı bulunamadı');
 
-        // We can update status to WITHDRAWN or hard delete depending on admin choice
-        const deleted = await prisma.entrepreneurProgram.delete({ where: { id } });
+        // Program history is never deleted: the assignment is closed as WITHDRAWN.
+        const deleted = await prisma.entrepreneurProgram.update({
+            where: { id },
+            data: { status: 'WITHDRAWN', leftAt: existing.leftAt || new Date(), isPublic: false },
+        });
 
         await logAuditEvent({
             actorId,
-            action: 'DELETE',
+            action: 'UPDATE',
             entityType: 'EntrepreneurProgram',
             entityId: id,
             oldValues: {
                 entrepreneurName: existing.entrepreneur.name,
-                programName: existing.program.name,
+                programName: assignmentLabel(existing),
                 status: existing.status,
             },
+            newValues: { status: 'WITHDRAWN' },
+            diff: `Program ataması sonlandırıldı (kayıt korunur): ${existing.entrepreneur.name} — ${assignmentLabel(existing)}`,
         });
 
         return { success: true, deleted };

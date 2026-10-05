@@ -32,10 +32,12 @@ test.describe('11. PROGRAMLAR — FULL CMS CAPABILITIES & TABS AUDIT', () => {
         const hasWhoCanApply = await page.locator('textarea[placeholder*="Yazılım, Ar-Ge"]').isVisible();
         const hasCriteria = await page.locator('textarea[placeholder*="TRL 4+"]').isVisible();
 
-        // TAB 3: Medya & Görseller
-        await page.getByRole('button', { name: /Medya & Görseller/i }).click();
+        // TAB 3: Görünüm, Afiş & Renkler (poster, banner, gallery, color theme)
+        await page.getByRole('button', { name: /Görünüm, Afiş & Renkler/i }).click();
         await page.waitForTimeout(300);
-        const hasHeroUrl = await page.locator('input[placeholder*="hero-slide"]').first().isVisible();
+        const hasHeroUrl = await page.getByText('Banner (masaüstü)').first().isVisible();
+        await expect(page.getByText('Afiş').first()).toBeVisible();
+        await expect(page.getByText('Renk teması')).toBeVisible();
 
         // TAB 4: Tarihler & CTA
         await page.getByRole('button', { name: /Tarihler & CTA/i }).click();

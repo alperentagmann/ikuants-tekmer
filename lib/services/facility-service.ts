@@ -1,11 +1,13 @@
 import { prisma } from '@/lib/prisma';
 import { logAuditEvent } from '@/lib/audit';
+import { SpaceDomainService } from '@/lib/services/space-domain-service';
+import { FacilityExperienceService } from '@/lib/services/facility-experience-service';
 
 export interface FacilityData {
     title: string;
     description: string;
     facilityType?: 'STUDIO' | 'WORK_AREA' | 'FEATURE';
-    featuresJson?: string; // JSON array of features
+    featuresJson?: string; // JSON string
     iconName?: string;
     sortOrder?: number;
     isActive?: boolean;
@@ -17,10 +19,20 @@ export const FacilityService = {
             const where: any = { isActive: true };
             if (facilityType) where.facilityType = facilityType.toUpperCase();
 
-            return await prisma.facility.findMany({
-                where,
-                orderBy: { sortOrder: 'asc' },
-            });
+            const [facilities, with3D] = await Promise.all([
+                prisma.facility.findMany({ where, orderBy: { sortOrder: 'asc' } }),
+                FacilityExperienceService.publicFacilityIds(),
+            ]);
+            // Facilities hidden from the public site are not listed
+            return facilities
+                .filter((f) => {
+                    try {
+                        return JSON.parse(f.featuresJson || '{}').publicVisible !== false;
+                    } catch {
+                        return true;
+                    }
+                })
+                .map((f) => ({ ...f, has3D: with3D.has(f.id) }));
         } catch (error) {
             console.error('Error fetching public facilities:', error);
             return [];
@@ -42,16 +54,21 @@ export const FacilityService = {
     },
 
     async createFacility(data: FacilityData, actor?: any) {
-        const facility = await prisma.facility.create({
-            data: {
-                title: data.title,
-                description: data.description,
-                facilityType: data.facilityType || 'STUDIO',
-                featuresJson: data.featuresJson,
-                iconName: data.iconName || 'Building2',
-                sortOrder: data.sortOrder ?? 0,
-                isActive: data.isActive ?? true,
-            },
+        let parsedFeatures: any = {};
+        try {
+            if (data.featuresJson) parsedFeatures = JSON.parse(data.featuresJson);
+        } catch (e) {
+            parsedFeatures = {};
+        }
+
+        const { facility } = await SpaceDomainService.createFacility({
+            title: data.title,
+            description: data.description,
+            facilityType: data.facilityType || 'STUDIO',
+            features: parsedFeatures,
+            iconName: data.iconName || 'Building2',
+            sortOrder: data.sortOrder ?? 0,
+            isActive: data.isActive ?? true,
         });
 
         await logAuditEvent({
@@ -68,9 +85,22 @@ export const FacilityService = {
     async updateFacility(id: string, data: Partial<FacilityData>, actor?: any) {
         const { id: _id, createdAt: _c, updatedAt: _u, ...cleanData }: any = data;
         const oldFacility = await prisma.facility.findUnique({ where: { id } });
-        const facility = await prisma.facility.update({
-            where: { id },
-            data: cleanData,
+
+        let parsedFeatures: any = undefined;
+        if (cleanData.featuresJson) {
+            try {
+                parsedFeatures = JSON.parse(cleanData.featuresJson);
+            } catch (e) {}
+        }
+
+        const { facility } = await SpaceDomainService.updateFacility(id, {
+            title: cleanData.title,
+            description: cleanData.description,
+            facilityType: cleanData.facilityType,
+            features: parsedFeatures,
+            iconName: cleanData.iconName,
+            sortOrder: cleanData.sortOrder,
+            isActive: cleanData.isActive,
         });
 
         await logAuditEvent({
@@ -87,7 +117,12 @@ export const FacilityService = {
 
     async deleteFacility(id: string, actor?: any) {
         const oldFacility = await prisma.facility.findUnique({ where: { id } });
-        const facility = await prisma.facility.delete({ where: { id } });
+        
+        // Transactional delete/deactivation of both Facility and Resource projection
+        const result = await prisma.$transaction(async (tx) => {
+            await tx.resource.deleteMany({ where: { id } });
+            return await tx.facility.delete({ where: { id } });
+        });
 
         await logAuditEvent({
             actorId: actor?.id,
@@ -97,7 +132,7 @@ export const FacilityService = {
             oldValues: oldFacility,
         });
 
-        return facility;
+        return result;
     },
 
     async reorderFacilities(orderedIds: string[], actor?: any) {

@@ -1,124 +1,24 @@
 "use client";
-import React, { useState } from "react";
+import React from "react";
 import { motion } from "framer-motion";
-import {
-    Send, Users, User, Mail, Phone, GraduationCap, Lightbulb,
-    Target, FileText, Check, ChevronRight, ChevronLeft, Sparkles
-} from "lucide-react";
-import { KvkkCheckboxes } from "@/components/ui/KvkkCheckboxes";
+import { Send, Users, Lightbulb, Check, ChevronRight, ChevronLeft } from "lucide-react";
+import { useDynamicForm } from "@/components/forms/useDynamicForm";
+import { DynamicFormFields } from "@/components/forms/DynamicFormFields";
+import { FormLoadState, HoneypotField, FormSubmitError } from "@/components/forms/FormStatus";
+import { getFormTheme } from "@/components/forms/form-themes";
 
-interface TeamMember {
-    name: string;
-    email: string;
-    phone: string;
-    university: string;
-    department: string;
-}
-
-const initialFormData = {
-    // Takım Bilgileri
-    teamName: "",
-    teamSize: "3",
-    // Takım Üyeleri (lider + 2-4 üye)
-    leaderName: "",
-    leaderEmail: "",
-    leaderPhone: "",
-    leaderUniversity: "",
-    leaderDepartment: "",
-    // Proje Bilgileri
-    projectName: "",
-    projectSummary: "",
-    problemDescription: "",
-    solutionDescription: "",
-    targetAudience: "",
-    theme: [] as string[],
-    // Onaylar
-    kvkkConsent: false,
-    photoConsent: false,
-};
-
-const themes = [
-    "Yapay Zekâ & Bulut Bilişim",
-    "Mobilite & Gömülü Sistemler",
-    "Yeni Medya & Animasyon",
-    "Oyun Geliştirme & Mobil Uygulamalar",
-    "Eğitim Teknolojileri",
-    "Sağlık Teknolojileri & Biyoteknoloji",
-    "Fintech",
-    "Sürdürülebilirlik & Çevre Teknolojileri"
-];
+/** Questions are managed in Admin > Form Merkezi ("glowup-ideathon-basvuru-formu"). */
+const FORM_SLUG = "glowup-ideathon-basvuru-formu";
+const SECTION_ICONS = [Users, Lightbulb, Check];
 
 export default function GlowUpBasvuruPage() {
-    const [formData, setFormData] = useState(initialFormData);
-    const [currentPage, setCurrentPage] = useState(1);
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [isSubmitted, setIsSubmitted] = useState(false);
-    const [isKvkkComplete, setIsKvkkComplete] = useState(false);
-    const totalPages = 3;
+    const form = useDynamicForm(FORM_SLUG);
+    const theme = getFormTheme("glowup");
+    const currentPage = form.stepIndex + 1;
+    const totalPages = Math.max(form.sections.length, 1);
+    const SectionIcon = SECTION_ICONS[form.stepIndex] || Check;
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-        const { name, value, type } = e.target;
-        if (type === 'checkbox') {
-            const checked = (e.target as HTMLInputElement).checked;
-            setFormData(prev => ({ ...prev, [name]: checked }));
-        } else {
-            setFormData(prev => ({ ...prev, [name]: value }));
-        }
-    };
-
-    const handleThemeChange = (theme: string) => {
-        setFormData(prev => ({
-            ...prev,
-            theme: prev.theme.includes(theme)
-                ? prev.theme.filter(t => t !== theme)
-                : [...prev.theme, theme]
-        }));
-    };
-
-    const nextPage = () => setCurrentPage(prev => Math.min(prev + 1, totalPages));
-    const prevPage = () => setCurrentPage(prev => Math.max(prev - 1, 1));
-
-    const validatePage = (page: number) => {
-        switch (page) {
-            case 1:
-                return formData.teamName && formData.teamSize && formData.leaderName && formData.leaderEmail && formData.leaderPhone && formData.leaderUniversity && formData.leaderDepartment;
-            case 2:
-                return formData.projectName && formData.theme.length > 0 && formData.projectSummary && formData.problemDescription && formData.solutionDescription && formData.targetAudience;
-            case 3:
-                return isKvkkComplete;
-            default:
-                return false;
-        }
-    };
-
-    const isCurrentPageValid = validatePage(currentPage);
-
-    const handleSubmit = async () => {
-        setIsSubmitting(true);
-        try {
-            const response = await fetch('/api/basvuru', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ...formData, formType: 'glowup' })
-            });
-            const result = await response.json();
-            if (result.success) {
-                setIsSubmitted(true);
-            } else {
-                alert('Bir hata oluştu: ' + result.message);
-            }
-        } catch (error) {
-            console.error('Submit error:', error);
-            alert('Başvuru gönderilirken bir hata oluştu.');
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
-
-    const inputClass = "w-full bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-lg focus:border-cyan-500 focus:bg-white dark:focus:bg-white/10 p-4 text-black dark:text-white outline-none transition-all";
-    const labelClass = "flex items-center gap-2 text-sm uppercase tracking-wider text-black/70 dark:text-gray-400 font-bold mb-2";
-
-    if (isSubmitted) {
+    if (form.result) {
         return (
             <div className="py-24 min-h-screen bg-gray-50 dark:bg-[#050510] transition-colors duration-300">
                 <div className="container mx-auto px-6 max-w-4xl">
@@ -131,11 +31,14 @@ export default function GlowUpBasvuruPage() {
                             <Check className="w-10 h-10 text-green-500" />
                         </div>
                         <h2 className="font-orbitron font-bold text-3xl text-black dark:text-white mb-4">Başvurunuz Alındı!</h2>
-                        <p className="text-black/70 dark:text-gray-400 mb-6">
-                            GLOW UP Ideathon başvurunuz başarıyla gönderildi. Takımınıza en kısa sürede dönüş yapılacaktır.
+                        <p className="text-black/70 dark:text-gray-400 mb-2">
+                            {form.result.successMessage || 'GLOW UP Ideathon başvurunuz başarıyla gönderildi. Takımınıza en kısa sürede dönüş yapılacaktır.'}
                         </p>
+                        {form.result.applicationNumber && (
+                            <p className="text-sm text-black/50 dark:text-gray-500 mb-6">Başvuru numaranız: <span className="font-mono text-cyan-500">{form.result.applicationNumber}</span></p>
+                        )}
                         <button
-                            onClick={() => { setIsSubmitted(false); setFormData(initialFormData); setCurrentPage(1); }}
+                            onClick={form.reset}
                             className="px-8 py-3 bg-cyan-500/20 border border-cyan-500 text-cyan-400 rounded-lg hover:bg-cyan-500 hover:text-white transition-all font-semibold"
                         >
                             Yeni Başvuru
@@ -229,7 +132,7 @@ export default function GlowUpBasvuruPage() {
                 {/* Progress Bar */}
                 <div className="mb-8">
                     <div className="flex justify-between mb-2">
-                        {['Takım Bilgileri', 'Proje Detayları', 'Onaylar'].map((step, i) => (
+                        {form.sections.map((section) => section.title).map((step, i) => (
                             <span key={i} className={`text-xs font-mono ${currentPage > i ? 'text-cyan-400' : 'text-gray-500'}`}>
                                 {step}
                             </span>
@@ -247,193 +150,84 @@ export default function GlowUpBasvuruPage() {
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="bg-white dark:bg-[#0a0a0a] border border-gray-200 dark:border-white/10 p-8 md:p-12 rounded-2xl shadow-lg dark:shadow-none"
+                    className="relative bg-white dark:bg-[#0a0a0a] border border-gray-200 dark:border-white/10 p-8 md:p-12 rounded-2xl shadow-lg dark:shadow-none"
                 >
                     <div className="h-1 w-full bg-gradient-to-r from-cyan-500 to-blue-500 absolute top-0 left-0 rounded-t-2xl" />
+                    <HoneypotField value={form.honeypot} onChange={form.setHoneypot} />
 
-                    {/* Page 1: Takım Bilgileri */}
-                    {currentPage === 1 && (
+                    {form.loading || form.loadError || !form.definition ? (
+                        <FormLoadState loading={form.loading} error={form.loadError || (!form.loading && !form.definition ? 'Form şu anda yayında değil.' : null)} onRetry={form.reload} />
+                    ) : (
                         <div className="space-y-6">
-                            <h2 className="font-orbitron text-xl text-white mb-6 flex items-center gap-2">
-                                <Users className="w-5 h-5 text-cyan-400" />
-                                Takım Bilgileri
+                            <h2 className={theme.sectionTitle}>
+                                <SectionIcon className={theme.sectionIcon} />
+                                {form.currentSection?.title}
                             </h2>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div>
-                                    <label className={labelClass}>
-                                        <Sparkles className="w-4 h-4 text-cyan-400" />
-                                        Takım Adı <span className="text-red-500">*</span>
-                                    </label>
-                                    <input type="text" name="teamName" value={formData.teamName} onChange={handleChange} className={inputClass} placeholder="Örn: Innovation Squad" required />
-                                </div>
-                                <div>
-                                    <label className={labelClass}>
-                                        <Users className="w-4 h-4 text-cyan-400" />
-                                        Takım Kişi Sayısı <span className="text-red-500">*</span>
-                                    </label>
-                                    <select name="teamSize" value={formData.teamSize} onChange={handleChange} className={inputClass}>
-                                        <option value="3">3 Kişi</option>
-                                        <option value="4">4 Kişi</option>
-                                        <option value="5">5 Kişi</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div className="border-t border-white/10 pt-6 mt-6">
-                                <h3 className="text-white font-semibold mb-4">Takım Lideri Bilgileri</h3>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div>
-                                        <label className={labelClass}><User className="w-4 h-4 text-cyan-400" /> Ad Soyad *</label>
-                                        <input type="text" name="leaderName" value={formData.leaderName} onChange={handleChange} className={inputClass} required />
-                                    </div>
-                                    <div>
-                                        <label className={labelClass}><Mail className="w-4 h-4 text-cyan-400" /> E-posta *</label>
-                                        <input type="email" name="leaderEmail" value={formData.leaderEmail} onChange={handleChange} className={inputClass} required />
-                                    </div>
-                                    <div>
-                                        <label className={labelClass}><Phone className="w-4 h-4 text-cyan-400" /> Telefon *</label>
-                                        <input type="tel" name="leaderPhone" value={formData.leaderPhone} onChange={handleChange} className={inputClass} placeholder="+90 5XX XXX XX XX" required />
-                                    </div>
-                                    <div>
-                                        <label className={labelClass}><GraduationCap className="w-4 h-4 text-cyan-400" /> Üniversite *</label>
-                                        <input type="text" name="leaderUniversity" value={formData.leaderUniversity} onChange={handleChange} className={inputClass} required />
-                                    </div>
-                                    <div className="md:col-span-2">
-                                        <label className={labelClass}><GraduationCap className="w-4 h-4 text-cyan-400" /> Bölüm *</label>
-                                        <input type="text" name="leaderDepartment" value={formData.leaderDepartment} onChange={handleChange} className={inputClass} required />
-                                    </div>
-                                </div>
-                            </div>
-
-                            <p className="text-sm text-gray-500 mt-4">
-                                * Diğer takım üyelerinin bilgileri etkinlik günü alınacaktır.
-                            </p>
+                            <DynamicFormFields
+                                fields={form.stepFields}
+                                theme={theme}
+                                values={form.values}
+                                errors={form.errors}
+                                onChange={form.setValue}
+                                kvkkTexts={form.definition.kvkkTexts}
+                                uploadSlug={FORM_SLUG}
+                            />
                         </div>
                     )}
 
-                    {/* Page 2: Proje Detayları */}
-                    {currentPage === 2 && (
-                        <div className="space-y-6">
-                            <h2 className="font-orbitron text-xl text-white mb-6 flex items-center gap-2">
-                                <Lightbulb className="w-5 h-5 text-cyan-400" />
-                                Proje Detayları
-                            </h2>
-
-                            <div>
-                                <label className={labelClass}><FileText className="w-4 h-4 text-cyan-400" /> Proje/Fikir Adı *</label>
-                                <input type="text" name="projectName" value={formData.projectName} onChange={handleChange} className={inputClass} required />
-                            </div>
-
-                            <div>
-                                <label className={labelClass}><Target className="w-4 h-4 text-cyan-400" /> İlgili Tema(lar) *</label>
-                                <div className="grid grid-cols-2 gap-3 mt-2">
-                                    {themes.map((theme) => (
-                                        <label key={theme} className="flex items-center gap-3 p-3 rounded-lg bg-white/5 border border-white/10 cursor-pointer hover:border-cyan-500/50 transition-all">
-                                            <input
-                                                type="checkbox"
-                                                checked={formData.theme.includes(theme)}
-                                                onChange={() => handleThemeChange(theme)}
-                                                className="w-4 h-4 accent-cyan-500"
-                                            />
-                                            <span className="text-sm text-gray-300">{theme}</span>
-                                        </label>
-                                    ))}
-                                </div>
-                            </div>
-
-                            <div>
-                                <label className={labelClass}>Proje Özeti *</label>
-                                <textarea name="projectSummary" value={formData.projectSummary} onChange={handleChange} rows={3} className={inputClass} placeholder="Projenizi bir paragrafta özetleyin..." required />
-                            </div>
-
-                            <div>
-                                <label className={labelClass}>Çözmek İstediğiniz Problem *</label>
-                                <textarea name="problemDescription" value={formData.problemDescription} onChange={handleChange} rows={3} className={inputClass} placeholder="Hangi problemi çözmeyi hedefliyorsunuz?" required />
-                            </div>
-
-                            <div>
-                                <label className={labelClass}>Çözüm Öneriniz *</label>
-                                <textarea name="solutionDescription" value={formData.solutionDescription} onChange={handleChange} rows={3} className={inputClass} placeholder="Bu problemi nasıl çözeceksiniz?" required />
-                            </div>
-
-                            <div>
-                                <label className={labelClass}>Hedef Kitleniz *</label>
-                                <textarea name="targetAudience" value={formData.targetAudience} onChange={handleChange} rows={2} className={inputClass} placeholder="Ürün/hizmetinizin hedef kitlesi kimdir?" required />
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Page 3: Onaylar */}
-                    {currentPage === 3 && (
-                        <div className="space-y-6">
-                            <h2 className="font-orbitron text-xl text-white mb-6 flex items-center gap-2">
-                                <Check className="w-5 h-5 text-cyan-400" />
-                                Onaylar
-                            </h2>
-
-                            <div className="space-y-4">
-                                <KvkkCheckboxes onComplete={setIsKvkkComplete} />
-                            </div>
-
-                            <div className="bg-cyan-500/10 border border-cyan-500/30 rounded-lg p-4 mt-6">
-                                <p className="text-sm text-gray-300">
-                                    <strong className="text-cyan-400">Not:</strong> Başvuru sonuçları e-posta ile bildirilecektir. İlk 3'e giren takımlar İKÜANTS TEKMER Ön Kuluçka Programına doğrudan katılım hakkı kazanacaktır.
-                                </p>
-                            </div>
-                        </div>
-                    )}
+                    <FormSubmitError message={form.submitError} />
 
                     {/* Navigation */}
-                    <div className="flex justify-between items-center mt-10 pt-6 border-t border-white/10">
-                        {currentPage > 1 ? (
-                            <button
-                                type="button"
-                                onClick={prevPage}
-                                className="flex items-center gap-2 px-6 py-3 border border-white/20 text-gray-300 rounded-lg hover:bg-white/5 transition-all"
-                            >
-                                <ChevronLeft className="w-5 h-5" />
-                                Önceki
-                            </button>
-                        ) : <div />}
+                    {form.definition && (
+                        <div className="flex justify-between mt-8 pt-6 border-t border-gray-200 dark:border-white/10">
+                            {!form.isFirstStep ? (
+                                <button
+                                    type="button"
+                                    onClick={form.prev}
+                                    className="flex items-center gap-2 px-6 py-3 rounded-lg bg-gray-100 dark:bg-white/5 text-black dark:text-white hover:bg-gray-200 dark:hover:bg-white/10 transition-all"
+                                >
+                                    <ChevronLeft className="w-5 h-5" />
+                                    Önceki
+                                </button>
+                            ) : <div />}
 
-                        {currentPage < totalPages ? (
-                            <button
-                                type="button"
-                                onClick={nextPage}
-                                disabled={!isCurrentPageValid}
-                                className={`flex items-center gap-2 px-6 py-3 rounded-lg font-semibold transition-all ${isCurrentPageValid
-                                    ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white hover:opacity-90'
-                                    : 'bg-white/10 text-gray-500 cursor-not-allowed'
-                                    }`}
-                            >
-                                Sonraki
-                                <ChevronRight className="w-5 h-5" />
-                            </button>
-                        ) : (
-                            <button
-                                type="button"
-                                onClick={handleSubmit}
-                                disabled={!isCurrentPageValid || isSubmitting}
-                                className={`flex items-center gap-2 px-8 py-3 rounded-lg font-semibold transition-all ${isCurrentPageValid && !isSubmitting
-                                    ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white hover:opacity-90'
-                                    : 'bg-gray-700 text-gray-400 cursor-not-allowed'
-                                    }`}
-                            >
-                                {isSubmitting ? (
-                                    <>
-                                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                                        Gönderiliyor...
-                                    </>
-                                ) : (
-                                    <>
-                                        <Send className="w-5 h-5" />
-                                        Başvuruyu Gönder
-                                    </>
-                                )}
-                            </button>
-                        )}
-                    </div>
+                            {!form.isLastStep ? (
+                                <button
+                                    type="button"
+                                    onClick={form.next}
+                                    className={`flex items-center gap-2 px-6 py-3 rounded-lg font-semibold transition-all ${form.isStepComplete
+                                        ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white hover:opacity-90'
+                                        : 'bg-white/10 text-gray-500'
+                                        }`}
+                                >
+                                    Sonraki
+                                    <ChevronRight className="w-5 h-5" />
+                                </button>
+                            ) : (
+                                <button
+                                    type="button"
+                                    onClick={form.submit}
+                                    disabled={form.submitting}
+                                    className={`flex items-center gap-2 px-8 py-3 rounded-lg font-semibold transition-all ${form.isFormComplete && !form.submitting
+                                        ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white hover:opacity-90'
+                                        : 'bg-gray-700 text-gray-400'
+                                        }`}
+                                >
+                                    {form.submitting ? (
+                                        <>
+                                            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                            Gönderiliyor...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Send className="w-5 h-5" />
+                                            {form.definition.submitLabel || 'Başvuruyu Gönder'}
+                                        </>
+                                    )}
+                                </button>
+                            )}
+                        </div>
+                    )}
                 </motion.div>
             </div>
         </div>

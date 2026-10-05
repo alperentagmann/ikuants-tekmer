@@ -12,6 +12,7 @@ test.describe('Admin User Management & CRUD Flows', () => {
     test.afterAll(async () => {
         // Clean up test user
         await prisma.userInvite.deleteMany({ where: { email: testEmail } });
+        await prisma.emailOutbox.deleteMany({ where: { recipientEmail: testEmail } });
         await prisma.userRole.deleteMany({ where: { user: { email: testEmail } } });
         await prisma.session.deleteMany({ where: { user: { email: testEmail } } });
         await prisma.user.deleteMany({ where: { email: testEmail } });

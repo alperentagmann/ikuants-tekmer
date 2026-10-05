@@ -6,8 +6,11 @@ import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
 import {
     Shield, Plus, Edit2, Lock, UserCheck, Key, X, Save, AlertCircle,
     Mail, Phone, Building2, UserX, Trash2, Smartphone, History, CheckCircle2,
-    RefreshCw, Send
+    RefreshCw, Send, KeyRound, UserRound
 } from 'lucide-react';
+import { UserProfileEditor } from '@/components/admin/users/UserProfileEditor';
+import { UserPermissionsPanel } from '@/components/admin/users/UserPermissionsPanel';
+import { employmentLabel } from '@/lib/hr';
 
 export default function AdminKullanicilarPage() {
     const [users, setUsers] = useState<any[]>([]);
@@ -15,7 +18,7 @@ export default function AdminKullanicilarPage() {
     const [loading, setLoading] = useState(true);
     const [isCreating, setIsCreating] = useState(false);
     const [selectedUser, setSelectedUser] = useState<any | null>(null);
-    const [activeTab, setActiveTab] = useState<'profile' | 'sessions' | 'security' | 'activity'>('profile');
+    const [activeTab, setActiveTab] = useState<'profile' | 'permissions' | 'sessions' | 'security' | 'activity'>('profile');
     const [userSessions, setUserSessions] = useState<any[]>([]);
     const [userActivities, setUserActivities] = useState<any[]>([]);
     const [loadingDetails, setLoadingDetails] = useState(false);
@@ -207,9 +210,13 @@ export default function AdminKullanicilarPage() {
             header: 'Yönetici / Kullanıcı',
             render: (item) => (
                 <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-primary/30 to-purple-500/30 border border-primary/40 flex items-center justify-center font-bold text-xs text-white font-mono shadow-sm">
-                        {item.name?.[0]?.toUpperCase() || 'U'}
-                    </div>
+                    {item.avatarUrl ? (
+                        <img src={item.avatarUrl} alt="" className="w-9 h-9 rounded-full object-cover border border-primary/40 shadow-sm" />
+                    ) : (
+                        <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-primary/30 to-purple-500/30 border border-primary/40 flex items-center justify-center font-bold text-xs text-white font-mono shadow-sm">
+                            {item.name?.[0]?.toUpperCase() || 'U'}
+                        </div>
+                    )}
                     <div>
                         <div className="font-semibold text-white text-sm flex items-center gap-2">
                             {item.name}
@@ -230,7 +237,7 @@ export default function AdminKullanicilarPage() {
             render: (item) => (
                 <div>
                     <div className="text-xs font-medium text-gray-200">{item.title || 'Belirtilmedi'}</div>
-                    <div className="text-[11px] text-gray-400 font-mono">{item.department || 'Genel'}</div>
+                    <div className="text-[11px] text-gray-400 font-mono">{item.department || 'Genel'}{item.employmentType ? ` · ${employmentLabel(item.employmentType)}` : ''}</div>
                 </div>
             ),
         },
@@ -569,13 +576,17 @@ export default function AdminKullanicilarPage() {
             {/* User Details Modal */}
             {selectedUser && (
                 <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-                    <div className="bg-[#0e0e18] border border-white/15 rounded-2xl w-full max-w-3xl overflow-hidden shadow-2xl animate-in fade-in">
+                    <div className="bg-[#0e0e18] border border-white/15 rounded-2xl w-full max-w-4xl overflow-hidden shadow-2xl animate-in fade-in">
                         {/* Modal Header */}
                         <div className="p-5 border-b border-white/10 flex items-center justify-between">
                             <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-full bg-primary/20 border border-primary/40 flex items-center justify-center font-bold text-sm text-primary font-mono">
-                                    {selectedUser.name?.[0]?.toUpperCase()}
-                                </div>
+                                {selectedUser.avatarUrl ? (
+                                    <img src={selectedUser.avatarUrl} alt="" className="w-10 h-10 rounded-full object-cover border border-primary/40" />
+                                ) : (
+                                    <div className="w-10 h-10 rounded-full bg-primary/20 border border-primary/40 flex items-center justify-center font-bold text-sm text-primary font-mono">
+                                        {selectedUser.name?.[0]?.toUpperCase()}
+                                    </div>
+                                )}
                                 <div>
                                     <h3 className="font-bold text-white text-base flex items-center gap-2">
                                         {selectedUser.name}
@@ -604,7 +615,19 @@ export default function AdminKullanicilarPage() {
                                         : 'border-transparent text-gray-400 hover:text-gray-200'
                                 }`}
                             >
+                                <UserRound className="w-3.5 h-3.5 inline mr-1" />
                                 Profil & Bilgiler
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('permissions')}
+                                className={`px-4 py-3 text-xs font-semibold border-b-2 transition-colors flex items-center gap-1.5 ${
+                                    activeTab === 'permissions'
+                                        ? 'border-primary text-white'
+                                        : 'border-transparent text-gray-400 hover:text-gray-200'
+                                }`}
+                            >
+                                <KeyRound className="w-3.5 h-3.5" />
+                                Yetkiler
                             </button>
                             <button
                                 onClick={() => setActiveTab('sessions')}
@@ -642,29 +665,21 @@ export default function AdminKullanicilarPage() {
                         </div>
 
                         {/* Tab Contents */}
-                        <div className="p-6 max-h-[60vh] overflow-y-auto space-y-4">
+                        <div className="p-6 max-h-[70vh] overflow-y-auto space-y-4">
+                            {activeTab === 'permissions' && <UserPermissionsPanel userId={selectedUser.id} />}
+
                             {activeTab === 'profile' && (
                                 <div className="space-y-4">
-                                    <div className="grid grid-cols-2 gap-4 text-xs">
-                                        <div className="p-3 rounded-xl bg-black/40 border border-white/5">
-                                            <div className="text-gray-400 font-mono text-[10px]">UNVAN</div>
-                                            <div className="font-semibold text-white mt-1">{selectedUser.title || 'Belirtilmedi'}</div>
-                                        </div>
-                                        <div className="p-3 rounded-xl bg-black/40 border border-white/5">
-                                            <div className="text-gray-400 font-mono text-[10px]">DEPARTMAN</div>
-                                            <div className="font-semibold text-white mt-1">{selectedUser.department || 'Genel'}</div>
-                                        </div>
-                                        <div className="p-3 rounded-xl bg-black/40 border border-white/5">
-                                            <div className="text-gray-400 font-mono text-[10px]">TELEFON</div>
-                                            <div className="font-semibold text-white mt-1">{selectedUser.phone || 'Belirtilmedi'}</div>
-                                        </div>
-                                        <div className="p-3 rounded-xl bg-black/40 border border-white/5">
-                                            <div className="text-gray-400 font-mono text-[10px]">MFA DURUMU</div>
-                                            <div className="font-semibold text-emerald-400 mt-1">
-                                                {selectedUser.isMfaEnabled ? '✅ Aktif (TOTP)' : '⚪ Pasif'}
-                                            </div>
-                                        </div>
-                                    </div>
+                                    <UserProfileEditor
+                                        key={selectedUser.id}
+                                        user={selectedUser}
+                                        departments={departments}
+                                        onSaved={(u) => {
+                                            setSelectedUser({ ...selectedUser, ...u });
+                                            fetchData();
+                                        }}
+                                    />
+                                    <div className="text-[11px] text-gray-500">MFA: {selectedUser.isMfaEnabled ? 'Aktif (TOTP)' : 'Pasif'}</div>
 
                                     <div className="pt-4 border-t border-white/10 flex items-center justify-between">
                                         <div>

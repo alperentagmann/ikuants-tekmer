@@ -1,35 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { AiOperationsService } from '@/lib/services/ai-operations-service';
-import { getAuthUser } from '@/lib/auth';
+import { requireAdmin, errorResponse } from '@/lib/api-guard';
+import { AiEngine } from '@/lib/ai/engine';
+import type { AiActor } from '@/lib/ai/types';
 
-export async function POST(req: NextRequest) {
-    const user = await getAuthUser(req);
-    if (!user) {
-        return NextResponse.json({ success: false, message: 'Yetkisiz erişim' }, { status: 401 });
-    }
-
+/**
+ * Confirms a plan previously prepared by /api/admin/ai/chat. Only the server-stored plan is
+ * executed; action ids or parameters sent by the client are never trusted.
+ */
+export async function POST(request: NextRequest) {
+    const auth = await requireAdmin(request, 'use', 'ai');
+    if (auth.error) return auth.error;
     try {
-        const body = await req.json();
-        const actionId = body.actionId || body.actionName;
-        const params = body.params || body.parameters || {};
-
-        if (!actionId) {
-            return NextResponse.json({ success: false, message: 'Action ID zorunludur.' }, { status: 400 });
+        const body = (await request.json()) as { changeSetId?: unknown };
+        if (typeof body.changeSetId !== 'string') {
+            return NextResponse.json({ success: false, message: 'Onaylanacak işlem bulunamadı. Önce komutu verip önizlemeyi oluşturun.' }, { status: 400 });
         }
-
-        const result = await AiOperationsService.executeConfirmedAction(
-            actionId,
-            params,
-            {
-                id: user.id,
-                email: user.email,
-                name: user.name,
-                isSuperAdmin: user.isSuperAdmin,
-            }
-        );
-
-        return NextResponse.json(result, { status: result.success ? 200 : 400 });
-    } catch (error: any) {
-        return NextResponse.json({ success: false, message: error.message }, { status: 500 });
+        const response = await AiEngine.confirm(body.changeSetId, auth.user as AiActor);
+        return NextResponse.json({ success: true, response, changeSetId: body.changeSetId });
+    } catch (error) {
+        return errorResponse(error, 'İşlem çalıştırılamadı');
     }
 }

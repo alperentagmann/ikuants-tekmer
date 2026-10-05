@@ -24,7 +24,7 @@ const DEFAULT_BRAND_SETTINGS: BrandSettings = {
     loginBackgroundUrl: '/images/hero-bg.jpg',
     loginWelcomeTitle: 'İKÜANTS TEKMER Portalı',
     loginWelcomeSubtitle: 'Girişimcilik ve İnovasyon Yönetim Paneli',
-    footerText: '© 2026 İKÜANTS TEKMER. Tüm Hakları Saklıdır.',
+    footerText: `© ${new Date().getFullYear()} İKÜANTS TEKMER. Tüm Hakları Saklıdır.`,
 };
 
 export class BrandService {

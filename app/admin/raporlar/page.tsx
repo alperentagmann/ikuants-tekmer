@@ -1,47 +1,13 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
+import { ReportList } from './ReportList';
 import Link from 'next/link';
 import {
-    BarChart3,
-    Calendar,
-    FileText,
-    TrendingUp,
-    Users,
-    Briefcase,
-    Share2,
-    Download,
-    CheckCircle2,
-    Plus,
-    Filter,
-    ArrowRight,
-    Sparkles,
-    Shield
+    BarChart3, Calendar, TrendingUp, Share2, Plus, Filter, ArrowRight, Sparkles
 } from 'lucide-react';
 
 export default function ReportingDashboardPage() {
-    const [reports, setReports] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
-
-    const fetchReports = async () => {
-        try {
-            setLoading(true);
-            const res = await fetch('/api/admin/reports');
-            const data = await res.json();
-            if (data.success) {
-                setReports(data.reports);
-            }
-        } catch {
-            // handle error
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        fetchReports();
-    }, []);
-
     return (
         <div className="space-y-8">
             {/* Header */}
@@ -151,7 +117,7 @@ export default function ReportingDashboardPage() {
                             Özel Rapor Builder
                         </h3>
                         <p className="text-slate-400 text-xs mt-1">
-                            15 veri kaynağından özel filtreli ve grafikli rapor tasarlayın.
+                            Görev, başvuru, girişim, mentör ve etkinlik verilerinden filtreli rapor.
                         </p>
                     </div>
                     <span className="text-purple-400 text-xs font-semibold inline-flex items-center gap-1 mt-4">
@@ -161,62 +127,7 @@ export default function ReportingDashboardPage() {
                 </Link>
             </div>
 
-            {/* Saved Reports List */}
-            <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-6 backdrop-blur-sm shadow-xl">
-                <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                        <FileText className="w-5 h-5 text-cyan-400" />
-                        <span>Kayıtlı ve Onaylanmış Raporlar</span>
-                    </h2>
-                    <span className="text-xs text-slate-400 font-medium">Toplam: {reports.length}</span>
-                </div>
-
-                <div className="space-y-3">
-                    {reports.map((rep) => (
-                        <div
-                            key={rep.id}
-                            className="bg-slate-950/70 border border-slate-800/80 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
-                        >
-                            <div>
-                                <div className="flex items-center gap-2 mb-1">
-                                    <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
-                                        {rep.reportType}
-                                    </span>
-                                    <span
-                                        className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
-                                            rep.status === 'APPROVED'
-                                                ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                                                : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
-                                        }`}
-                                    >
-                                        {rep.status}
-                                    </span>
-                                </div>
-                                <h4 className="text-sm font-semibold text-white">{rep.title}</h4>
-                                <span className="text-xs text-slate-400">
-                                    Yazar: {rep.author?.name} {rep.author?.surname} • {new Date(rep.createdAt).toLocaleDateString('tr-TR')}
-                                </span>
-                            </div>
-
-                            <div className="flex items-center gap-2">
-                                <Link
-                                    href={`/admin/raporlar/${rep.id}`}
-                                    className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 transition-colors"
-                                >
-                                    İncele
-                                </Link>
-                            </div>
-                        </div>
-                    ))}
-
-                    {reports.length === 0 && !loading && (
-                        <div className="text-center py-10">
-                            <FileText className="w-10 h-10 text-slate-600 mx-auto mb-2" />
-                            <p className="text-slate-400 text-sm">Henüz kayıtlı rapor bulunmuyor.</p>
-                        </div>
-                    )}
-                </div>
-            </div>
+            <ReportList />
         </div>
     );
 }

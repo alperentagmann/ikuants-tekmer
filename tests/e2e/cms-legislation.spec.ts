@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { prisma } from '../../lib/prisma';
 import { loginAsAdmin } from './helpers/auth';
+import { clickAndWaitForSave } from './helpers/mutation';
 
 test.describe('6. MEVZUAT — LEGISLATION E2E CRUD', () => {
     const TEST_TITLE = 'E2E Test TEKMER Uygulama Esasları Yönetmeliği';
@@ -53,7 +54,7 @@ test.describe('6. MEVZUAT — LEGISLATION E2E CRUD', () => {
         await modal.locator('input[type="text"]').nth(1).fill(TEST_URL);
 
         // Kaydet
-        await modal.getByRole('button', { name: 'Kaydet' }).click();
+        await clickAndWaitForSave(page, modal.getByRole('button', { name: 'Kaydet' }));
         await page.waitForTimeout(1000);
 
         // 3. DB kontrolü
@@ -83,7 +84,7 @@ test.describe('6. MEVZUAT — LEGISLATION E2E CRUD', () => {
 
         const editModal = page.locator('div.fixed');
         await editModal.locator('input[type="text"]').nth(1).fill(UPDATED_URL);
-        await editModal.getByRole('button', { name: 'Kaydet' }).click();
+        await clickAndWaitForSave(page, editModal.getByRole('button', { name: 'Kaydet' }));
         await page.waitForTimeout(1000);
 
         // 6. Public'ta yeni link doğrulaması
@@ -101,7 +102,7 @@ test.describe('6. MEVZUAT — LEGISLATION E2E CRUD', () => {
 
         const updatedCard = page.locator('div.rounded-xl').filter({ hasText: TEST_TITLE }).first();
         const deleteBtn = updatedCard.locator('button').nth(1);
-        await deleteBtn.click();
+        await clickAndWaitForSave(page, deleteBtn);
         await page.waitForTimeout(1000);
 
         // 8. Public'tan çıkmalı

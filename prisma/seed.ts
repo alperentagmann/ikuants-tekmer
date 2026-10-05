@@ -1,6 +1,10 @@
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
+import { syncRbacDefinitions } from '../lib/rbac-sync';
+import { seedFormCenter } from './seed-form-center';
+import { seedVerifiedSpaces } from './seed-spaces';
+import { seedEmailTemplates } from './seed-email-templates';
 
 const prisma = new PrismaClient();
 
@@ -98,6 +102,10 @@ async function main() {
             create: { roleId: superAdminRole.id, permissionId: allPermId },
         });
     }
+
+    // Default roles and their permissions from lib/rbac.ts (additive)
+    const rbac = await syncRbacDefinitions(prisma);
+    console.log(`RBAC sync: +${rbac.permissionsCreated} permissions, +${rbac.rolesCreated} roles, +${rbac.linksCreated} links`);
 
     // 3. ROLES & PERMISSIONS READY
     console.log('✅ Permissions and roles seeded successfully.');
@@ -547,6 +555,11 @@ async function main() {
             create: cf,
         });
     }
+
+    // Form Center: KVKK texts, public business forms, application campaigns (create-only)
+    await seedFormCenter();
+    await seedVerifiedSpaces();
+    await seedEmailTemplates(prisma);
 
     console.log('✅ Seeding completed successfully!');
 }

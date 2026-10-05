@@ -35,7 +35,7 @@ test.describe('Receivables Center E2E (/admin/finans/alacaklar)', () => {
         await expect(page.locator('table').getByText('SERVICE_FEE').first()).toBeVisible();
 
         // 4. Record remaining payment via UI
-        const payBtn = page.getByRole('button', { name: /Tahsilat Al/i }).first();
+        const payBtn = page.locator('tr', { hasText: debtorName }).getByRole('button', { name: /Tahsilat Al/i });
         if (await payBtn.isVisible()) {
             await payBtn.click();
             await page.getByPlaceholder(/Dekont no, ödeme yöntemi/i).fill(`DEKONT-${uniqueSuffix.slice(-4)}`);

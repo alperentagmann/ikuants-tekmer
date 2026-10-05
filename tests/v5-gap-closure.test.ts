@@ -210,9 +210,14 @@ describe('V5 Gap Closure: 5. Full End-to-End Item 102 Application Notification &
             assert.ok(item.htmlBody.includes(testAppNo), 'App number must be present');
         }
 
-        // 5: Process email outbox
-        const processResult = await EmailOutboxService.processPendingEmails(10);
-        assert.ok(processResult.processed >= 1);
+        // 5: Without a configured provider nothing is marked SENT
+        if (!EmailOutboxService.isProviderConfigured()) {
+            const processResult = await EmailOutboxService.processPendingEmails(10);
+            assert.strictEqual(processResult.providerStatus, 'PENDING_EXTERNAL_CONFIGURATION');
+            assert.strictEqual(processResult.succeeded, 0);
+            const stillQueued = await prisma.emailOutbox.findMany({ where: { entityId: app.id } });
+            assert.ok(stillQueued.every((i) => i.status === 'PENDING'), 'Queued emails must stay PENDING');
+        }
 
         // Cleanup
         await prisma.emailOutbox.deleteMany({ where: { entityId: app.id } });

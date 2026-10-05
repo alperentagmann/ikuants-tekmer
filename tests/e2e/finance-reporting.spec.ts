@@ -3,6 +3,21 @@ import { loginAsAdmin } from './helpers/auth';
 import { prisma } from '../../lib/prisma';
 
 test.describe('Finance Reporting Center E2E (/admin/raporlar/finans)', () => {
+    let createdProjectId: string | null = null;
+
+    test.afterEach(async () => {
+        // Runs even when an assertion fails, so no test project is left in the admin lists
+        if (!createdProjectId) return;
+        const projectId = createdProjectId;
+        createdProjectId = null;
+        await prisma.invoiceRecord.deleteMany({ where: { projectId } });
+        await prisma.projectExpense.deleteMany({ where: { projectId } });
+        await prisma.projectBudgetLine.deleteMany({ where: { projectId } });
+        await prisma.fundingReceipt.deleteMany({ where: { fundingSource: { projectId } } });
+        await prisma.fundingSource.deleteMany({ where: { projectId } });
+        await prisma.project.deleteMany({ where: { id: projectId } });
+    });
+
     test.beforeEach(async ({ context }) => {
         await loginAsAdmin(context);
     });
@@ -26,6 +41,7 @@ test.describe('Finance Reporting Center E2E (/admin/raporlar/finans)', () => {
                 createdById: adminUser.id,
             },
         });
+        createdProjectId = project.id;
 
         const funding = await prisma.fundingSource.create({
             data: {
@@ -103,13 +119,5 @@ test.describe('Finance Reporting Center E2E (/admin/raporlar/finans)', () => {
         // 6. Test Expense Categories Tab
         await page.getByRole('button', { name: /Gider Kategori Dağılımı/i }).click();
         await expect(page.getByText(/Gider Kategorileri & Harcama Kırılımı/i)).toBeVisible();
-
-        // Cleanup
-        await prisma.invoiceRecord.deleteMany({ where: { projectId: project.id } });
-        await prisma.projectExpense.deleteMany({ where: { projectId: project.id } });
-        await prisma.projectBudgetLine.deleteMany({ where: { projectId: project.id } });
-        await prisma.fundingReceipt.deleteMany({ where: { fundingSourceId: funding.id } });
-        await prisma.fundingSource.deleteMany({ where: { projectId: project.id } });
-        await prisma.project.delete({ where: { id: project.id } });
     });
 });

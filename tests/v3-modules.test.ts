@@ -1,4 +1,5 @@
 import { test, describe } from 'node:test';
+import { TaskWorkflowService } from '../lib/services/task-workflow-service';
 import assert from 'node:assert';
 import { hasPermission, UserWithPermissions } from '../lib/rbac';
 import { TaskService } from '../lib/services/task-service';
@@ -57,7 +58,9 @@ describe('2. V3 Service Signatures & Methods Integrity', () => {
     test('TaskService exposes required workflow methods', () => {
         assert.strictEqual(typeof TaskService.getTasks, 'function');
         assert.strictEqual(typeof TaskService.createTask, 'function');
-        assert.strictEqual(typeof TaskService.updateStatus, 'function');
+        // Status changes go through the lifecycle service (start / review / approve / return / reopen)
+        assert.strictEqual(typeof TaskWorkflowService.transition, 'function');
+        assert.strictEqual(typeof TaskWorkflowService.moveToStatus, 'function');
         assert.strictEqual(typeof TaskService.toggleChecklistItem, 'function');
         assert.strictEqual(typeof TaskService.addComment, 'function');
     });

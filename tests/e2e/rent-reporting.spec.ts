@@ -3,6 +3,18 @@ import { loginAsAdmin } from './helpers/auth';
 import { prisma } from '../../lib/prisma';
 
 test.describe('Rent Reporting & Aging E2E (/admin/raporlar/kira)', () => {
+    let createdContractId: string | null = null;
+
+    test.afterEach(async () => {
+        // Runs even when an assertion fails, so no test contract is left in the rent lists
+        if (!createdContractId) return;
+        const contractId = createdContractId;
+        createdContractId = null;
+        await prisma.rentPayment.deleteMany({ where: { accrual: { contractId } } });
+        await prisma.rentAccrual.deleteMany({ where: { contractId } });
+        await prisma.rentContract.deleteMany({ where: { id: contractId } });
+    });
+
     test.beforeEach(async ({ context }) => {
         await loginAsAdmin(context);
     });
@@ -28,6 +40,7 @@ test.describe('Rent Reporting & Aging E2E (/admin/raporlar/kira)', () => {
                 status: 'ACTIVE',
             },
         });
+        createdContractId = contract.id;
 
         const accrual = await prisma.rentAccrual.create({
             data: {
@@ -77,10 +90,5 @@ test.describe('Rent Reporting & Aging E2E (/admin/raporlar/kira)', () => {
         await page.goto(`/admin/girisimciler/${entrepreneur.id}/finans-kira`);
         await expect(page.getByText(/Kira & Tahsilat Ekstresi/i)).toBeVisible();
         await expect(page.getByText(/Kronolojik Hesap Hareketleri/i)).toBeVisible();
-
-        // Cleanup
-        await prisma.rentPayment.deleteMany({ where: { accrualId: accrual.id } });
-        await prisma.rentAccrual.delete({ where: { id: accrual.id } });
-        await prisma.rentContract.delete({ where: { id: contract.id } });
     });
 });

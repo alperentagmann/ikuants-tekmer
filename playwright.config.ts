@@ -9,6 +9,8 @@ export default defineConfig({
   timeout: 120000,
   use: {
     baseURL: 'http://localhost:3000',
+    // Cookie notice already answered, so it does not cover buttons in tests (tested separately)
+    storageState: 'tests/e2e/helpers/consent-state.json',
     trace: 'on-first-retry',
     screenshot: 'on',
     viewport: { width: 1280, height: 720 },

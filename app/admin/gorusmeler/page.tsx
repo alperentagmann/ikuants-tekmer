@@ -235,7 +235,7 @@ export default function GorusmelerPage() {
                 </div>
 
                 <div className="flex items-center gap-3">
-                    <button
+                    <button data-intent="create"
                         id="new-interaction-btn"
                         onClick={() => setShowCreateModal(true)}
                         className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white text-sm font-semibold transition-all shadow-lg shadow-cyan-950/40 cursor-pointer"

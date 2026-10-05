@@ -1,12 +1,17 @@
 "use client";
 import React, { useState, useEffect } from 'react';
+import { SETTING_DEFAULTS, DEFAULT_COOKIE_POLICY, type SettingKey } from '@/lib/site-settings';
 import {
     Settings, Save, Check, Globe, Mail, Phone, MapPin, Instagram, Linkedin,
-    Palette, Layout, Bell, Sparkles, Navigation, Layers, Shield, Eye
+    Layout, Bell, Sparkles, Shield, Eye, Rocket, PartyPopper, CircleCheck
 } from 'lucide-react';
+import { AlertRulesPanel } from '@/components/admin/settings/AlertRulesPanel';
+import { HrDefinitionsPanel } from '@/components/admin/settings/HrDefinitionsPanel';
 
 export default function AdminAyarlarPage() {
-    const [activeTab, setActiveTab] = useState<'general' | 'brand' | 'form_texts' | 'sidebar' | 'notifications'>('general');
+    const [activeTab, setActiveTab] = useState<'general' | 'footer' | 'cookie' | 'animation' | 'alerts' | 'hr'>('general');
+    // Only edited keys are saved (other settings, e.g. page layouts, are never rewritten)
+    const [dirty, setDirty] = useState<Set<string>>(new Set());
     const [settings, setSettings] = useState<Record<string, string>>({});
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -37,20 +42,24 @@ export default function AdminAyarlarPage() {
 
     const handleChange = (key: string, value: string) => {
         setSettings((prev) => ({ ...prev, [key]: value }));
+        setDirty((prev) => new Set(prev).add(key));
     };
+    const val = (key: SettingKey) => settings[key] ?? SETTING_DEFAULTS[key];
 
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
         setSaving(true);
         setSavedSuccess(false);
         try {
-            for (const [key, value] of Object.entries(settings)) {
-                await fetch('/api/admin/settings', {
+            for (const key of Array.from(dirty)) {
+                const res = await fetch('/api/admin/settings', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ key, value }),
+                    body: JSON.stringify({ key, value: settings[key] ?? '' }),
                 });
+                if (!res.ok) throw new Error(key);
             }
+            setDirty(new Set());
             setSavedSuccess(true);
             setTimeout(() => setSavedSuccess(false), 3000);
         } catch {
@@ -67,7 +76,7 @@ export default function AdminAyarlarPage() {
                 <div>
                     <h1 className="font-orbitron font-bold text-2xl text-white">Sistem & Görünüm Ayarları</h1>
                     <p className="text-xs font-mono text-gray-400 mt-1">
-                        Marka, Form Metinleri, Menü Yapılandırması ve Bildirim Yönlendirme Merkezi
+                        Site bilgileri, footer, çerez bildirimi, animasyonlar ve admin bildirim kuralları
                     </p>
                 </div>
 
@@ -79,62 +88,19 @@ export default function AdminAyarlarPage() {
             </div>
 
             {/* Tabs */}
-            <div className="flex items-center gap-2 border-b border-white/10 pb-3 overflow-x-auto">
-                <button
-                    type="button"
-                    onClick={() => setActiveTab('general')}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
-                        activeTab === 'general'
-                            ? 'bg-primary text-white shadow-lg shadow-primary/20'
-                            : 'text-gray-400 hover:text-white hover:bg-white/5'
-                    }`}
-                >
-                    <Globe className="w-3.5 h-3.5" /> Genel & İletişim
-                </button>
-                <button
-                    type="button"
-                    onClick={() => setActiveTab('brand')}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
-                        activeTab === 'brand'
-                            ? 'bg-primary text-white shadow-lg shadow-primary/20'
-                            : 'text-gray-400 hover:text-white hover:bg-white/5'
-                    }`}
-                >
-                    <Palette className="w-3.5 h-3.5" /> Marka & Tasarım (Madde 57)
-                </button>
-                <button
-                    type="button"
-                    onClick={() => setActiveTab('form_texts')}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
-                        activeTab === 'form_texts'
-                            ? 'bg-primary text-white shadow-lg shadow-primary/20'
-                            : 'text-gray-400 hover:text-white hover:bg-white/5'
-                    }`}
-                >
-                    <Sparkles className="w-3.5 h-3.5" /> Form Metinleri (Madde 53)
-                </button>
-                <button
-                    type="button"
-                    onClick={() => setActiveTab('sidebar')}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
-                        activeTab === 'sidebar'
-                            ? 'bg-primary text-white shadow-lg shadow-primary/20'
-                            : 'text-gray-400 hover:text-white hover:bg-white/5'
-                    }`}
-                >
-                    <Navigation className="w-3.5 h-3.5" /> Admin Sidebar (Madde 55)
-                </button>
-                <button
-                    type="button"
-                    onClick={() => setActiveTab('notifications')}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
-                        activeTab === 'notifications'
-                            ? 'bg-primary text-white shadow-lg shadow-primary/20'
-                            : 'text-gray-400 hover:text-white hover:bg-white/5'
-                    }`}
-                >
-                    <Bell className="w-3.5 h-3.5" /> Bildirimler & Digest (Madde 64-71)
-                </button>
+            <div className="flex items-center gap-2 border-b border-white/10 pb-3 overflow-x-auto" role="tablist">
+                {([['general', 'Genel, İletişim & Sosyal', Globe], ['footer', 'Footer', Layout], ['cookie', 'Çerez Uyarısı', Shield], ['animation', 'Animasyonlar', Sparkles], ['alerts', 'Bildirim Kuralları', Bell], ['hr', 'İK Tanımları', Settings]] as const).map(([key, label, Icon]) => (
+                    <button
+                        key={key}
+                        type="button"
+                        role="tab"
+                        aria-selected={activeTab === key}
+                        onClick={() => setActiveTab(key)}
+                        className={`flex shrink-0 items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all ${activeTab === key ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
+                    >
+                        <Icon className="w-3.5 h-3.5" /> {label}
+                    </button>
+                ))}
             </div>
 
             <form onSubmit={handleSave} className="space-y-6">
@@ -145,434 +111,208 @@ export default function AdminAyarlarPage() {
                             <div className="font-orbitron font-bold text-sm text-white pb-3 border-b border-white/10 flex items-center gap-2">
                                 <Globe className="w-4 h-4 text-primary" /> Genel Bilgiler & SEO
                             </div>
-
-                            <div>
-                                <label className="block text-xs font-mono text-gray-400 mb-1.5">Site Başlığı (Title)</label>
-                                <input
-                                    type="text"
-                                    value={settings['site_title'] || 'İKÜANTS TEKMER — Girişimcilik & Kuluçka Merkezi'}
-                                    onChange={(e) => handleChange('site_title', e.target.value)}
-                                    className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:border-primary outline-none"
-                                />
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-xs font-mono text-gray-400 mb-1.5">Site adı</label>
+                                    <input type="text" value={val('site_name')} onChange={(e) => handleChange('site_name', e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:border-primary outline-none" />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-mono text-gray-400 mb-1.5">Site başlığı (tarayıcı sekmesi)</label>
+                                    <input type="text" value={val('site_title')} onChange={(e) => handleChange('site_title', e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:border-primary outline-none" />
+                                </div>
+                                <div className="md:col-span-2">
+                                    <label className="block text-xs font-mono text-gray-400 mb-1.5">Site açıklaması (arama motorları)</label>
+                                    <textarea rows={2} value={val('site_desc')} onChange={(e) => handleChange('site_desc', e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:border-primary outline-none" />
+                                </div>
                             </div>
                         </div>
-
                         <div className="bg-[#0e0e18] border border-white/10 rounded-2xl p-6 shadow-xl space-y-4">
                             <div className="font-orbitron font-bold text-sm text-white pb-3 border-b border-white/10 flex items-center gap-2">
                                 <Mail className="w-4 h-4 text-primary" /> İletişim Bilgileri
                             </div>
-
-                            <div>
-                                <label className="block text-xs font-mono text-gray-400 mb-1.5">Resmi Merkez Adresi</label>
-                                <textarea
-                                    rows={2}
-                                    value={settings['contact_address'] || 'İstanbul Kültür Üniversitesi, Ataköy Yerleşkesi, Bakırköy / İstanbul'}
-                                    onChange={(e) => handleChange('contact_address', e.target.value)}
-                                    className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-xs text-white focus:border-primary outline-none"
-                                />
-                            </div>
-
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-xs font-mono text-gray-400 mb-1.5">E-Posta Adresi</label>
-                                    <input
-                                        type="email"
-                                        value={settings['contact_email'] || 'tekmer@iku.edu.tr'}
-                                        onChange={(e) => handleChange('contact_email', e.target.value)}
-                                        className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:border-primary outline-none"
-                                    />
+                                    <label className="block text-xs font-mono text-gray-400 mb-1.5">Telefon</label>
+                                    <input type="text" value={val('site_phone')} onChange={(e) => handleChange('site_phone', e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:border-primary outline-none" />
                                 </div>
-
                                 <div>
-                                    <label className="block text-xs font-mono text-gray-400 mb-1.5">Telefon Numarası</label>
-                                    <input
-                                        type="text"
-                                        value={settings['contact_phone'] || '+90 (212) 498 41 41'}
-                                        onChange={(e) => handleChange('contact_phone', e.target.value)}
-                                        className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:border-primary outline-none"
-                                    />
+                                    <label className="block text-xs font-mono text-gray-400 mb-1.5">Genel e-posta (footer)</label>
+                                    <input type="email" value={val('site_email')} onChange={(e) => handleChange('site_email', e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:border-primary outline-none" />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-mono text-gray-400 mb-1.5">İletişim sayfası e-postası</label>
+                                    <input type="email" value={val('contact_email')} onChange={(e) => handleChange('contact_email', e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:border-primary outline-none" />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-mono text-gray-400 mb-1.5">Çalışma saatleri</label>
+                                    <input type="text" value={val('contact_hours')} onChange={(e) => handleChange('contact_hours', e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:border-primary outline-none" />
+                                </div>
+                                <div className="md:col-span-2">
+                                    <label className="block text-xs font-mono text-gray-400 mb-1.5">Adres</label>
+                                    <textarea rows={2} value={val('contact_address')} onChange={(e) => handleChange('contact_address', e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:border-primary outline-none" />
+                                </div>
+                            </div>
+                        </div>
+                        <div className="bg-[#0e0e18] border border-white/10 rounded-2xl p-6 shadow-xl space-y-4">
+                            <div className="font-orbitron font-bold text-sm text-white pb-3 border-b border-white/10 flex items-center gap-2">
+                                <Instagram className="w-4 h-4 text-primary" /> Sosyal Medya
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-xs font-mono text-gray-400 mb-1.5">Instagram</label>
+                                    <input type="url" value={val('social_instagram')} onChange={(e) => handleChange('social_instagram', e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:border-primary outline-none" />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-mono text-gray-400 mb-1.5">LinkedIn</label>
+                                    <input type="url" value={val('social_linkedin')} onChange={(e) => handleChange('social_linkedin', e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:border-primary outline-none" />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-mono text-gray-400 mb-1.5">WhatsApp topluluk / iletişim linki</label>
+                                    <input type="url" value={val('social_whatsapp')} onChange={(e) => handleChange('social_whatsapp', e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:border-primary outline-none" />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-mono text-gray-400 mb-1.5">YouTube (opsiyonel)</label>
+                                    <input type="url" value={val('social_youtube')} onChange={(e) => handleChange('social_youtube', e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:border-primary outline-none" />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-mono text-gray-400 mb-1.5">X / Twitter (opsiyonel)</label>
+                                    <input type="url" value={val('social_x')} onChange={(e) => handleChange('social_x', e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:border-primary outline-none" />
                                 </div>
                             </div>
                         </div>
                     </div>
                 )}
 
-                {/* 2. BRAND SETTINGS (Madde 57) */}
-                {activeTab === 'brand' && (
-                    <div className="bg-[#0e0e18] border border-white/10 rounded-2xl p-6 shadow-xl space-y-6">
-                        <div className="font-orbitron font-bold text-sm text-white pb-3 border-b border-white/10 flex items-center gap-2">
-                            <Palette className="w-4 h-4 text-primary" /> Kurumsal Marka ve Tema Özelleştirme
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-xs font-mono text-gray-400 mb-1.5">Kurum Adı</label>
-                                <input
-                                    type="text"
-                                    value={settings['brand_institution_name'] || 'İKÜANTS TEKMER'}
-                                    onChange={(e) => handleChange('brand_institution_name', e.target.value)}
-                                    className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:border-primary outline-none"
-                                />
+                {activeTab === 'footer' && (
+                    <div className="space-y-6">
+                        <div className="bg-[#0e0e18] border border-white/10 rounded-2xl p-6 shadow-xl space-y-4">
+                            <div className="font-orbitron font-bold text-sm text-white pb-3 border-b border-white/10 flex items-center gap-2">
+                                <Layout className="w-4 h-4 text-primary" /> Footer
                             </div>
-
-                            <div>
-                                <label className="block text-xs font-mono text-gray-400 mb-1.5">Vurgu Rengi (Accent Hex)</label>
-                                <div className="flex items-center gap-3">
-                                    <input
-                                        type="color"
-                                        value={settings['brand_accent_color'] || '#6366f1'}
-                                        onChange={(e) => handleChange('brand_accent_color', e.target.value)}
-                                        className="w-10 h-10 rounded-lg cursor-pointer bg-transparent border-0"
-                                    />
-                                    <input
-                                        type="text"
-                                        value={settings['brand_accent_color'] || '#6366f1'}
-                                        onChange={(e) => handleChange('brand_accent_color', e.target.value)}
-                                        className="flex-1 bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white font-mono"
-                                    />
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="md:col-span-2">
+                                    <label className="block text-xs font-mono text-gray-400 mb-1.5">Footer açıklama metni</label>
+                                    <textarea rows={3} value={val('footer_text')} onChange={(e) => handleChange('footer_text', e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:border-primary outline-none" />
+                                </div>
+                                <div className="md:col-span-2">
+                                    <label className="block text-xs font-mono text-gray-400 mb-1.5">Telif metni</label>
+                                    <textarea rows={2} value={val('footer_copyright')} onChange={(e) => handleChange('footer_copyright', e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:border-primary outline-none" /><p className="mt-1 text-[11px] text-gray-500">{'{yıl}'} yazarsanız her yıl otomatik güncellenir. Tasarımcı kredisi (Design By Alperen Tağman) sabittir; buradan değiştirilemez veya kaldırılamaz.</p>
                                 </div>
                             </div>
-
-                            <div>
-                                <label className="block text-xs font-mono text-gray-400 mb-1.5">Genel Logo URL</label>
-                                <input
-                                    type="text"
-                                    value={settings['brand_logo_url'] || '/images/logo.png'}
-                                    onChange={(e) => handleChange('brand_logo_url', e.target.value)}
-                                    className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:border-primary outline-none"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-xs font-mono text-gray-400 mb-1.5">Admin Panel Logo URL</label>
-                                <input
-                                    type="text"
-                                    value={settings['brand_admin_logo_url'] || '/images/admin-logo.png'}
-                                    onChange={(e) => handleChange('brand_admin_logo_url', e.target.value)}
-                                    className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:border-primary outline-none"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-xs font-mono text-gray-400 mb-1.5">Favicon URL</label>
-                                <input
-                                    type="text"
-                                    value={settings['brand_favicon_url'] || '/favicon.ico'}
-                                    onChange={(e) => handleChange('brand_favicon_url', e.target.value)}
-                                    className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:border-primary outline-none"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-xs font-mono text-gray-400 mb-1.5">Giriş Ekranı Arka Planı (URL)</label>
-                                <input
-                                    type="text"
-                                    value={settings['brand_login_background_url'] || '/images/login-bg.jpg'}
-                                    onChange={(e) => handleChange('brand_login_background_url', e.target.value)}
-                                    className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:border-primary outline-none"
-                                />
-                            </div>
-                        </div>
-
-                        <div>
-                            <label className="block text-xs font-mono text-gray-400 mb-1.5">Giriş Karşılama Mesajı (Welcome Text)</label>
-                            <input
-                                type="text"
-                                value={settings['brand_welcome_text'] || 'İKÜANTS TEKMER Yönetim Merkezi Sistemine Hoş Geldiniz'}
-                                onChange={(e) => handleChange('brand_welcome_text', e.target.value)}
-                                className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:border-primary outline-none"
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-xs font-mono text-gray-400 mb-1.5">Altbilgi (Footer) Metni</label>
-                            <input
-                                type="text"
-                                value={settings['brand_footer_text'] || '© 2026 İKÜANTS TEKMER. Tüm hakları saklıdır.'}
-                                onChange={(e) => handleChange('brand_footer_text', e.target.value)}
-                                className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:border-primary outline-none"
-                            />
                         </div>
                     </div>
                 )}
 
-                {/* 3. FORM TEXTS (Madde 53) */}
-                {activeTab === 'form_texts' && (
+                {activeTab === 'cookie' && (
+                    <div className="space-y-6">
+                        <div className="bg-[#0e0e18] border border-white/10 rounded-2xl p-6 shadow-xl space-y-4">
+                            <div className="font-orbitron font-bold text-sm text-white pb-3 border-b border-white/10 flex items-center gap-2">
+                                <Shield className="w-4 h-4 text-primary" /> Çerez Uyarısı
+                            </div>
+                            <label className="flex items-center justify-between rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-sm text-white">
+                                <span>Çerez uyarısını göster</span>
+                                <input type="checkbox" checked={val('cookie_enabled') !== 'false'} onChange={(e) => handleChange('cookie_enabled', e.target.checked ? 'true' : 'false')} className="h-4 w-4" />
+                            </label>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-xs font-mono text-gray-400 mb-1.5">Başlık</label>
+                                    <input type="text" value={val('cookie_title')} onChange={(e) => handleChange('cookie_title', e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:border-primary outline-none" />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-mono text-gray-400 mb-1.5">Çerez politikası linki</label>
+                                    <input type="text" value={val('cookie_policy_url')} onChange={(e) => handleChange('cookie_policy_url', e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:border-primary outline-none" />
+                                </div>
+                                <div className="md:col-span-2">
+                                    <label className="block text-xs font-mono text-gray-400 mb-1.5">Uyarı metni</label>
+                                    <textarea rows={3} value={val('cookie_text')} onChange={(e) => handleChange('cookie_text', e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:border-primary outline-none" />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-mono text-gray-400 mb-1.5">Kabul butonu</label>
+                                    <input type="text" value={val('cookie_accept_text')} onChange={(e) => handleChange('cookie_accept_text', e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:border-primary outline-none" />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-mono text-gray-400 mb-1.5">Red butonu</label>
+                                    <input type="text" value={val('cookie_reject_text')} onChange={(e) => handleChange('cookie_reject_text', e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:border-primary outline-none" />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-mono text-gray-400 mb-1.5">Tercihler butonu</label>
+                                    <input type="text" value={val('cookie_settings_text')} onChange={(e) => handleChange('cookie_settings_text', e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:border-primary outline-none" />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-mono text-gray-400 mb-1.5">Sürüm</label>
+                                    <input type="text" value={val('cookie_version')} onChange={(e) => handleChange('cookie_version', e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:border-primary outline-none" /><p className="mt-1 text-[11px] text-gray-500">Metni önemli ölçüde değiştirdiğinizde sürümü artırın; ziyaretçilere uyarı yeniden gösterilir.</p>
+                                </div>
+                                <div className="md:col-span-2">
+                                    <label className="block text-xs font-mono text-gray-400 mb-1.5">Çerez politikası sayfası metni (/cerez-politikasi)</label>
+                                    <textarea rows={12} value={settings['cookie_policy_text'] ?? DEFAULT_COOKIE_POLICY} onChange={(e) => handleChange('cookie_policy_text', e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:border-primary outline-none" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* ANIMATIONS */}
+                {activeTab === 'animation' && (
                     <div className="bg-[#0e0e18] border border-white/10 rounded-2xl p-6 shadow-xl space-y-6">
                         <div className="font-orbitron font-bold text-sm text-white pb-3 border-b border-white/10 flex items-center gap-2">
-                            <Sparkles className="w-4 h-4 text-primary" /> Dinamik Form Metinleri & Buton Özelleştirme
+                            <Sparkles className="w-4 h-4 text-primary" /> Site Animasyonları
                         </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-xs font-mono text-gray-400 mb-1.5">İleri Butonu Etiketi</label>
-                                <input
-                                    type="text"
-                                    value={settings['form_btn_next'] || 'İleri →'}
-                                    onChange={(e) => handleChange('form_btn_next', e.target.value)}
-                                    className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:border-primary outline-none"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-xs font-mono text-gray-400 mb-1.5">Geri Butonu Etiketi</label>
-                                <input
-                                    type="text"
-                                    value={settings['form_btn_back'] || '← Geri'}
-                                    onChange={(e) => handleChange('form_btn_back', e.target.value)}
-                                    className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:border-primary outline-none"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-xs font-mono text-gray-400 mb-1.5">Gönder (CTA) Butonu Etiketi</label>
-                                <input
-                                    type="text"
-                                    value={settings['form_btn_submit'] || 'Başvurumu Tamamla'}
-                                    onChange={(e) => handleChange('form_btn_submit', e.target.value)}
-                                    className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:border-primary outline-none"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-xs font-mono text-gray-400 mb-1.5">Taslak Kaydet Butonu Etiketi</label>
-                                <input
-                                    type="text"
-                                    value={settings['form_btn_save_draft'] || 'Taslak Olarak Kaydet'}
-                                    onChange={(e) => handleChange('form_btn_save_draft', e.target.value)}
-                                    className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:border-primary outline-none"
-                                />
-                            </div>
-                        </div>
-
                         <div>
-                            <label className="block text-xs font-mono text-gray-400 mb-1.5">Başarı Bildirim Mesajı</label>
-                            <input
-                                type="text"
-                                value={settings['form_msg_success'] || 'Başvurunuz başarıyla sisteme kaydedildi ve değerlendirme sürecine alındı.'}
-                                onChange={(e) => handleChange('form_msg_success', e.target.value)}
-                                className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:border-primary outline-none"
-                            />
+                            <label className="block text-xs font-mono text-gray-400 mb-2">Genel hareket seviyesi</label>
+                            <div className="grid gap-2 sm:grid-cols-3">
+                                {([['full', 'Tam', 'Tüm geçiş ve hareketler açık.'], ['reduced', 'Azaltılmış', 'Büyük kayma / büyüme hareketleri kapalı, solma efektleri açık.'], ['off', 'Kapalı', 'Hareket yok; içerik doğrudan görünür.']] as const).map(([v, label, desc]) => (
+                                    <button key={v} type="button" onClick={() => handleChange('animation_motion', v)} className={`rounded-xl border p-3 text-left transition-colors ${val('animation_motion') === v ? 'border-primary bg-primary/10' : 'border-white/10 bg-black/30 hover:border-white/30'}`}>
+                                        <div className="text-sm font-semibold text-white">{label}</div>
+                                        <div className="text-[11px] text-gray-400">{desc}</div>
+                                    </button>
+                                ))}
+                            </div>
+                            <p className="mt-2 text-[11px] text-gray-500">İşletim sisteminde &quot;hareketi azalt&quot; tercihi açık olan ziyaretçilere her durumda sakin görünüm gösterilir.</p>
                         </div>
 
-                        <div>
-                            <label className="block text-xs font-mono text-gray-400 mb-1.5">Hata Bildirim Mesajı</label>
-                            <input
-                                type="text"
-                                value={settings['form_msg_error'] || 'Lütfen formdaki zorunlu alanları eksiksiz ve geçerli biçimde doldurunuz.'}
-                                onChange={(e) => handleChange('form_msg_error', e.target.value)}
-                                className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:border-primary outline-none"
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-xs font-mono text-gray-400 mb-1.5">KVKK & Açık Rıza Onay Metni</label>
-                            <textarea
-                                rows={2}
-                                value={settings['form_text_kvkk'] || 'Kişisel verilerimin KVKK Aydınlatma Metni kapsamında işlenmesini ve program değerlendirmesinde kullanılmasını onaylıyorum.'}
-                                onChange={(e) => handleChange('form_text_kvkk', e.target.value)}
-                                className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-xs text-white focus:border-primary outline-none"
-                            />
+                        <div className="space-y-4 rounded-xl border border-white/10 bg-black/20 p-4">
+                            <div className="flex flex-wrap items-center justify-between gap-3">
+                                <div>
+                                    <div className="text-sm font-semibold text-white">Form gönderim kutlaması</div>
+                                    <p className="text-[11px] text-gray-400">Başvuru, iletişim, rezervasyon ve teklif formları başarıyla gönderildiğinde gösterilir.</p>
+                                </div>
+                                <label className="flex items-center gap-2 text-xs text-gray-300 cursor-pointer">
+                                    <input type="checkbox" checked={val('animation_success_enabled') !== 'false'} onChange={(e) => handleChange('animation_success_enabled', String(e.target.checked))} className="rounded border-white/20 bg-black/40 text-primary" />
+                                    Açık
+                                </label>
+                            </div>
+                            <div className="grid gap-2 sm:grid-cols-3">
+                                {([['rocket', 'Uçan roket', Rocket], ['confetti', 'Konfeti', PartyPopper], ['check', 'Sade onay', CircleCheck]] as const).map(([v, label, Icon]) => (
+                                    <button key={v} type="button" onClick={() => handleChange('animation_success_style', v)} className={`flex items-center gap-2 rounded-xl border p-3 text-left text-sm font-semibold text-white transition-colors ${val('animation_success_style') === v ? 'border-primary bg-primary/10' : 'border-white/10 bg-black/30 hover:border-white/30'}`}>
+                                        <Icon className="h-4 w-4 text-primary" /> {label}
+                                    </button>
+                                ))}
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-xs font-mono text-gray-400 mb-1.5">Başlık</label>
+                                    <input type="text" value={val('animation_success_title')} onChange={(e) => handleChange('animation_success_title', e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:border-primary outline-none" />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-mono text-gray-400 mb-1.5">Ekranda kalma süresi (saniye, 2–10)</label>
+                                    <input type="number" min={2} max={10} value={val('animation_success_seconds')} onChange={(e) => handleChange('animation_success_seconds', e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:border-primary outline-none" />
+                                </div>
+                                <div className="md:col-span-2">
+                                    <label className="block text-xs font-mono text-gray-400 mb-1.5">Açıklama (formun kendi başarı mesajı varsa o gösterilir)</label>
+                                    <textarea rows={2} value={val('animation_success_text')} onChange={(e) => handleChange('animation_success_text', e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:border-primary outline-none" />
+                                </div>
+                            </div>
+                            <a href="/iletisim" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline">
+                                <Eye className="h-3.5 w-3.5" /> Kaydettikten sonra iletişim formundan deneyebilirsiniz
+                            </a>
                         </div>
                     </div>
                 )}
 
-                {/* 4. SIDEBAR BUILDER (Madde 55) */}
-                {activeTab === 'sidebar' && (
-                    <div className="bg-[#0e0e18] border border-white/10 rounded-2xl p-6 shadow-xl space-y-6">
-                        <div className="font-orbitron font-bold text-sm text-white pb-3 border-b border-white/10 flex items-center gap-2">
-                            <Navigation className="w-4 h-4 text-primary" /> Admin Menü & Sidebar Özelleştirici
-                        </div>
-                        <p className="text-xs text-gray-400">
-                            Super Admin yetkisiyle sol menü başlıklarını ve modül etiketlerini dinamik olarak yeniden adlandırabilirsiniz (Örn: Görevler → İş Takibi).
-                        </p>
+                {activeTab === 'alerts' && <AlertRulesPanel />}
+                {activeTab === 'hr' && <HrDefinitionsPanel />}
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-xs font-mono text-gray-400 mb-1.5">Görevler Menü Başlığı</label>
-                                <input
-                                    type="text"
-                                    value={settings['sidebar_label_tasks'] || 'İş Takibi & Görevler'}
-                                    onChange={(e) => handleChange('sidebar_label_tasks', e.target.value)}
-                                    className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:border-primary outline-none"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-xs font-mono text-gray-400 mb-1.5">Başvurular Menü Başlığı</label>
-                                <input
-                                    type="text"
-                                    value={settings['sidebar_label_applications'] || 'Başvuru Pipeline'}
-                                    onChange={(e) => handleChange('sidebar_label_applications', e.target.value)}
-                                    className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:border-primary outline-none"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-xs font-mono text-gray-400 mb-1.5">Girişimciler Menü Başlığı</label>
-                                <input
-                                    type="text"
-                                    value={settings['sidebar_label_entrepreneurs'] || 'Girişimciler & Portföy'}
-                                    onChange={(e) => handleChange('sidebar_label_entrepreneurs', e.target.value)}
-                                    className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:border-primary outline-none"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-xs font-mono text-gray-400 mb-1.5">Mentörler Menü Başlığı</label>
-                                <input
-                                    type="text"
-                                    value={settings['sidebar_label_mentors'] || 'Mentör Kadrosu'}
-                                    onChange={(e) => handleChange('sidebar_label_mentors', e.target.value)}
-                                    className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:border-primary outline-none"
-                                />
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {/* 5. NOTIFICATIONS & ROUTING BUILDER */}
-                {activeTab === 'notifications' && (
-                    <div className="bg-[#0e0e18] border border-white/10 rounded-2xl p-6 shadow-xl space-y-6">
-                        <div className="font-orbitron font-bold text-sm text-white pb-3 border-b border-white/10 flex items-center gap-2">
-                            <Bell className="w-4 h-4 text-primary" /> Program Bazlı Bildirim Yönlendirme & Kanal Yönetimi
-                        </div>
-
-                        {/* Global Channel & Digest Settings */}
-                        <div className="p-4 rounded-xl bg-black/30 border border-white/5 space-y-3">
-                            <div className="text-xs font-semibold text-white">Genel Bildirim Kanalları & Gönderim Sıklığı (Digest)</div>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                                <label className="flex items-center gap-2 text-xs text-gray-300 cursor-pointer">
-                                    <input
-                                        type="checkbox"
-                                        checked={settings['notify_channel_inapp'] !== 'false'}
-                                        onChange={(e) => handleChange('notify_channel_inapp', String(e.target.checked))}
-                                        className="rounded border-white/20 bg-black/40 text-primary"
-                                    />
-                                    Uygulama İçi (In-App)
-                                </label>
-                                <label className="flex items-center gap-2 text-xs text-gray-300 cursor-pointer">
-                                    <input
-                                        type="checkbox"
-                                        checked={settings['notify_channel_email'] !== 'false'}
-                                        onChange={(e) => handleChange('notify_channel_email', String(e.target.checked))}
-                                        className="rounded border-white/20 bg-black/40 text-primary"
-                                    />
-                                    E-Posta (Email)
-                                </label>
-                                <label className="flex items-center gap-2 text-xs text-gray-300 cursor-pointer">
-                                    <input
-                                        type="checkbox"
-                                        checked={settings['notify_channel_teams'] === 'true'}
-                                        onChange={(e) => handleChange('notify_channel_teams', String(e.target.checked))}
-                                        className="rounded border-white/20 bg-black/40 text-primary"
-                                    />
-                                    Microsoft Teams Webhook
-                                </label>
-                            </div>
-                        </div>
-
-                        {/* Program-Based Visual Routing Cards */}
-                        <div className="space-y-4">
-                            <div className="text-xs font-mono font-bold text-gray-400 uppercase tracking-wider">
-                                Program Bazlı Yönlendirme Kuralları
-                            </div>
-
-                            {[
-                                { id: 'antspark', name: 'ANTsPARK', desc: 'Ön Kuluçka & Hızlandırma Programı' },
-                                { id: 'antsfire', name: 'ANTsFire', desc: 'İleri Aşama Büyüme & Yatırım Programı' },
-                                { id: 'glowup', name: 'GlowUp', desc: 'Kadın Girişimci & İnovasyon Programı' },
-                                { id: 'general', name: 'Genel Başvuru & İletişim', desc: 'Doğrudan web sitesi üzerinden gelen başvurular' },
-                            ].map((prog) => {
-                                const roleKey = `notify_roles_${prog.id}`;
-                                const emailKey = `notify_emails_${prog.id}`;
-                                const selectedRoles = settings[roleKey] ? settings[roleKey].split(',').map(s => s.trim()) : ['program-managers', 'application-managers'];
-                                const extraEmails = settings[emailKey] || '';
-
-                                const handleRoleToggle = (roleSlug: string) => {
-                                    const next = selectedRoles.includes(roleSlug)
-                                        ? selectedRoles.filter(r => r !== roleSlug)
-                                        : [...selectedRoles, roleSlug];
-                                    handleChange(roleKey, next.join(', '));
-                                };
-
-                                return (
-                                    <div key={prog.id} className="p-5 rounded-2xl bg-black/40 border border-white/10 space-y-4 hover:border-primary/40 transition-colors">
-                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-white/5">
-                                            <div>
-                                                <h4 className="font-orbitron font-bold text-sm text-white flex items-center gap-2">
-                                                    <span className="w-2 h-2 rounded-full bg-primary" />
-                                                    {prog.name} Başvuru Bildirim Alıcıları
-                                                </h4>
-                                                <p className="text-xs text-gray-400 mt-0.5">
-                                                    {prog.name} programına yeni başvuru geldiğinde veya başvuru durumu değiştiğinde bildirim alacak rol, kullanıcı ve ek e-posta adreslerini belirleyin.
-                                                </p>
-                                            </div>
-                                            <button
-                                                type="button"
-                                                onClick={() => alert(`[Test Bildirimi Simülasyonu]: ${prog.name} kuralı tetiklendi. ${selectedRoles.length} rol ve tanımlı e-postalara denetimli test bildirimi kuyruğa alındı.`)}
-                                                className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-primary/20 text-gray-300 hover:text-primary border border-white/10 text-xs font-mono font-semibold transition-all cursor-pointer flex-shrink-0"
-                                            >
-                                                Test Bildirimi Gönder
-                                            </button>
-                                        </div>
-
-                                        {/* Roles Selection */}
-                                        <div className="space-y-2">
-                                            <label className="block text-[11px] font-mono text-gray-400 font-bold">Bildirim Alacak Roller:</label>
-                                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                                                {[
-                                                    { slug: 'program-managers', label: 'Program Yöneticileri' },
-                                                    { slug: 'application-managers', label: 'Başvuru Yöneticileri' },
-                                                    { slug: 'super-admin', label: 'Süper Yönetici' },
-                                                    { slug: 'admin', label: 'Sistem Yöneticisi' },
-                                                    { slug: 'mentor-coordinators', label: 'Mentör Koordinatörleri' },
-                                                    { slug: 'legal-managers', label: 'Hukuk & Sözleşme' },
-                                                ].map((r) => (
-                                                    <label key={r.slug} className="flex items-center gap-2 text-xs text-gray-300 bg-white/5 p-2 rounded-xl border border-white/5 hover:border-white/20 cursor-pointer">
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={selectedRoles.includes(r.slug)}
-                                                            onChange={() => handleRoleToggle(r.slug)}
-                                                            className="rounded border-white/20 bg-black/40 text-primary"
-                                                        />
-                                                        <span>{r.label}</span>
-                                                    </label>
-                                                ))}
-                                            </div>
-                                        </div>
-
-                                        {/* Extra Emails */}
-                                        <div>
-                                            <label className="block text-[11px] font-mono text-gray-400 font-bold mb-1">
-                                                Ek E-Posta Adresleri (Virgülle ayırın):
-                                            </label>
-                                            <input
-                                                type="text"
-                                                placeholder="ornek@iku.edu.tr, info@ikuants.com"
-                                                value={extraEmails}
-                                                onChange={(e) => handleChange(emailKey, e.target.value)}
-                                                className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white focus:border-primary outline-none"
-                                            />
-                                        </div>
-
-                                        {/* Live Preview Summary with De-duplication notice */}
-                                        <div className="p-3 rounded-xl bg-primary/5 border border-primary/20 flex items-center justify-between text-xs font-mono text-primary">
-                                            <span>
-                                                ✓ Bu kurala göre seçili {selectedRoles.length} rol grubu ve {extraEmails ? extraEmails.split(',').filter(Boolean).length : 0} ek e-posta adresi bildirim alacak.
-                                            </span>
-                                            <span className="text-[10px] text-gray-400">
-                                                (Mükerrer Gönderim Engelleme Aktif)
-                                            </span>
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    </div>
-                )}
-
-                <div className="flex justify-end pt-4 border-t border-white/10">
+                {activeTab !== 'alerts' && activeTab !== 'hr' && <div className="flex justify-end pt-4 border-t border-white/10">
                     <button
                         type="submit"
                         disabled={saving}
@@ -581,7 +321,7 @@ export default function AdminAyarlarPage() {
                         <Save className="w-4 h-4" />
                         {saving ? 'Kaydediliyor...' : 'Tüm Ayarları Kaydet'}
                     </button>
-                </div>
+                </div>}
             </form>
         </div>
     );

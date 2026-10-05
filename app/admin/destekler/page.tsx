@@ -236,6 +236,51 @@ export default function AdminDesteklerPage() {
                             </div>
                         </div>
 
+                        <div>
+                            <label className="block text-xs font-mono text-gray-400 mb-1.5">Örnek Senaryo</label>
+                            <textarea
+                                rows={4}
+                                value={editingItem.exampleScenario || ''}
+                                onChange={(e) => setEditingItem({ ...editingItem, exampleScenario: e.target.value })}
+                                placeholder="Örneğin; firmanız yıl içinde ... (kartta 'Örnek Senaryo' kutusunda gösterilir)"
+                                className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:border-primary outline-none"
+                            />
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-xs font-mono text-gray-400 mb-1.5">Buton Metni</label>
+                                <input type="text" value={editingItem.ctaText || ''} onChange={(e) => setEditingItem({ ...editingItem, ctaText: e.target.value })} placeholder="Detaylı bilgi almak için tıklayın" className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:border-primary outline-none" />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-mono text-gray-400 mb-1.5">Buton Linki (boşsa iletişim formu bu konuyla açılır)</label>
+                                <input type="text" value={editingItem.ctaLink || ''} onChange={(e) => setEditingItem({ ...editingItem, ctaLink: e.target.value })} placeholder="/iletisim" className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:border-primary outline-none" />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-mono text-gray-400 mb-1.5">Mevzuat / Kaynak Linki</label>
+                                <input type="url" value={editingItem.sourceUrl || ''} onChange={(e) => setEditingItem({ ...editingItem, sourceUrl: e.target.value })} placeholder="https://www.mevzuat.gov.tr/..." className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:border-primary outline-none" />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-mono text-gray-400 mb-1.5">İkon</label>
+                                <select value={editingItem.iconName || 'FileCheck'} onChange={(e) => setEditingItem({ ...editingItem, iconName: e.target.value })} className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:border-primary outline-none">
+                                    <option value="FileCheck">Belge</option>
+                                    <option value="DollarSign">Para</option>
+                                    <option value="Shield">Kalkan</option>
+                                    <option value="Globe">Dünya</option>
+                                    <option value="GraduationCap">Mezuniyet</option>
+                                    <option value="Building2">Bina</option>
+                                </select>
+                            </div>
+                            <div className="md:col-span-2">
+                                <label className="block text-xs font-mono text-gray-400 mb-1.5">Kart Rengi</label>
+                                <div className="flex flex-wrap gap-2">
+                                    {['from-blue-500 to-cyan-500', 'from-green-500 to-emerald-500', 'from-purple-500 to-pink-500', 'from-red-500 to-orange-500', 'from-indigo-500 to-blue-600', 'from-yellow-400 to-orange-500'].map((g) => (
+                                        <button key={g} type="button" onClick={() => setEditingItem({ ...editingItem, colorGradient: g })} aria-label={g} className={`h-8 w-14 rounded-lg bg-gradient-to-r ${g} ${editingItem.colorGradient === g ? 'ring-2 ring-white ring-offset-2 ring-offset-black' : ''}`} />
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+
                         <div className="flex items-center justify-end gap-3 pt-4 border-t border-white/5">
                             <button
                                 type="button"

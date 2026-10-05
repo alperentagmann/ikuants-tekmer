@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { prisma } from '../../lib/prisma';
 import { loginAsAdmin } from './helpers/auth';
+import { clickAndWaitForSave } from './helpers/mutation';
 
 test.describe('4. KULLANIM ALANLARI — FACILITY E2E CRUD', () => {
     const TEST_TITLE = 'E2E Test Prototipleme Atölyesi';
@@ -53,7 +54,7 @@ test.describe('4. KULLANIM ALANLARI — FACILITY E2E CRUD', () => {
         await modal.locator('textarea').first().fill('E2E Test Prototip ve üretim alanı açıklaması.');
 
         // Kaydet
-        await modal.getByRole('button', { name: 'Kaydet' }).click();
+        await clickAndWaitForSave(page, modal.getByRole('button', { name: 'Kaydet' }));
         await page.waitForTimeout(1000);
 
         // 3. DB kontrolü
@@ -80,7 +81,7 @@ test.describe('4. KULLANIM ALANLARI — FACILITY E2E CRUD', () => {
 
         const editModal = page.locator('div.fixed');
         await editModal.locator('input[type="text"]').nth(0).fill(UPDATED_TITLE);
-        await editModal.getByRole('button', { name: 'Kaydet' }).click();
+        await clickAndWaitForSave(page, editModal.getByRole('button', { name: 'Kaydet' }));
         await page.waitForTimeout(1000);
 
         // 6. Public'ta değiştiğini doğrula
@@ -97,7 +98,7 @@ test.describe('4. KULLANIM ALANLARI — FACILITY E2E CRUD', () => {
 
         const updatedCard = page.locator('div.rounded-xl').filter({ hasText: UPDATED_TITLE }).first();
         const deleteBtn = updatedCard.locator('button').nth(1);
-        await deleteBtn.click();
+        await clickAndWaitForSave(page, deleteBtn);
         await page.waitForTimeout(1000);
 
         // 8. Public'tan çıkmalı

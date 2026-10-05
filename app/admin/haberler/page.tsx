@@ -153,7 +153,7 @@ export default function AdminHaberlerPage() {
                 </div>
 
                 {!editingItem && !isCreating && (
-                    <button
+                    <button data-intent="create"
                         onClick={() => {
                             setEditingItem({
                                 title: '',

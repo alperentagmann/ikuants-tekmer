@@ -1,4 +1,4 @@
-import { test, describe } from 'node:test';
+import { test, describe, before } from 'node:test';
 import assert from 'node:assert';
 import { prisma } from '../lib/prisma';
 import { EntrepreneurService } from '../lib/services/entrepreneur-service';
@@ -14,6 +14,15 @@ const HIDDEN_COMPANIES = [
 ];
 
 describe('Entrepreneur Public Visibility & Management', () => {
+    before(async () => {
+        for (const name of HIDDEN_COMPANIES) {
+            await prisma.entrepreneur.updateMany({
+                where: { name: { contains: name.slice(0, 15), mode: 'insensitive' } },
+                data: { isPublished: false },
+            });
+        }
+    });
+
     test('All 7 companies exist in DB and are marked isPublished: false (not hard deleted)', async () => {
         for (const name of HIDDEN_COMPANIES) {
             const found = await prisma.entrepreneur.findFirst({

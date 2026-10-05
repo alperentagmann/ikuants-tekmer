@@ -33,6 +33,9 @@ export interface UpdateUserInput {
     status?: string; // ACTIVE, INVITED, DISABLED, LOCKED, PENDING_PASSWORD_RESET
     mustChangePassword?: boolean;
     notes?: string;
+    employmentType?: string | null;
+    sgkStatus?: string | null;
+    hireDate?: Date | null;
     actorId?: string;
 }
 
@@ -448,6 +451,9 @@ export class UserManagementService {
                 isSuperAdmin: input.isSuperAdmin !== undefined ? input.isSuperAdmin : undefined,
                 mustChangePassword: input.mustChangePassword !== undefined ? input.mustChangePassword : undefined,
                 notes: input.notes !== undefined ? input.notes : undefined,
+                employmentType: input.employmentType !== undefined ? input.employmentType : undefined,
+                sgkStatus: input.sgkStatus !== undefined ? input.sgkStatus : undefined,
+                hireDate: input.hireDate !== undefined ? input.hireDate : undefined,
             },
         });
 

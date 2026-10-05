@@ -3,6 +3,20 @@ import { loginAsAdmin } from './helpers/auth';
 import { prisma } from '../../lib/prisma';
 
 test.describe('Project Finance Ledger & Budget vs Actuals E2E', () => {
+    let createdProjectId: string | null = null;
+
+    test.afterEach(async () => {
+        // Runs even when an assertion fails, so no test project is left in the admin lists
+        if (!createdProjectId) return;
+        const projectId = createdProjectId;
+        createdProjectId = null;
+        await prisma.projectExpense.deleteMany({ where: { projectId } });
+        await prisma.projectBudgetLine.deleteMany({ where: { projectId } });
+        await prisma.fundingReceipt.deleteMany({ where: { fundingSource: { projectId } } });
+        await prisma.fundingSource.deleteMany({ where: { projectId } });
+        await prisma.project.deleteMany({ where: { id: projectId } });
+    });
+
     test.beforeEach(async ({ context }) => {
         await loginAsAdmin(context);
     });
@@ -25,6 +39,7 @@ test.describe('Project Finance Ledger & Budget vs Actuals E2E', () => {
                 creator: { connect: { id: adminUser.id } },
             },
         });
+        createdProjectId = project.id;
 
         // 1. Navigate to Project Finance Tab
         await page.goto(`/admin/projeler/${project.id}/finans`);
@@ -77,11 +92,5 @@ test.describe('Project Finance Ledger & Budget vs Actuals E2E', () => {
         await expect(page.locator('#kpi-total-spent')).toContainText('120.000');
         await expect(page.locator('#kpi-cash-available')).toContainText('180.000');
         await expect(page.locator('#kpi-budget-remaining')).toContainText('880.000');
-
-        // Cleanup
-        await prisma.projectExpense.deleteMany({ where: { projectId: project.id } });
-        await prisma.fundingReceipt.deleteMany({ where: { fundingSource: { projectId: project.id } } });
-        await prisma.fundingSource.deleteMany({ where: { projectId: project.id } });
-        await prisma.project.delete({ where: { id: project.id } });
     });
 });

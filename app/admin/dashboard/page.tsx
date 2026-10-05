@@ -1,791 +1,364 @@
 "use client";
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
-    Users, UserCheck, Rocket, FileText, Mail, Plus, AlertCircle,
-    TrendingUp, Calendar, Clock, ArrowRight, ShieldCheck, Newspaper,
-    CheckCircle2, Sparkles, Filter, Activity, RefreshCw, Receipt,
-    Layers, Search, CheckSquare, Eye, ExternalLink, HelpCircle,
-    Paperclip, Send, RotateCcw, Shield, Check, X, Loader2
+    Rocket, UserCheck, FileText, Receipt, Layers, Mail, CheckSquare, CalendarClock, AlertCircle,
+    RefreshCw, Sparkles, Plus, Newspaper, ClipboardList, ShieldCheck, ArrowRight, Inbox, UsersRound, Calculator, Cpu, ArrowRightLeft,
 } from 'lucide-react';
-import { StatusBadge } from '@/components/admin/StatusBadge';
+import { AiConsole } from '@/components/admin/ai/AiConsole';
+import { formatDate, formatDateTime } from '@/components/admin/ui';
+
+type DashboardData = {
+    generatedAt: string;
+    user: { name: string; isSuperAdmin: boolean };
+    canUseAi: boolean;
+    shortcuts: { createEntrepreneur: boolean; createMentor: boolean; createNews: boolean; createTask: boolean; rent: boolean; forms: boolean };
+    attention: { key: string; title: string; href: string; severity: 'high' | 'medium' | 'low'; count: number }[];
+    tasks?: { open: number; overdue: number; dueToday: number; awaitingMyReview: number; items: { id: string; title: string; status: string; priority: string; dueDate: string | null }[] };
+    applications?: { total: number; pendingProgram: number; pendingTekmer: number; pendingOther: number; lastWeek: number; funnel: Record<string, number>; recent: { id: string; number: string; applicantName: string; companyName: string | null; type: string; context: string | null; status: string; createdAt: string }[] };
+    entrepreneurs?: { total: number; active: number; withoutProgram: number };
+    mentors?: { total: number; active: number };
+    programs?: { total: number; open: number };
+    rent?: { activeContracts: number; overdueCount: number; overdueByCurrency: Record<string, number>; expiringContracts: number };
+    reservations?: { pending: number; today: number };
+    contacts?: { total: number; new: number };
+    forms?: { submissionsLastWeek: number };
+    news?: { drafts: number; recent: { id: string; title: string; status: string; createdAt: string }[] };
+    email?: { pending: number; failed: number };
+    auditLogs?: { id: string; action: string; entityType: string; actorName: string | null; actorEmail: string | null; createdAt: string }[];
+    work?: { pendingPasses: number; teams: { id: string; name: string; color: string; members: number; openTasks: number; overdueTasks: number; doneLast30: number }[] };
+    finance?: { receivable: number; overdue: number; overdueCount: number; drafts: number };
+    quotes?: { pending: number };
+};
+
+const AI_SUGGESTIONS = ['Bugünkü işlerim', 'Bekleyen program başvuruları', 'Bekleyen TEKMER yer edinme başvuruları', 'Geciken kiraları göster', '3D modeli olmayan alanlar', 'Programı olmayan girişimler'];
+
+const STATUS_LABEL: Record<string, string> = { TODO: 'Yapılacak', IN_PROGRESS: 'Devam ediyor', IN_REVIEW: 'Kontrolde', DONE: 'Tamamlandı', CANCELLED: 'İptal' };
+const TYPE_LABEL: Record<string, string> = { PROGRAM: 'Program', TEKMER: 'TEKMER', IDEATHON: 'Ideathon', MENTOR: 'Mentör', EVENT: 'Etkinlik', TRAINING: 'Eğitim' };
+
+const money = (v: number, c: string) => `${v.toLocaleString('tr-TR', { maximumFractionDigits: 2 })} ${c}`;
+
+function StatCard({ title, value, sub, href, icon: Icon, accent }: { title: string; value: number; sub: string; href: string; icon: React.ComponentType<{ className?: string }>; accent: string }) {
+    return (
+        <Link href={href} className="group rounded-2xl border border-white/10 bg-[#0d0e1b]/80 p-4 transition-colors hover:border-white/25">
+            <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-gray-400">{title}</span>
+                <Icon className={`h-4 w-4 ${accent}`} />
+            </div>
+            <div className="mt-2 font-orbitron text-2xl font-bold text-white">{value.toLocaleString('tr-TR')}</div>
+            <div className="mt-1 text-[11px] text-gray-500 group-hover:text-gray-300">{sub}</div>
+        </Link>
+    );
+}
 
 export default function AdminDashboardPage() {
-    const [data, setData] = useState<any>(null);
-    const [loading, setLoading] = useState(true);
+    const [data, setData] = useState<DashboardData | null>(null);
+    const [error, setError] = useState<string | null>(null);
     const [refreshing, setRefreshing] = useState(false);
-    const [timeframe, setTimeframe] = useState<'all' | 'today' | 'week' | 'month'>('all');
-    const [lastUpdated, setLastUpdated] = useState<string>('');
 
-    // AI Operations State
-    const [aiPrompt, setAiPrompt] = useState('');
-    const [aiLoading, setAiLoading] = useState(false);
-    const [aiAttachment, setAiAttachment] = useState<File | null>(null);
-    const [aiResponse, setAiResponse] = useState<any>(null);
-    const [executingAction, setExecutingAction] = useState(false);
-    const [undoingChangeSet, setUndoingChangeSet] = useState(false);
-    const fileInputRef = useRef<HTMLInputElement>(null);
-
-    const fetchDashboard = async (showRefreshIndicator = false) => {
-        if (showRefreshIndicator) setRefreshing(true);
+    const load = useCallback(async () => {
+        setRefreshing(true);
         try {
-            const res = await fetch('/api/admin/dashboard');
-            const result = await res.json();
-            if (result.success) {
-                setData(result);
-                setLastUpdated(new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
-            }
+            const res = await fetch('/api/admin/dashboard', { cache: 'no-store' });
+            const json = await res.json();
+            if (!res.ok || !json.success) throw new Error(json.message || 'Veriler alınamadı');
+            setData(json as DashboardData);
+            setError(null);
         } catch (e) {
-            console.error('Failed to load dashboard:', e);
+            setError(e instanceof Error ? e.message : 'Veriler alınamadı');
         } finally {
-            setLoading(false);
-            if (showRefreshIndicator) setRefreshing(false);
+            setRefreshing(false);
         }
-    };
-
-    useEffect(() => {
-        fetchDashboard();
     }, []);
 
-    const handleAiSubmit = async (customPrompt?: string) => {
-        const text = customPrompt || aiPrompt;
-        if (!text.trim() && !aiAttachment) return;
+    useEffect(() => {
+        const t = setTimeout(load, 0);
+        return () => clearTimeout(t);
+    }, [load]);
 
-        setAiLoading(true);
-        setAiResponse(null);
+    const stats: React.ComponentProps<typeof StatCard>[] = [];
+    if (data?.entrepreneurs) stats.push({ title: 'Girişimciler', value: data.entrepreneurs.total, sub: `${data.entrepreneurs.active} aktif · ${data.entrepreneurs.withoutProgram} programsız`, href: '/admin/girisimciler', icon: Rocket, accent: 'text-purple-400' });
+    if (data?.applications) stats.push({ title: 'Bekleyen program başvurusu', value: data.applications.pendingProgram, sub: `Son 7 gün: ${data.applications.lastWeek} yeni başvuru`, href: '/admin/basvurular?view=program', icon: FileText, accent: 'text-emerald-400' });
+    if (data?.applications) stats.push({ title: 'Bekleyen TEKMER başvurusu', value: data.applications.pendingTekmer, sub: 'Yer edinme başvuruları', href: '/admin/basvurular?view=tekmer', icon: ClipboardList, accent: 'text-teal-400' });
+    if (data?.rent) stats.push({ title: 'Kira & Sözleşme', value: data.rent.activeContracts, sub: data.rent.overdueCount ? `${data.rent.overdueCount} gecikmiş tahakkuk` : 'Gecikmiş tahakkuk yok', href: '/admin/finans/kiralar', icon: Receipt, accent: 'text-amber-400' });
+    if (data?.mentors) stats.push({ title: 'Mentörler', value: data.mentors.total, sub: `${data.mentors.active} aktif`, href: '/admin/mentorler', icon: UserCheck, accent: 'text-cyan-400' });
+    if (data?.programs) stats.push({ title: 'Programlar', value: data.programs.total, sub: `${data.programs.open} başvuruya açık`, href: '/admin/programlar', icon: Layers, accent: 'text-indigo-400' });
+    if (data?.reservations) stats.push({ title: 'Rezervasyon talepleri', value: data.reservations.pending, sub: `Bugün ${data.reservations.today} onaylı rezervasyon`, href: '/admin/alanlar?tab=rezervasyonlar', icon: CalendarClock, accent: 'text-sky-400' });
+    if (data?.contacts) stats.push({ title: 'İletişim talepleri', value: data.contacts.new, sub: `Toplam ${data.contacts.total} talep`, href: '/admin/iletisim', icon: Mail, accent: 'text-rose-400' });
+    if (data?.work) stats.push({ title: 'Bana paslanan işler', value: data.work.pendingPasses, sub: 'Yanıt bekleyen paslar', href: '/admin/is-takip?tab=inbox', icon: ArrowRightLeft, accent: 'text-fuchsia-400' });
+    if (data?.quotes) stats.push({ title: 'Makine teklif talepleri', value: data.quotes.pending, sub: 'Lazer · dizgi · 3D baskı', href: '/admin/form-builder', icon: Cpu, accent: 'text-orange-400' });
 
-        try {
-            let fileAttachmentData: any = null;
-            if (aiAttachment) {
-                fileAttachmentData = {
-                    name: aiAttachment.name,
-                    size: aiAttachment.size,
-                    type: aiAttachment.type,
-                    url: `/uploads/media/${encodeURIComponent(aiAttachment.name)}`
-                };
-            }
+    const shortcuts = [
+        data?.shortcuts.createEntrepreneur && { label: 'Girişimci Ekle', href: '/admin/girisimciler?action=create', icon: Rocket },
+        data?.shortcuts.createMentor && { label: 'Mentör Ekle', href: '/admin/mentorler?action=create', icon: UserCheck },
+        data?.shortcuts.createTask && { label: 'Görev Oluştur', href: '/admin/gorevler?action=create', icon: CheckSquare },
+        data?.shortcuts.createNews && { label: 'Haber Ekle', href: '/admin/haberler?action=create', icon: Newspaper },
+        data?.shortcuts.forms && { label: 'Form Merkezi', href: '/admin/form-builder', icon: ClipboardList },
+        data?.shortcuts.rent && { label: 'Kira Yönetimi', href: '/admin/finans/kiralar', icon: Receipt },
+    ].filter(Boolean) as { label: string; href: string; icon: React.ComponentType<{ className?: string }> }[];
 
-            const res = await fetch('/api/admin/ai/chat', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    prompt: text,
-                    routeContext: '/admin/dashboard',
-                    attachments: fileAttachmentData ? [fileAttachmentData] : []
-                })
-            });
-
-            const result = await res.json();
-            if (result.success) {
-                setAiResponse(result);
-                setAiPrompt('');
-                setAiAttachment(null);
-            }
-        } catch (err) {
-            console.error('AI error:', err);
-        } finally {
-            setAiLoading(false);
-        }
-    };
-
-    const handleExecuteAiAction = async (action: any) => {
-        setExecutingAction(true);
-        try {
-            const actionName = action.actionId || action.actionName;
-            const parameters = action.params || action.parameters;
-            const res = await fetch('/api/admin/ai/execute', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    actionName,
-                    parameters,
-                    prompt: aiPrompt || 'AI İşlemi'
-                })
-            });
-            const result = await res.json();
-            if (result.success) {
-                setAiResponse((prev: any) => ({
-                    ...prev,
-                    executionResult: result,
-                    lastChangeSetId: result.changeSet?.id
-                }));
-                fetchDashboard();
-            }
-        } catch (err) {
-            console.error('Execution error:', err);
-        } finally {
-            setExecutingAction(false);
-        }
-    };
-
-    const handleUndo = async (changeSetId: string) => {
-        setUndoingChangeSet(true);
-        try {
-            const res = await fetch('/api/admin/ai/undo', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ changeSetId })
-            });
-            const result = await res.json();
-            if (result.success) {
-                setAiResponse((prev: any) => ({
-                    ...prev,
-                    undoResult: result,
-                    lastChangeSetId: null
-                }));
-                fetchDashboard();
-            }
-        } catch (err) {
-            console.error('Undo error:', err);
-        } finally {
-            setUndoingChangeSet(false);
-        }
-    };
-
-    if (loading) {
-        return (
-            <div className="space-y-6 animate-pulse">
-                <div className="flex justify-between items-center bg-[#0d0e1b]/90 border border-white/10 p-5 rounded-2xl">
-                    <div>
-                        <h1 className="font-orbitron font-bold text-xl sm:text-2xl text-white tracking-wide">
-                            Operasyon & Yönetim Merkezi
-                        </h1>
-                        <p className="text-xs text-gray-400 mt-1">Veriler yükleniyor...</p>
-                    </div>
-                    <div className="h-8 bg-white/5 rounded-xl w-32" />
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-                    {[1, 2, 3, 4, 5, 6].map((i) => (
-                        <div key={i} className="h-28 bg-white/5 rounded-2xl" />
-                    ))}
-                </div>
-            </div>
-        );
-    }
-
-    const metrics = data?.metrics || {};
-    const attentionItems = data?.attentionItems || [];
-    const recentAuditLogs = data?.recentAuditLogs || [];
-    const recentNews = data?.recentNews || [];
-    const recentApplications = data?.recentApplications || [];
-
-    const statsCards = [
-        {
-            title: 'Girişimciler',
-            value: metrics.totalEntrepreneurs || 0,
-            sub: `${metrics.activeEntrepreneurs || 0} Aktif Girişim`,
-            icon: Rocket,
-            color: 'text-purple-400',
-            bg: 'from-purple-500/15 via-purple-500/5 to-transparent',
-            border: 'border-purple-500/25',
-            badgeBg: 'bg-purple-500/10 text-purple-300',
-            href: '/admin/girisimciler',
-        },
-        {
-            title: 'Mentörler',
-            value: metrics.totalMentors || 0,
-            sub: `${metrics.activeMentors || 0} Aktif Rehber`,
-            icon: UserCheck,
-            color: 'text-cyan-400',
-            bg: 'from-cyan-500/15 via-cyan-500/5 to-transparent',
-            border: 'border-cyan-500/25',
-            badgeBg: 'bg-cyan-500/10 text-cyan-300',
-            href: '/admin/mentorler',
-        },
-        {
-            title: 'Başvurular',
-            value: metrics.totalApplications || 0,
-            sub: `${metrics.newApplications || 0} Yeni • ${metrics.underReviewApplications || 0} İncelemede`,
-            icon: FileText,
-            color: 'text-emerald-400',
-            bg: 'from-emerald-500/15 via-emerald-500/5 to-transparent',
-            border: 'border-emerald-500/25',
-            badgeBg: 'bg-emerald-500/10 text-emerald-300',
-            href: '/admin/basvurular',
-        },
-        {
-            title: 'Kira & Sözleşme',
-            value: metrics.activeRentContracts || 0,
-            sub: 'Aktif Tahakkuk Sözleşmesi',
-            icon: Receipt,
-            color: 'text-amber-400',
-            bg: 'from-amber-500/15 via-amber-500/5 to-transparent',
-            border: 'border-amber-500/25',
-            badgeBg: 'bg-amber-500/10 text-amber-300',
-            href: '/admin/finans/kiralar',
-        },
-        {
-            title: 'Programlar',
-            value: metrics.totalPrograms || 0,
-            sub: `${metrics.activePrograms || 0} Aktif Süreç`,
-            icon: Layers,
-            color: 'text-indigo-400',
-            bg: 'from-indigo-500/15 via-indigo-500/5 to-transparent',
-            border: 'border-indigo-500/25',
-            badgeBg: 'bg-indigo-500/10 text-indigo-300',
-            href: '/admin/programlar',
-        },
-        {
-            title: 'İletişim & Talep',
-            value: metrics.totalContacts || 0,
-            sub: `${metrics.newContacts || 0} Bekleyen Mesaj`,
-            icon: Mail,
-            color: 'text-rose-400',
-            bg: 'from-rose-500/15 via-rose-500/5 to-transparent',
-            border: 'border-rose-500/25',
-            badgeBg: 'bg-rose-500/10 text-rose-300',
-            href: '/admin/iletisim',
-        },
-    ];
-
-    const quickShortcuts = [
-        { label: 'Girişimci Ekle', href: '/admin/girisimciler?action=create', icon: Rocket, color: 'hover:border-purple-500/50 hover:bg-purple-500/10 text-purple-300' },
-        { label: 'Mentör Ekle', href: '/admin/mentorler?action=create', icon: UserCheck, color: 'hover:border-cyan-500/50 hover:bg-cyan-500/10 text-cyan-300' },
-        { label: 'Program Başlat', href: '/admin/programlar', icon: Layers, color: 'hover:border-indigo-500/50 hover:bg-indigo-500/10 text-indigo-300' },
-        { label: 'Kira Yönetimi', href: '/admin/finans/kiralar', icon: Receipt, color: 'hover:border-amber-500/50 hover:bg-amber-500/10 text-amber-300' },
-        { label: 'Haber & Duyuru', href: '/admin/haberler?action=create', icon: Newspaper, color: 'hover:border-emerald-500/50 hover:bg-emerald-500/10 text-emerald-300' },
-        { label: 'Görevler & Kanban', href: '/admin/gorevler/kanban', icon: CheckSquare, color: 'hover:border-blue-500/50 hover:bg-blue-500/10 text-blue-300' },
-    ];
+    const funnel = data?.applications?.funnel;
+    const funnelTotal = funnel ? Object.values(funnel).reduce((a, b) => a + b, 0) : 0;
 
     return (
         <div className="space-y-6 pb-12">
-            {/* TOP HERO: İKÜANTS AI COMMAND CENTER */}
-            <div className="bg-gradient-to-br from-[#121124] via-[#0b0a14] to-[#07060e] border border-primary/30 rounded-3xl p-6 shadow-2xl relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-96 h-96 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
-                <div className="relative z-10 space-y-4">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2.5">
-                            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-primary to-purple-600 flex items-center justify-center shadow-lg shadow-primary/30">
-                                <Sparkles className="w-4 h-4 text-white" />
-                            </div>
-                            <div>
-                                <h2 className="font-orbitron font-bold text-base sm:text-lg text-white tracking-wide">
-                                    İKÜANTS AI Komuta & Operasyon Merkezi
-                                </h2>
-                                <p className="text-xs text-gray-400">
-                                    Bugün kurumda veya web sitesinde ne yapmak istiyorsunuz? Doğal Türkçe ile komut verin.
-                                </p>
-                            </div>
-                        </div>
-                        <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-mono text-[10px]">
-                            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                            AI Operasyon Motoru Aktif
-                        </span>
-                    </div>
-
-                    {/* AI Prompt Input Bar */}
-                    <div className="flex flex-col sm:flex-row items-center gap-2 bg-black/60 border border-white/10 rounded-2xl p-2 focus-within:border-primary transition-all">
-                        <input
-                            id="ai-command-input"
-                            type="text"
-                            placeholder="Örn: 'Bugünkü çalışmalarımı kaydet', 'PNG banner ekle', 'Yeni kullanıcı oluştur', 'Geciken kiraları listele'..."
-                            value={aiPrompt}
-                            onChange={(e) => setAiPrompt(e.target.value)}
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter' && !e.shiftKey) {
-                                    e.preventDefault();
-                                    handleAiSubmit();
-                                }
-                            }}
-                            className="w-full bg-transparent px-3 py-2 text-xs sm:text-sm text-white placeholder-gray-500 focus:outline-none"
-                        />
-
-                        <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-                            <input
-                                ref={fileInputRef}
-                                type="file"
-                                accept="image/*,.pdf,.docx,.xlsx"
-                                className="hidden"
-                                onChange={(e) => {
-                                    if (e.target.files?.[0]) setAiAttachment(e.target.files[0]);
-                                }}
-                            />
-                            <button
-                                type="button"
-                                onClick={() => fileInputRef.current?.click()}
-                                className={`p-2 rounded-xl text-xs transition-colors flex items-center gap-1 cursor-pointer ${
-                                    aiAttachment ? 'bg-primary/20 text-primary border border-primary/40' : 'text-gray-400 hover:text-white hover:bg-white/5'
-                                }`}
-                                title="Dosya veya Görsel Ekle (PNG/PDF)"
-                            >
-                                <Paperclip className="w-4 h-4" />
-                                {aiAttachment && <span className="text-[10px] max-w-[80px] truncate">{aiAttachment.name}</span>}
-                            </button>
-
-                            <button
-                                id="ai-command-submit-btn"
-                                onClick={() => handleAiSubmit()}
-                                disabled={aiLoading || (!aiPrompt.trim() && !aiAttachment)}
-                                className="px-5 py-2 rounded-xl bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90 text-white text-xs font-bold flex items-center gap-1.5 shadow-lg shadow-primary/30 disabled:opacity-50 transition-all cursor-pointer"
-                            >
-                                {aiLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                                <span>Çalıştır</span>
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* Suggestion Chips */}
-                    <div className="flex flex-wrap items-center gap-2 pt-1">
-                        <span className="text-[10px] font-mono text-gray-500 mr-1">Öneriler:</span>
-                        {[
-                            'Bugünkü çalışmalarımı kaydet',
-                            'Ana sayfaya banner ekle',
-                            'Gecikmiş kiraları listele',
-                            'Günlük raporumu hazırla',
-                            'Eylül ayı kurumsal raporu çıkar',
-                            'Program atanmamış girişimcileri bul',
-                        ].map((chip) => (
-                            <button
-                                key={chip}
-                                onClick={() => {
-                                    setAiPrompt(chip);
-                                    handleAiSubmit(chip);
-                                }}
-                                className="px-3 py-1 rounded-xl bg-white/5 hover:bg-primary/20 text-gray-300 hover:text-primary text-[11px] font-medium border border-white/5 hover:border-primary/30 transition-all cursor-pointer"
-                            >
-                                {chip}
-                            </button>
-                        ))}
-                    </div>
-
-                    {/* AI Structured Response Card */}
-                    {aiResponse && (
-                        <div className="p-4 rounded-2xl bg-[#090814] border border-primary/40 space-y-3 mt-4 animate-in fade-in">
-                            <div className="flex items-start justify-between">
-                                <div className="space-y-1">
-                                    <div className="text-xs font-bold text-primary font-mono flex items-center gap-1.5">
-                                        <Sparkles className="w-3.5 h-3.5" />
-                                        <span>AI Operasyon Planı & Önizleme</span>
-                                    </div>
-                                    <p className="text-xs text-white leading-relaxed whitespace-pre-line">{aiResponse.content || aiResponse.message}</p>
+            {data?.canUseAi && (
+                <section className="relative overflow-hidden rounded-3xl border border-primary/30 bg-gradient-to-br from-[#121124] via-[#0b0a14] to-[#07060e] p-5 sm:p-6">
+                    <div className="relative z-10 space-y-4">
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                            <div className="flex items-center gap-2.5">
+                                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-tr from-primary to-purple-600">
+                                    <Sparkles className="h-4 w-4 text-white" />
                                 </div>
-                                <button onClick={() => setAiResponse(null)} className="text-gray-500 hover:text-white">
-                                    <X className="w-4 h-4" />
-                                </button>
+                                <div>
+                                    <h2 className="font-orbitron text-base font-bold tracking-wide text-white sm:text-lg">İKÜANTS AI Komuta & Operasyon Merkezi</h2>
+                                    <p className="text-xs text-gray-400">Bugün kurumda veya web sitesinde ne yapmak istiyorsunuz? Doğal Türkçe ile komut verin.</p>
+                                </div>
                             </div>
-
-                            {/* Execution Result */}
-                            {aiResponse.executionResult && (
-                                <div className="p-3 rounded-xl bg-emerald-950/40 border border-emerald-500/30 flex items-center justify-between text-xs text-emerald-300">
-                                    <div className="flex items-center gap-2">
-                                        <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                                        <span>{aiResponse.executionResult.message || 'İşlem başarıyla tamamlandı ve denetim günlüğüne kaydedildi.'}</span>
-                                    </div>
-                                    <button
-                                        id="ai-undo-btn"
-                                        onClick={() => handleUndo(aiResponse.lastChangeSetId || aiResponse.executionResult?.changeSetId)}
-                                        disabled={undoingChangeSet}
-                                        className="px-3 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 font-bold flex items-center gap-1 cursor-pointer"
-                                    >
-                                        <RotateCcw className={`w-3.5 h-3.5 ${undoingChangeSet ? 'animate-spin' : ''}`} />
-                                        <span>Geri Al (Undo)</span>
-                                    </button>
-                                </div>
-                            )}
-
-                            {/* Action Confirmation Cards */}
-                            {(aiResponse.confirmationPayload || (aiResponse.plannedActions && aiResponse.plannedActions.length > 0)) && !aiResponse.executionResult && (
-                                <div className="space-y-2 pt-2 border-t border-white/10">
-                                    <div className="p-3 rounded-xl bg-black/40 border border-white/10 flex items-center justify-between text-xs">
-                                        <div>
-                                            <div className="font-semibold text-white">İşlem Onayı</div>
-                                            <div className="text-[10px] font-mono text-gray-400">
-                                                Aksiyon: {aiResponse.confirmationPayload?.actionId || aiResponse.plannedActions?.[0]?.actionName || 'cms.hero.update'}
-                                            </div>
-                                        </div>
-                                        <button
-                                            id="ai-confirm-execute-btn"
-                                            onClick={() => handleExecuteAiAction(aiResponse.confirmationPayload || aiResponse.plannedActions[0])}
-                                            disabled={executingAction}
-                                            className="px-4 py-1.5 rounded-xl bg-primary hover:bg-primary/90 text-white font-bold flex items-center gap-1.5 shadow-md shadow-primary/20 cursor-pointer"
-                                        >
-                                            {executingAction ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
-                                            <span>Onayla ve Uygula</span>
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
+                            <Link href="/admin/ai" className="inline-flex items-center gap-1 text-xs text-gray-300 hover:text-white">
+                                Komuta Merkezi <ArrowRight className="h-3.5 w-3.5" />
+                            </Link>
                         </div>
-                    )}
-                </div>
-            </div>
+                        <AiConsole variant="hero" suggestions={AI_SUGGESTIONS} onChanged={load} />
+                    </div>
+                </section>
+            )}
 
-            {/* Top Control Bar */}
-            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 bg-[#0d0e1b]/90 border border-white/10 p-4 sm:p-5 rounded-2xl backdrop-blur-xl shadow-xl">
+            <div className="flex flex-col items-start justify-between gap-3 rounded-2xl border border-white/10 bg-[#0d0e1b]/90 p-4 sm:flex-row sm:items-center sm:p-5">
                 <div>
-                    <div className="flex items-center gap-2.5">
-                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shadow-md shadow-emerald-400/50" />
-                        <h1 className="font-orbitron font-bold text-xl sm:text-2xl text-white tracking-wide">
-                            Operasyon & Yönetim Merkezi
-                        </h1>
-                    </div>
-                    <p className="text-xs text-gray-400 mt-1 flex items-center gap-2">
-                        <span>İKÜANTS TEKMER Girişimcilik & Finans Portalı</span>
-                        {lastUpdated && (
-                            <span className="text-[10px] font-mono text-gray-500 border-l border-white/10 pl-2">
-                                Son Güncelleme: {lastUpdated}
-                            </span>
-                        )}
+                    <h1 className="font-orbitron text-xl font-bold tracking-wide text-white sm:text-2xl">Operasyon & Yönetim Merkezi</h1>
+                    <p className="mt-1 text-xs text-gray-400">
+                        {data ? `Merhaba ${data.user.name}. Veriler canlıdır · ${formatDateTime(data.generatedAt)}` : 'Veriler yükleniyor…'}
                     </p>
                 </div>
-
-                {/* Right Side: Refresh & Timeframe & Action Buttons */}
-                <div className="flex flex-wrap items-center gap-2.5 w-full lg:w-auto justify-start lg:justify-end">
-                    <button
-                        onClick={() => fetchDashboard(true)}
-                        disabled={refreshing}
-                        title="Verileri Yenile"
-                        className="p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 hover:text-white transition-all active:scale-95 disabled:opacity-50"
-                    >
-                        <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin text-primary' : ''}`} />
+                <div className="flex items-center gap-2">
+                    <button type="button" onClick={load} disabled={refreshing} title="Verileri Yenile" aria-label="Verileri Yenile" className="rounded-xl border border-white/10 bg-white/5 p-2 text-gray-300 hover:text-white disabled:opacity-50">
+                        <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
                     </button>
-
-                    {/* Timeframe Selector Pills */}
-                    <div className="inline-flex items-center bg-black/40 border border-white/10 rounded-xl p-1 text-xs">
-                        {(['all', 'today', 'week', 'month'] as const).map((t) => (
-                            <button
-                                key={t}
-                                onClick={() => setTimeframe(t)}
-                                className={`px-2.5 py-1 rounded-lg font-medium transition-all ${
-                                    timeframe === t
-                                        ? 'bg-primary text-white shadow-md'
-                                        : 'text-gray-400 hover:text-white'
-                                }`}
-                            >
-                                {t === 'all' ? 'Tümü' : t === 'today' ? 'Bugün' : t === 'week' ? 'Bu Hafta' : 'Bu Ay'}
-                            </button>
-                        ))}
-                    </div>
-
-                    <Link
-                        href="/admin/basvurular"
-                        className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90 text-white text-xs font-bold transition-all shadow-md shadow-primary/20 hover:scale-105 active:scale-95"
-                    >
-                        <FileText className="w-3.5 h-3.5" />
-                        <span>Başvuru Pipeline</span>
-                    </Link>
+                    <Link href="/admin/benim-gunum" className="rounded-xl bg-primary px-3 py-2 text-xs font-semibold text-white hover:bg-primary/90">Benim Günüm</Link>
                 </div>
             </div>
 
-            {/* Attention Needed Section ("Dikkat Gerektirenler") */}
-            {attentionItems.length > 0 && (
-                <div className="bg-gradient-to-r from-amber-950/40 via-[#151210] to-[#0e0e18] border border-amber-500/30 rounded-2xl p-4 sm:p-5 shadow-xl relative overflow-hidden">
-                    <div className="flex items-center justify-between gap-2 mb-3">
-                        <div className="flex items-center gap-2 text-amber-400">
-                            <AlertCircle className="w-4 h-4" />
-                            <h2 className="font-orbitron font-bold text-xs uppercase tracking-wider text-amber-300">
-                                Acil Dikkat Gerektiren Maddeler ({attentionItems.length})
-                            </h2>
-                        </div>
-                        <span className="text-[10px] font-mono text-amber-400/80 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
-                            Aksiyon Bekliyor
-                        </span>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2.5">
-                        {attentionItems.map((item: any, idx: number) => (
-                            <Link
-                                key={idx}
-                                href={item.actionUrl}
-                                className="flex items-center justify-between p-3 rounded-xl bg-black/50 border border-amber-500/20 hover:border-amber-400/60 hover:bg-amber-950/20 transition-all text-xs text-gray-200 hover:text-white group"
-                            >
-                                <div className="flex items-center gap-2.5 truncate pr-2">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping flex-shrink-0" />
-                                    <span className="truncate">{item.title}</span>
-                                </div>
-                                <span className="text-[10px] font-mono text-amber-400 font-bold group-hover:translate-x-0.5 transition-transform flex-shrink-0">
-                                    İncele →
-                                </span>
-                            </Link>
-                        ))}
-                    </div>
+            {error && <div className="rounded-xl border border-rose-500/30 bg-rose-950/30 p-3 text-sm text-rose-200">{error}</div>}
+
+            {!data && !error && (
+                <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+                    {[1, 2, 3, 4].map((i) => <div key={i} className="h-28 animate-pulse rounded-2xl bg-white/5" />)}
                 </div>
             )}
 
-            {/* Key Metrics Overview Grid (6 Cards) */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4">
-                {statsCards.map((c) => {
-                    const Icon = c.icon;
-                    return (
-                        <Link
-                            key={c.title}
-                            href={c.href}
-                            className={`p-4 rounded-2xl bg-gradient-to-br ${c.bg} bg-[#0e0f1e]/80 border ${c.border} hover:border-white/30 hover:scale-[1.02] active:scale-95 transition-all shadow-lg shadow-black/40 group relative overflow-hidden flex flex-col justify-between`}
-                        >
-                            <div className="flex items-center justify-between mb-2.5">
-                                <span className="text-xs font-semibold text-gray-300 group-hover:text-white transition-colors">
-                                    {c.title}
-                                </span>
-                                <div className={`p-2 rounded-xl bg-black/40 border border-white/5 ${c.color}`}>
-                                    <Icon className="w-4 h-4" />
-                                </div>
-                            </div>
-                            <div className="font-orbitron font-black text-2xl sm:text-3xl text-white mb-1.5">
-                                {c.value}
-                            </div>
-                            <div className="text-[11px] font-mono text-gray-400 flex items-center justify-between">
-                                <span className="truncate">{c.sub}</span>
-                                <ArrowRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all text-white flex-shrink-0 ml-1" />
-                            </div>
-                        </Link>
-                    );
-                })}
-            </div>
+            {data && (
+                <>
+                    {stats.length > 0 && <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">{stats.map((s) => <StatCard key={s.title} {...s} />)}</div>}
 
-            {/* Middle Two-Column Grid: Pipeline Status & Recent Applications */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                {/* Left: Application Pipeline Breakdown (5 cols) */}
-                <div className="lg:col-span-5 bg-[#0e0f1e] border border-white/10 rounded-2xl p-5 sm:p-6 shadow-xl flex flex-col justify-between">
-                    <div>
-                        <div className="flex items-center justify-between pb-4 mb-4 border-b border-white/10">
-                            <div className="flex items-center gap-2">
-                                <Activity className="w-4 h-4 text-primary" />
-                                <h3 className="font-orbitron font-bold text-sm text-white">Başvuru Huni Dağılımı</h3>
-                            </div>
-                            <Link href="/admin/basvurular" className="text-xs text-primary hover:underline font-mono">
-                                Kanban Görünümü →
-                            </Link>
+                    {shortcuts.length > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                            {shortcuts.map((s) => (
+                                <Link key={s.href} href={s.href} className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-gray-200 hover:border-primary/40 hover:text-white">
+                                    <Plus className="h-3.5 w-3.5" /> <s.icon className="h-3.5 w-3.5" /> {s.label}
+                                </Link>
+                            ))}
                         </div>
+                    )}
 
-                        <div className="space-y-2.5">
-                            <Link
-                                href="/admin/basvurular?status=NEW"
-                                className="p-3 rounded-xl bg-black/40 border border-blue-500/20 hover:border-blue-500/40 flex items-center justify-between text-xs transition-colors group"
-                            >
-                                <div className="flex items-center gap-2">
-                                    <span className="w-2 h-2 rounded-full bg-blue-400" />
-                                    <span className="text-gray-200 group-hover:text-white font-medium">Yeni Başvurular</span>
-                                </div>
-                                <span className="font-orbitron font-bold text-sm text-blue-400">{metrics.newApplications || 0}</span>
-                            </Link>
-
-                            <Link
-                                href="/admin/basvurular?status=UNDER_EVALUATION"
-                                className="p-3 rounded-xl bg-black/40 border border-amber-500/20 hover:border-amber-500/40 flex items-center justify-between text-xs transition-colors group"
-                            >
-                                <div className="flex items-center gap-2">
-                                    <span className="w-2 h-2 rounded-full bg-amber-400" />
-                                    <span className="text-gray-200 group-hover:text-white font-medium">İnceleme & Değerlendirme</span>
-                                </div>
-                                <span className="font-orbitron font-bold text-sm text-amber-400">{metrics.underReviewApplications || 0}</span>
-                            </Link>
-
-                            <Link
-                                href="/admin/basvurular?status=ACCEPTED"
-                                className="p-3 rounded-xl bg-black/40 border border-emerald-500/20 hover:border-emerald-500/40 flex items-center justify-between text-xs transition-colors group"
-                            >
-                                <div className="flex items-center gap-2">
-                                    <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                                    <span className="text-gray-200 group-hover:text-white font-medium">Kabul Edilen Girişimler</span>
-                                </div>
-                                <span className="font-orbitron font-bold text-sm text-emerald-400">{metrics.acceptedApplications || 0}</span>
-                            </Link>
-
-                            <Link
-                                href="/admin/basvurular?status=REJECTED"
-                                className="p-3 rounded-xl bg-black/40 border border-rose-500/20 hover:border-rose-500/40 flex items-center justify-between text-xs transition-colors group"
-                            >
-                                <div className="flex items-center gap-2">
-                                    <span className="w-2 h-2 rounded-full bg-rose-400" />
-                                    <span className="text-gray-200 group-hover:text-white font-medium">Reddedilen Başvurular</span>
-                                </div>
-                                <span className="font-orbitron font-bold text-sm text-rose-400">{metrics.rejectedApplications || 0}</span>
-                            </Link>
-                        </div>
-                    </div>
-
-                    <div className="mt-5 pt-4 border-t border-white/5 flex gap-2">
-                        <Link
-                            href="/admin/basvurular"
-                            className="flex-1 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold text-center text-gray-300 hover:text-white transition-colors"
-                        >
-                            Tüm Başvuruları Yönet
-                        </Link>
-                        <Link
-                            href="/admin/durumlar"
-                            className="px-3.5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold text-center text-gray-300 hover:text-white transition-colors"
-                            title="Pipeline Aşamalarını Yapılandır"
-                        >
-                            Aşama Ayarları
-                        </Link>
-                    </div>
-                </div>
-
-                {/* Right: Son Gelen Başvurular Listesi (7 cols) */}
-                <div className="lg:col-span-7 bg-[#0e0f1e] border border-white/10 rounded-2xl p-5 sm:p-6 shadow-xl flex flex-col justify-between">
-                    <div>
-                        <div className="flex items-center justify-between pb-4 mb-4 border-b border-white/10">
-                            <div className="flex items-center gap-2">
-                                <FileText className="w-4 h-4 text-emerald-400" />
-                                <h3 className="font-orbitron font-bold text-sm text-white">Son Başvurular</h3>
-                            </div>
-                            <Link href="/admin/basvurular" className="text-xs text-primary hover:underline font-mono">
-                                Listeye Git →
-                            </Link>
-                        </div>
-
-                        <div className="space-y-2">
-                            {recentApplications.length === 0 ? (
-                                <div className="text-xs text-gray-500 py-8 text-center bg-black/20 rounded-xl">
-                                    Henüz kayıtlı başvuru bulunmuyor.
-                                </div>
-                            ) : (
-                                recentApplications.map((app: any) => (
-                                    <Link
-                                        key={app.id}
-                                        href={`/admin/basvurular?id=${app.id}`}
-                                        className="p-3 rounded-xl bg-black/40 border border-white/5 hover:border-primary/40 flex items-center justify-between text-xs transition-all group"
-                                    >
-                                        <div className="flex items-center gap-3 truncate pr-2">
-                                            <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center font-orbitron font-bold text-primary text-xs flex-shrink-0">
-                                                {app.companyName ? app.companyName.charAt(0).toUpperCase() : app.applicantName?.charAt(0).toUpperCase() || 'B'}
-                                            </div>
-                                            <div className="truncate">
-                                                <div className="font-semibold text-gray-200 group-hover:text-white truncate">
-                                                    {app.companyName || app.applicantName || 'Başvuru'}
-                                                </div>
-                                                <div className="text-[11px] text-gray-400 truncate">
-                                                    {app.programName || app.program?.title || app.applicantEmail || 'Genel Başvuru'}
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-center gap-3 flex-shrink-0">
-                                            <StatusBadge status={app.status || 'NEW'} />
-                                            <span className="text-[10px] font-mono text-gray-500 hidden sm:inline">
-                                                {new Date(app.createdAt).toLocaleDateString('tr-TR')}
-                                            </span>
-                                        </div>
-                                    </Link>
-                                ))
+                    {(data.work?.teams.length || data.finance) && (
+                        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+                            {data.work && data.work.teams.length > 0 && (
+                                <section className="rounded-2xl border border-white/10 bg-[#0d0e1b]/80 p-5 lg:col-span-2">
+                                    <div className="mb-3 flex items-center justify-between">
+                                        <h3 className="flex items-center gap-2 font-orbitron text-sm font-bold text-white"><UsersRound className="h-4 w-4 text-primary" /> Ekip Nabzı</h3>
+                                        <Link href="/admin/ekipler" className="text-xs text-primary hover:underline">Tüm ekipler</Link>
+                                    </div>
+                                    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                                        {data.work.teams.slice(0, 6).map((t) => {
+                                            const total = Math.max(1, t.openTasks + t.doneLast30);
+                                            return (
+                                                <Link key={t.id} href={`/admin/gorevler?teamId=${t.id}`} className="rounded-xl border border-white/5 bg-white/[0.03] p-3 hover:border-white/20">
+                                                    <div className="flex items-center justify-between text-sm font-semibold text-white"><span className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full" style={{ background: t.color }} />{t.name}</span><span className="text-[11px] font-normal text-gray-500">{t.members} kişi</span></div>
+                                                    <div className="mt-2 flex h-1.5 overflow-hidden rounded-full bg-white/5"><div className="bg-emerald-400" style={{ width: `${(t.doneLast30 / total) * 100}%` }} /><div className="bg-rose-400" style={{ width: `${(t.overdueTasks / total) * 100}%` }} /></div>
+                                                    <div className="mt-1.5 text-[11px] text-gray-400">{t.openTasks} açık · <span className={t.overdueTasks ? 'text-rose-300' : ''}>{t.overdueTasks} geciken</span> · {t.doneLast30} biten (30 gün)</div>
+                                                </Link>
+                                            );
+                                        })}
+                                    </div>
+                                </section>
+                            )}
+                            {data.finance && (
+                                <section className={`rounded-2xl border border-white/10 bg-[#0d0e1b]/80 p-5 ${data.work?.teams.length ? '' : 'lg:col-span-3'}`}>
+                                    <div className="mb-3 flex items-center justify-between">
+                                        <h3 className="flex items-center gap-2 font-orbitron text-sm font-bold text-white"><Calculator className="h-4 w-4 text-emerald-400" /> Finans</h3>
+                                        <Link href="/admin/muhasebe" className="text-xs text-primary hover:underline">Ön muhasebe</Link>
+                                    </div>
+                                    <div className={data.work?.teams.length ? 'space-y-3' : 'grid gap-4 sm:grid-cols-3'}>
+                                        <div><div className="text-[11px] text-gray-500">Açık alacak</div><div className="font-mono text-xl font-bold text-white">{money(data.finance.receivable, '₺')}</div></div>
+                                        <div><div className="text-[11px] text-gray-500">Vadesi geçen</div><div className={`font-mono text-lg font-bold ${data.finance.overdue ? 'text-amber-300' : 'text-white'}`}>{money(data.finance.overdue, '₺')} <span className="text-xs font-normal text-gray-500">({data.finance.overdueCount} fatura)</span></div></div>
+                                        {data.finance.drafts > 0 && <div className="text-[11px] text-gray-400">{data.finance.drafts} fatura taslakta bekliyor.</div>}
+                                    </div>
+                                </section>
                             )}
                         </div>
-                    </div>
+                    )}
 
-                    <div className="mt-5 pt-4 border-t border-white/5">
-                        <Link
-                            href="/admin/girisimciler"
-                            className="w-full py-2.5 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/20 text-xs font-semibold text-center block text-purple-300 transition-colors"
-                        >
-                            Kayıtlı Girişimcileri Görüntüle ({metrics.totalEntrepreneurs || 0})
-                        </Link>
-                    </div>
-                </div>
-            </div>
+                    <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+                        <section className="rounded-2xl border border-white/10 bg-[#0d0e1b]/80 p-5 lg:col-span-1">
+                            <h3 className="mb-3 flex items-center gap-2 font-orbitron text-sm font-bold text-white"><AlertCircle className="h-4 w-4 text-amber-400" /> Dikkat Gerektirenler</h3>
+                            {data.attention.length === 0 ? (
+                                <p className="text-xs text-gray-500">Şu anda bekleyen kritik bir iş yok.</p>
+                            ) : (
+                                <ul className="space-y-2">
+                                    {data.attention.map((a) => (
+                                        <li key={a.key}>
+                                            <Link href={a.href} className="flex items-center justify-between gap-2 rounded-xl border border-white/5 bg-white/[0.03] px-3 py-2 text-xs text-gray-200 hover:border-white/20">
+                                                <span className="flex items-center gap-2">
+                                                    <span className={`h-2 w-2 shrink-0 rounded-full ${a.severity === 'high' ? 'bg-rose-400' : a.severity === 'medium' ? 'bg-amber-400' : 'bg-gray-500'}`} />
+                                                    {a.title}
+                                                </span>
+                                                <ArrowRight className="h-3.5 w-3.5 shrink-0 text-gray-500" />
+                                            </Link>
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                            {data.rent && Object.keys(data.rent.overdueByCurrency).length > 0 && (
+                                <p className="mt-3 text-[11px] text-gray-400">Geciken kira toplamı: {Object.entries(data.rent.overdueByCurrency).map(([c, v]) => money(v, c)).join(' + ')}</p>
+                            )}
+                            {data.email && data.email.pending > 0 && <p className="mt-2 text-[11px] text-gray-400">E-posta kuyruğunda {data.email.pending} ileti bekliyor.</p>}
+                        </section>
 
-            {/* Quick Actions Shortcuts Bar */}
-            <div className="bg-[#0e0f1e] border border-white/10 rounded-2xl p-5 shadow-xl">
-                <h3 className="font-orbitron font-bold text-xs uppercase tracking-wider text-gray-400 mb-3">
-                    Hızlı İşlem Kısayolları
-                </h3>
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
-                    {quickShortcuts.map((q) => {
-                        const Icon = q.icon;
-                        return (
-                            <Link
-                                key={q.label}
-                                href={q.href}
-                                className={`p-3 rounded-xl bg-black/40 border border-white/5 transition-all text-xs flex items-center gap-2 font-medium ${q.color} shadow-sm active:scale-95`}
-                            >
-                                <Icon className="w-4 h-4 flex-shrink-0" />
-                                <span className="truncate">{q.label}</span>
-                            </Link>
-                        );
-                    })}
-                </div>
-            </div>
-
-            {/* Bottom Row: Audit Logs & Recent News */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                {/* Audit Logs (7 cols) */}
-                <div className="lg:col-span-7 bg-[#0e0f1e] border border-white/10 rounded-2xl p-5 sm:p-6 shadow-xl">
-                    <div className="flex items-center justify-between pb-4 mb-4 border-b border-white/10">
-                        <div className="flex items-center gap-2">
-                            <Clock className="w-4 h-4 text-cyan-400" />
-                            <h3 className="font-orbitron font-bold text-sm text-white">Yönetici Hareketleri (Audit Log)</h3>
-                        </div>
-                        <Link href="/admin/audit-log" className="text-xs text-primary hover:underline font-mono">
-                            Tüm Loglar →
-                        </Link>
-                    </div>
-
-                    <div className="space-y-2.5">
-                        {recentAuditLogs.length === 0 ? (
-                            <div className="text-xs text-gray-500 py-6 text-center">Henüz aktivite kaydı yok.</div>
-                        ) : (
-                            recentAuditLogs.map((log: any) => (
-                                <div
-                                    key={log.id}
-                                    className="p-3 rounded-xl bg-black/30 border border-white/5 flex items-center justify-between text-xs hover:border-white/10 transition-colors"
-                                >
-                                    <div className="flex items-center gap-3">
-                                        <span className="font-mono text-[10px] px-2 py-0.5 rounded font-bold bg-cyan-500/10 text-cyan-300 border border-cyan-500/20">
-                                            {log.action}
-                                        </span>
-                                        <div>
-                                            <div className="font-medium text-gray-200">
-                                                {log.entityType} {log.diff ? `• ${log.diff}` : ''}
-                                            </div>
-                                            <div className="text-[10px] font-mono text-gray-500">
-                                                {log.actorName || log.actorEmail || 'Sistem'}
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <span className="text-[10px] font-mono text-gray-500">
-                                        {new Date(log.createdAt).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
-                                    </span>
+                        {data.tasks && (
+                            <section className="rounded-2xl border border-white/10 bg-[#0d0e1b]/80 p-5 lg:col-span-2">
+                                <div className="mb-3 flex items-center justify-between">
+                                    <h3 className="flex items-center gap-2 font-orbitron text-sm font-bold text-white"><CheckSquare className="h-4 w-4 text-blue-400" /> İşlerim</h3>
+                                    <Link href="/admin/gorevler?scope=assigned" className="text-xs text-primary hover:underline">Tüm görevler</Link>
                                 </div>
-                            ))
+                                <div className="mb-3 grid grid-cols-2 gap-2 text-center sm:grid-cols-4">
+                                    {[
+                                        ['Açık', data.tasks.open],
+                                        ['Bugün', data.tasks.dueToday],
+                                        ['Geciken', data.tasks.overdue],
+                                        ['Kontrolümde', data.tasks.awaitingMyReview],
+                                    ].map(([label, value]) => (
+                                        <div key={label} className="rounded-xl bg-white/[0.03] px-2 py-2">
+                                            <div className="font-orbitron text-lg font-bold text-white">{value}</div>
+                                            <div className="text-[11px] text-gray-500">{label}</div>
+                                        </div>
+                                    ))}
+                                </div>
+                                {data.tasks.items.length === 0 ? (
+                                    <p className="text-xs text-gray-500">Size atanmış açık görev yok.</p>
+                                ) : (
+                                    <ul className="divide-y divide-white/5">
+                                        {data.tasks.items.map((t) => (
+                                            <li key={t.id}>
+                                                <Link href={`/admin/gorevler?taskId=${t.id}`} className="flex items-center justify-between gap-3 py-2 text-xs hover:text-white">
+                                                    <span className="truncate text-gray-200">{t.title}</span>
+                                                    <span className="shrink-0 text-gray-500">{STATUS_LABEL[t.status] || t.status} · {t.dueDate ? formatDate(t.dueDate) : 'Terminsiz'}</span>
+                                                </Link>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                )}
+                            </section>
                         )}
                     </div>
-                </div>
 
-                {/* News & CMS Overview (5 cols) */}
-                <div className="lg:col-span-5 bg-[#0e0f1e] border border-white/10 rounded-2xl p-5 sm:p-6 shadow-xl flex flex-col justify-between">
-                    <div>
-                        <div className="flex items-center justify-between pb-4 mb-4 border-b border-white/10">
-                            <div className="flex items-center gap-2">
-                                <Newspaper className="w-4 h-4 text-purple-400" />
-                                <h3 className="font-orbitron font-bold text-sm text-white">Haberler & Yayınlar</h3>
-                            </div>
-                            <Link href="/admin/haberler" className="text-xs text-primary hover:underline font-mono">
-                                Haberler →
-                            </Link>
+                    {data.applications && (
+                        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+                            <section className="rounded-2xl border border-white/10 bg-[#0d0e1b]/80 p-5">
+                                <div className="mb-3 flex items-center justify-between">
+                                    <h3 className="font-orbitron text-sm font-bold text-white">Başvuru Huni Dağılımı</h3>
+                                    <Link href="/admin/basvurular" className="text-xs text-primary hover:underline">Tümü</Link>
+                                </div>
+                                {funnelTotal === 0 ? (
+                                    <p className="text-xs text-gray-500">Henüz başvuru yok.</p>
+                                ) : (
+                                    <div className="space-y-2.5">
+                                        {[
+                                            ['NEW', 'Yeni', 'bg-sky-400'],
+                                            ['IN_REVIEW', 'Değerlendirmede', 'bg-amber-400'],
+                                            ['ACCEPTED', 'Kabul', 'bg-emerald-400'],
+                                            ['REJECTED', 'Ret', 'bg-rose-400'],
+                                        ].map(([key, label, color]) => {
+                                            const v = funnel?.[key] || 0;
+                                            return (
+                                                <div key={key}>
+                                                    <div className="mb-1 flex justify-between text-[11px] text-gray-400"><span>{label}</span><span>{v}</span></div>
+                                                    <div className="h-1.5 rounded-full bg-white/5"><div className={`h-1.5 rounded-full ${color}`} style={{ width: `${Math.round((v / funnelTotal) * 100)}%` }} /></div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                                {data.applications.pendingOther > 0 && <p className="mt-3 text-[11px] text-gray-500">Diğer bekleyen başvurular (Ideathon, mentör vb.): {data.applications.pendingOther}</p>}
+                            </section>
+
+                            <section className="rounded-2xl border border-white/10 bg-[#0d0e1b]/80 p-5 lg:col-span-2">
+                                <div className="mb-3 flex items-center justify-between">
+                                    <h3 className="font-orbitron text-sm font-bold text-white">Son Başvurular</h3>
+                                    <Link href="/admin/basvurular" className="text-xs text-primary hover:underline">Başvuru Merkezi</Link>
+                                </div>
+                                {data.applications.recent.length === 0 ? (
+                                    <p className="text-xs text-gray-500">Henüz başvuru yok.</p>
+                                ) : (
+                                    <ul className="divide-y divide-white/5">
+                                        {data.applications.recent.map((a) => (
+                                            <li key={a.id}>
+                                                <Link href={`/admin/basvurular/${a.id}`} className="flex items-center justify-between gap-3 py-2 text-xs hover:text-white">
+                                                    <span className="min-w-0">
+                                                        <span className="block truncate text-gray-200">{a.applicantName}{a.companyName ? ` · ${a.companyName}` : ''}</span>
+                                                        <span className="block truncate text-[11px] text-gray-500">{a.number} · {TYPE_LABEL[a.type] || a.type}{a.context ? ` · ${a.context}` : ''}</span>
+                                                    </span>
+                                                    <span className="shrink-0 text-right text-[11px] text-gray-400">{a.status}<br />{formatDate(a.createdAt)}</span>
+                                                </Link>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                )}
+                            </section>
                         </div>
+                    )}
 
-                        <div className="space-y-2.5">
-                            {recentNews.length === 0 ? (
-                                <div className="text-xs text-gray-500 py-6 text-center">Henüz haber eklenmemiş.</div>
-                            ) : (
-                                recentNews.map((n: any) => (
-                                    <Link
-                                        key={n.id}
-                                        href={`/admin/haberler?id=${n.id}`}
-                                        className="p-3 rounded-xl bg-black/30 border border-white/5 hover:border-purple-500/30 flex items-center justify-between text-xs transition-colors group"
-                                    >
-                                        <div className="truncate pr-2">
-                                            <div className="font-medium text-gray-200 group-hover:text-white truncate">
-                                                {n.title}
-                                            </div>
-                                            <div className="text-[10px] text-gray-500 font-mono">
-                                                {n.category?.name || 'Genel'} • {new Date(n.createdAt).toLocaleDateString('tr-TR')}
-                                            </div>
-                                        </div>
-                                        <StatusBadge status={n.status || 'PUBLISHED'} />
-                                    </Link>
-                                ))
-                            )}
-                        </div>
+                    <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                        {data.auditLogs && (
+                            <section className="rounded-2xl border border-white/10 bg-[#0d0e1b]/80 p-5">
+                                <div className="mb-3 flex items-center justify-between">
+                                    <h3 className="flex items-center gap-2 font-orbitron text-sm font-bold text-white"><ShieldCheck className="h-4 w-4 text-emerald-400" /> Yönetici Hareketleri</h3>
+                                    <Link href="/admin/audit-log" className="text-xs text-primary hover:underline">Denetim kayıtları</Link>
+                                </div>
+                                {data.auditLogs.length === 0 ? <p className="text-xs text-gray-500">Kayıt yok.</p> : (
+                                    <ul className="space-y-1.5 text-xs">
+                                        {data.auditLogs.map((l) => (
+                                            <li key={l.id} className="flex justify-between gap-3 text-gray-300">
+                                                <span className="truncate">{l.actorName || l.actorEmail || 'Sistem'} · {l.action} · {l.entityType}</span>
+                                                <span className="shrink-0 text-gray-500">{formatDateTime(l.createdAt)}</span>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                )}
+                            </section>
+                        )}
+                        {data.news && (
+                            <section className="rounded-2xl border border-white/10 bg-[#0d0e1b]/80 p-5">
+                                <div className="mb-3 flex items-center justify-between">
+                                    <h3 className="flex items-center gap-2 font-orbitron text-sm font-bold text-white"><Newspaper className="h-4 w-4 text-sky-400" /> Haberler & Yayınlar</h3>
+                                    <Link href="/admin/haberler" className="text-xs text-primary hover:underline">Haberler</Link>
+                                </div>
+                                {data.news.recent.length === 0 ? <p className="text-xs text-gray-500">Haber yok.</p> : (
+                                    <ul className="space-y-1.5 text-xs">
+                                        {data.news.recent.map((n) => (
+                                            <li key={n.id} className="flex justify-between gap-3 text-gray-300">
+                                                <span className="truncate">{n.title}</span>
+                                                <span className="shrink-0 text-gray-500">{n.status === 'PUBLISHED' ? 'Yayında' : n.status === 'DRAFT' ? 'Taslak' : n.status}</span>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                )}
+                                {data.forms && <p className="mt-3 flex items-center gap-1.5 text-[11px] text-gray-500"><Inbox className="h-3.5 w-3.5" /> Son 7 günde {data.forms.submissionsLastWeek} form gönderimi</p>}
+                            </section>
+                        )}
                     </div>
-
-                    <div className="mt-5 pt-4 border-t border-white/5 flex gap-2">
-                        <Link
-                            href="/admin/haberler?action=create"
-                            className="w-full py-2.5 rounded-xl bg-primary/10 hover:bg-primary/20 border border-primary/20 text-xs font-semibold text-center block text-primary transition-colors"
-                        >
-                            + Yeni Haber Oluştur
-                        </Link>
-                    </div>
-                </div>
-            </div>
+                </>
+            )}
         </div>
     );
 }

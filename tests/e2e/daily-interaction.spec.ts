@@ -3,6 +3,8 @@ import { loginAsAdmin } from './helpers/auth';
 import { prisma } from '../../lib/prisma';
 
 test.describe('Daily Interactions & Visitor Logs E2E', () => {
+    let createdInteractionId: string | null = null;
+
     test.beforeEach(async ({ context }) => {
         await loginAsAdmin(context);
     });
@@ -37,6 +39,7 @@ test.describe('Daily Interactions & Visitor Logs E2E', () => {
             where: { contactName: testPerson },
         });
         expect(dbRecord).not.toBeNull();
+        createdInteractionId = dbRecord?.id ?? null;
         expect(dbRecord?.subject).toBe(testSubject);
 
         if (dbRecord) {
@@ -62,9 +65,16 @@ test.describe('Daily Interactions & Visitor Logs E2E', () => {
             expect(finalInteraction?.createdActivityId).not.toBeNull();
         }
 
-        // Cleanup
-        if (dbRecord) {
-            await prisma.dailyInteraction.delete({ where: { id: dbRecord.id } });
-        }
+    });
+
+    // Cleanup by exact IDs: the interaction and the task / activity converted from it
+    test.afterEach(async () => {
+        if (!createdInteractionId) return;
+        const row = await prisma.dailyInteraction.findUnique({ where: { id: createdInteractionId }, select: { id: true, createdTaskId: true, createdActivityId: true } });
+        createdInteractionId = null;
+        if (!row) return;
+        await prisma.dailyInteraction.delete({ where: { id: row.id } });
+        if (row.createdTaskId) await prisma.task.deleteMany({ where: { id: row.createdTaskId } });
+        if (row.createdActivityId) await prisma.corporateActivity.deleteMany({ where: { id: row.createdActivityId } });
     });
 });

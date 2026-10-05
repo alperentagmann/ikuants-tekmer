@@ -110,7 +110,7 @@ export default function PartnersPage() {
     const handleDelete = async () => {
         if (!deleteId) return;
         try {
-            const res = await fetch(`/api/admin/partners?id=${deleteId}`, { method: 'DELETE' });
+            const res = await fetch(`/api/admin/partners/${deleteId}`, { method: 'DELETE' });
             const data = await res.json();
             if (data.success) {
                 fetchPartners();

@@ -22,6 +22,50 @@ interface CustomField {
     isActive: boolean;
 }
 
+/** API / DB row (CustomFieldDefinition) */
+type FieldDefinition = {
+    id: string;
+    moduleKey: string;
+    fieldKey: string;
+    label: string;
+    fieldType: string;
+    description?: string | null;
+    placeholder?: string | null;
+    isRequired: boolean;
+    isPublic: boolean;
+    defaultValue?: string | null;
+    optionsJson?: string | null;
+    sortOrder: number;
+    isActive: boolean;
+};
+
+function parseOptions(json?: string | null): string[] {
+    try {
+        const v = json ? JSON.parse(json) : [];
+        return Array.isArray(v) ? v.map(String) : [];
+    } catch {
+        return [];
+    }
+}
+
+const toField = (d: FieldDefinition): CustomField => ({
+    id: d.id,
+    module: d.moduleKey,
+    key: d.fieldKey,
+    label: d.label,
+    type: d.fieldType,
+    description: d.description,
+    placeholder: d.placeholder,
+    isRequired: d.isRequired,
+    isPublic: d.isPublic,
+    defaultValue: d.defaultValue,
+    options: parseOptions(d.optionsJson),
+    viewRoles: [],
+    editRoles: [],
+    order: d.sortOrder,
+    isActive: d.isActive,
+});
+
 const MODULES = [
     { key: 'ENTREPRENEUR', label: 'Girişimciler' },
     { key: 'MENTOR', label: 'Mentörler' },
@@ -39,7 +83,7 @@ const FIELD_TYPES = [
     { key: 'BOOLEAN', label: 'Evet / Hayır (Boolean)' },
     { key: 'DATE', label: 'Tarih (Date)' },
     { key: 'SELECT', label: 'Tekli Seçim (Select)' },
-    { key: 'MULTISELECT', label: 'Çoklu Seçim (Multi-Select)' },
+    { key: 'MULTI_SELECT', label: 'Çoklu Seçim (Multi-Select)' },
     { key: 'URL', label: 'Web Adresi (URL)' },
     { key: 'EMAIL', label: 'E-Posta (Email)' },
     { key: 'PHONE', label: 'Telefon (Phone)' },
@@ -71,7 +115,8 @@ export default function CustomFieldsPage() {
         try {
             const res = await fetch(`/api/admin/custom-fields?module=${selectedModule}`);
             const data = await res.json();
-            if (data.fields) setFields(data.fields);
+            // The API returns the list as `definitions`
+            if (Array.isArray(data.definitions)) setFields((data.definitions as FieldDefinition[]).map(toField));
         } catch {
             setMessage({ type: 'error', text: 'Özel alanlar yüklenemedi' });
         } finally {
@@ -124,24 +169,21 @@ export default function CustomFieldsPage() {
                 .map((s) => s.trim())
                 .filter(Boolean);
 
+            // Field names the API / CustomFieldService expect
             const payload = {
-                module: selectedModule,
-                key: formKey,
+                ...(editingField ? { id: editingField.id } : { moduleKey: selectedModule, fieldKey: formKey }),
                 label: formLabel,
-                type: formType,
-                description: formDesc,
-                placeholder: formPlaceholder,
+                fieldType: formType,
+                description: formDesc || undefined,
+                placeholder: formPlaceholder || undefined,
                 isRequired: formIsRequired,
                 isPublic: formIsPublic,
-                defaultValue: formDefaultValue,
-                options: parsedOptions,
-                order: Number(formOrder),
-                isActive: true,
+                defaultValue: formDefaultValue || undefined,
+                optionsJson: parsedOptions.length ? JSON.stringify(parsedOptions) : undefined,
+                sortOrder: Number(formOrder) || 0,
             };
 
-            const url = editingField
-                ? `/api/admin/custom-fields?id=${editingField.id}`
-                : '/api/admin/custom-fields';
+            const url = '/api/admin/custom-fields';
             const method = editingField ? 'PUT' : 'POST';
 
             const res = await fetch(url, {
@@ -156,7 +198,7 @@ export default function CustomFieldsPage() {
                 setIsModalOpen(false);
                 fetchFields();
             } else {
-                setMessage({ type: 'error', text: data.error || 'İşlem başarısız' });
+                setMessage({ type: 'error', text: data.message || data.error || 'İşlem başarısız' });
             }
         } catch {
             setMessage({ type: 'error', text: 'Sunucu hatası oluştu' });
@@ -167,9 +209,12 @@ export default function CustomFieldsPage() {
         if (!confirm('Bu özel alanı silmek istediğinizden emin misiniz?')) return;
         try {
             const res = await fetch(`/api/admin/custom-fields?id=${id}`, { method: 'DELETE' });
+            const data = await res.json().catch(() => ({}));
             if (res.ok) {
                 setMessage({ type: 'success', text: 'Özel alan silindi' });
                 fetchFields();
+            } else {
+                setMessage({ type: 'error', text: data.message || 'Silme işlemi başarısız' });
             }
         } catch {
             setMessage({ type: 'error', text: 'Silme işlemi başarısız' });

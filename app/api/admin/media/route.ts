@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { uploadFile, deleteMedia } from '@/lib/storage';
+import { uploadFile, deleteMedia, UploadValidationError, StorageNotConfiguredError, type UploadCategory } from '@/lib/storage';
 import { prisma } from '@/lib/prisma';
 import { getCurrentAdminUser } from '@/lib/auth';
 import { hasPermission } from '@/lib/rbac';
@@ -52,12 +52,11 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ success: false, message: 'Dosya seçilmedi' }, { status: 400 });
         }
 
-        // Security check: prohibit executable extensions
-        const disallowed = ['.exe', '.bat', '.cmd', '.sh', '.msi', '.php', '.py'];
-        const name = file.name.toLowerCase();
-        if (disallowed.some(ext => name.endsWith(ext))) {
-            return NextResponse.json({ success: false, message: 'Güvenlik nedeniyle bu dosya türü yüklenemez.' }, { status: 400 });
-        }
+        const isPrivate = formData.get('isPrivate') === 'true';
+        const requestedCategory = (formData.get('category') as string) || 'any';
+        const category: UploadCategory = ['image', 'document', 'model3d', 'panorama', 'video'].includes(requestedCategory)
+            ? (requestedCategory as UploadCategory)
+            : 'any';
 
         const bytes = await file.arrayBuffer();
         const buffer = Buffer.from(bytes);
@@ -68,6 +67,8 @@ export async function POST(request: NextRequest) {
             mimeType: file.type || 'application/octet-stream',
             folder,
             altText,
+            isPrivate,
+            category,
             uploadedById: user.id,
         });
 
@@ -88,7 +89,14 @@ export async function POST(request: NextRequest) {
 
         return NextResponse.json({ success: true, ...result });
     } catch (e: any) {
-        return NextResponse.json({ success: false, message: e.message || 'Yükleme başarısız' }, { status: 500 });
+        if (e instanceof UploadValidationError) {
+            return NextResponse.json({ success: false, message: e.message }, { status: 400 });
+        }
+        if (e instanceof StorageNotConfiguredError) {
+            return NextResponse.json({ success: false, message: e.message, status: 'PENDING_EXTERNAL_CONFIGURATION' }, { status: 503 });
+        }
+        console.error('Media upload failed:', e);
+        return NextResponse.json({ success: false, message: 'Yükleme başarısız' }, { status: 500 });
     }
 }
 
@@ -117,6 +125,7 @@ export async function DELETE(request: NextRequest) {
 
         return NextResponse.json({ success: true, message: 'Medya silindi.' });
     } catch (e: any) {
-        return NextResponse.json({ success: false, message: e.message || 'Silinemedi' }, { status: 500 });
+        console.error('Media delete failed:', e);
+        return NextResponse.json({ success: false, message: 'Silinemedi' }, { status: 500 });
     }
 }

@@ -1,5 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { logAuditEvent } from '@/lib/audit';
+import { AutomationService } from '@/lib/services/automation-service';
+import { RECURRENCES } from '@/lib/services/task-followups';
 
 export interface CreateTaskInput {
     title: string;
@@ -22,6 +24,16 @@ export interface CreateTaskInput {
     eventId?: string;
     trainingId?: string;
     activityId?: string;
+    personId?: string;
+    organizationId?: string;
+    projectId?: string;
+    reservationId?: string;
+    rentContractId?: string;
+    // Work OS
+    teamId?: string;
+    parentTaskId?: string;
+    recurrence?: string | null;
+    watcherIds?: string[];
 }
 
 export const TaskService = {
@@ -31,8 +43,13 @@ export const TaskService = {
         status?: string;
         priority?: string;
         search?: string;
+        teamId?: string;
+        includeSubtasks?: boolean;
+        visibility?: Record<string, unknown>;
+        relation?: { field: 'applicationId' | 'entrepreneurId' | 'programId' | 'personId' | 'organizationId' | 'projectId' | 'reservationId' | 'rentContractId'; id: string };
     }) {
-        const where: any = { isArchived: false };
+        const where: Record<string, any> = { isArchived: false, ...(params.visibility || {}) };
+        if (params.relation) where[params.relation.field] = params.relation.id;
 
         if (params.status) {
             where.status = params.status;
@@ -42,11 +59,12 @@ export const TaskService = {
             where.priority = params.priority;
         }
 
+        if (params.teamId) where.teamId = params.teamId === 'none' ? null : params.teamId;
+        // Sub-tasks are shown inside their parent unless asked for
+        if (!params.includeSubtasks) where.parentTaskId = null;
+
         if (params.search) {
-            where.OR = [
-                { title: { contains: params.search } },
-                { description: { contains: params.search } },
-            ];
+            where.AND = [{ OR: [{ title: { contains: params.search, mode: 'insensitive' } }, { description: { contains: params.search, mode: 'insensitive' } }] }];
         }
 
         const now = new Date();
@@ -61,7 +79,7 @@ export const TaskService = {
             where.dueDate = { gte: startOfToday, lte: endOfToday };
         } else if (params.scope === 'overdue') {
             where.dueDate = { lt: startOfToday };
-            where.status = { not: 'DONE' };
+            where.status = { notIn: ['DONE', 'CANCELLED'] };
         } else if (params.scope === 'completed') {
             where.status = 'DONE';
         }
@@ -76,11 +94,20 @@ export const TaskService = {
                     },
                 },
                 checklistItems: { orderBy: { sortOrder: 'asc' } },
-                _count: { select: { comments: true, attachments: true } },
+                _count: { select: { comments: true, attachments: true, subTasks: true } },
+                team: { select: { id: true, name: true, color: true } },
+                subTasks: { where: { isArchived: false }, select: { id: true, status: true } },
                 entrepreneur: { select: { id: true, name: true, slug: true } },
                 program: { select: { id: true, name: true, slug: true } },
                 event: { select: { id: true, title: true, slug: true } },
                 training: { select: { id: true, title: true, slug: true } },
+                application: { select: { id: true, applicationNumber: true, applicantName: true } },
+                person: { select: { id: true, fullName: true } },
+                organization: { select: { id: true, name: true } },
+                project: { select: { id: true, title: true } },
+                reservation: { select: { id: true, title: true, startTime: true } },
+                rentContract: { select: { id: true, contractNo: true } },
+                mentor: { select: { id: true, name: true, surname: true } },
             },
             orderBy: [{ priority: 'desc' }, { dueDate: 'asc' }, { createdAt: 'desc' }],
         });
@@ -105,6 +132,10 @@ export const TaskService = {
                 },
                 attachments: true,
                 activitiesLog: { orderBy: { createdAt: 'desc' } },
+                team: { select: { id: true, name: true, color: true } },
+                parentTask: { select: { id: true, title: true } },
+                subTasks: { where: { isArchived: false }, orderBy: { createdAt: 'asc' }, include: { assignees: { include: { user: { select: { id: true, name: true, avatarUrl: true } } } } } },
+                watchers: { include: { user: { select: { id: true, name: true, avatarUrl: true } } } },
                 entrepreneur: true,
                 mentor: true,
                 program: true,
@@ -136,6 +167,15 @@ export const TaskService = {
                 eventId: input.eventId,
                 trainingId: input.trainingId,
                 activityId: input.activityId,
+                personId: input.personId,
+                organizationId: input.organizationId,
+                projectId: input.projectId,
+                reservationId: input.reservationId,
+                rentContractId: input.rentContractId,
+                teamId: input.teamId || null,
+                parentTaskId: input.parentTaskId || null,
+                recurrence: input.recurrence && input.recurrence in RECURRENCES && input.dueDate ? input.recurrence : null,
+                watchers: input.watcherIds?.length ? { create: Array.from(new Set(input.watcherIds)).map((userId) => ({ userId })) } : undefined,
                 checklistItems: input.checklistItems
                     ? {
                           create: input.checklistItems.map((item, idx) => ({
@@ -192,42 +232,8 @@ export const TaskService = {
             diff: `Görev oluşturuldu: ${task.title}`,
         });
 
+        await AutomationService.run('TASK_CREATED', task.id, { actorId: input.createdById });
         return task;
-    },
-
-    async updateStatus(taskId: string, status: string, actor: { id: string; name?: string }) {
-        const currentTask = await prisma.task.findUnique({ where: { id: taskId } });
-        if (!currentTask) throw new Error('Görev bulunamadı');
-
-        const isCompleted = status === 'DONE';
-
-        const updated = await prisma.task.update({
-            where: { id: taskId },
-            data: {
-                status,
-                completedAt: isCompleted ? new Date() : null,
-                activitiesLog: {
-                    create: {
-                        actorId: actor.id,
-                        actorName: actor.name || 'Kullanıcı',
-                        action: 'STATUS_CHANGE',
-                        description: `Durum "${currentTask.status}" ➔ "${status}" olarak değiştirildi.`,
-                    },
-                },
-            },
-        });
-
-        await logAuditEvent({
-            actorId: actor.id,
-            actorName: actor.name,
-            action: 'UPDATE',
-            entityType: 'Task',
-            entityId: taskId,
-            fieldName: 'status',
-            diff: `Durum güncellendi: ${status}`,
-        });
-
-        return updated;
     },
 
     async toggleChecklistItem(itemId: string, isCompleted: boolean) {

@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { logAuditEvent } from '@/lib/audit';
 import { createRevision } from '@/lib/revision';
+import { resolveProgramTheme, sanitizeProgramTheme } from '@/lib/program-theme';
 
 export interface ContentBlock {
     id: string;
@@ -29,6 +30,8 @@ export interface ProgramData {
     mobileHeroUrl?: string;
     gallery?: string[];
     colorCode?: string;
+    posterUrl?: string;
+    themeJson?: unknown;
     duration?: string;
     quota?: string;
     mentorHours?: string;
@@ -89,10 +92,26 @@ function parseJsonField(val: any, fallback: any = []) {
     }
 }
 
+type CampaignLink = { status: string; form: { publicPath: string | null; slug: string } | null };
+
+/** Application link: the program's open campaign form wins over a manually typed CTA link. */
+function resolveApply(item: any): { applyUrl: string | null; applyOpen: boolean } {
+    const campaigns: CampaignLink[] = Array.isArray(item.campaigns) ? item.campaigns : [];
+    const open = campaigns.find((c) => c.status === 'OPEN' && c.form);
+    if (open?.form) return { applyUrl: open.form.publicPath || `/formlar/${open.form.slug}`, applyOpen: true };
+    // "/basvuru" is the TEKMER space application, never a program application
+    const manual = item.ctaLink && item.ctaLink !== '/basvuru' ? item.ctaLink : null;
+    return { applyUrl: manual, applyOpen: Boolean(manual) && item.applyStatus === 'OPEN' };
+}
+
 function formatProgramItem(item: any) {
     if (!item) return null;
+    const { campaigns: _campaigns, ...rest } = item;
     return {
-        ...item,
+        ...rest,
+        theme: resolveProgramTheme(item),
+        ...resolveApply(item),
+        detailUrl: `/programlar/${item.slug}`,
         gallery: parseJsonField(item.gallery, []),
         features: parseJsonField(item.features, []),
         supports: parseJsonField(item.supports, []),
@@ -128,11 +147,14 @@ function safeStringify(val: any): string | null {
     }
 }
 
+const CAMPAIGN_INCLUDE = { campaigns: { where: { status: { not: 'ARCHIVED' } }, select: { status: true, form: { select: { publicPath: true, slug: true } } } } } as const;
+
 export const ProgramService = {
     async getPublicPrograms() {
         try {
             const list = await prisma.program.findMany({
                 where: { isArchived: false, isPublished: true },
+                include: CAMPAIGN_INCLUDE,
                 orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
             });
 
@@ -156,6 +178,7 @@ export const ProgramService = {
                     ],
                     isArchived: false,
                 },
+                include: CAMPAIGN_INCLUDE,
             });
 
             if (!item) {
@@ -165,6 +188,7 @@ export const ProgramService = {
                         name: { contains: slug.replace(/-/g, ' '), mode: 'insensitive' },
                         isArchived: false,
                     },
+                    include: CAMPAIGN_INCLUDE,
                 });
             }
 
@@ -177,7 +201,7 @@ export const ProgramService = {
     async getAdminPrograms() {
         const list = await prisma.program.findMany({
             where: { isArchived: false },
-            include: { _count: { select: { applications: true } } },
+            include: { _count: { select: { applications: true } }, ...CAMPAIGN_INCLUDE },
             orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
         });
 
@@ -185,7 +209,7 @@ export const ProgramService = {
     },
 
     async getProgramById(id: string) {
-        const item = await prisma.program.findUnique({ where: { id } });
+        const item = await prisma.program.findUnique({ where: { id }, include: CAMPAIGN_INCLUDE });
         return formatProgramItem(item);
     },
 
@@ -206,6 +230,8 @@ export const ProgramService = {
                 mobileHeroUrl: data.mobileHeroUrl,
                 gallery: safeStringify(data.gallery),
                 colorCode: data.colorCode || 'from-purple-500 to-pink-500',
+                posterUrl: data.posterUrl || null,
+                themeJson: sanitizeProgramTheme(data.themeJson),
                 duration: data.duration,
                 quota: data.quota,
                 mentorHours: data.mentorHours,
@@ -289,11 +315,17 @@ export const ProgramService = {
             tasks: _tsk,
             activities: _act,
             caseStudies: _cs,
+            campaigns: _cmp,
+            theme: _theme,
+            applyUrl: _au,
+            applyOpen: _ao,
+            detailUrl: _du,
             ...cleanData
         }: any = data;
 
         const updatePayload: any = { ...cleanData };
         if (cleanData.gallery !== undefined) updatePayload.gallery = safeStringify(cleanData.gallery);
+        if (cleanData.themeJson !== undefined) updatePayload.themeJson = sanitizeProgramTheme(typeof cleanData.themeJson === 'string' ? parseJsonField(cleanData.themeJson, null) : cleanData.themeJson);
         if (cleanData.features !== undefined) updatePayload.features = safeStringify(cleanData.features);
         if (cleanData.supports !== undefined) updatePayload.supports = safeStringify(cleanData.supports);
         if (cleanData.modules !== undefined) updatePayload.modules = safeStringify(cleanData.modules);

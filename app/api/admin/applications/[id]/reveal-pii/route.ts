@@ -3,6 +3,7 @@ import { ApplicationService } from '@/lib/services/application-service';
 import { getCurrentAdminUser, logPiiAccess } from '@/lib/auth';
 import { hasPermission } from '@/lib/rbac';
 import { logAuditEvent } from '@/lib/audit';
+import { revealStoredTcNumber } from '@/lib/security/identity-security';
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     try {
@@ -52,7 +53,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
         return NextResponse.json({
             success: true,
-            tcNumber: app.tcNumberEncrypted || app.tcNumberMasked,
+            tcNumber: revealStoredTcNumber(app.tcNumberEncrypted) || app.tcNumberMasked,
             revealedAt: new Date().toISOString(),
         });
     } catch (e: any) {

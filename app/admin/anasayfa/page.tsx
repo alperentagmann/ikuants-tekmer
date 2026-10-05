@@ -1,5 +1,7 @@
 "use client";
 import React, { useState, useEffect } from 'react';
+import { HomepageDesignStudio } from '@/components/admin/homepage/HomepageDesignStudio';
+import { isPageKey, type PageKey } from '@/lib/homepage-layout';
 import {
     Building2, Plus, Eye, EyeOff, MoveUp, MoveDown, Trash2, Edit3,
     CheckCircle2, Image as ImageIcon, Video, Link as LinkIcon, Sparkles, Sliders,
@@ -66,6 +68,7 @@ export default function HomepageStudioPage() {
 
     // Section edit modal state
     const [isSectionModalOpen, setIsSectionModalOpen] = useState(false);
+    const [designPage, setDesignPage] = useState<PageKey>('home');
     const [editingSectionKey, setEditingSectionKey] = useState<string | null>(null);
     const [secTitle, setSecTitle] = useState('');
     const [secSubtitle, setSecSubtitle] = useState('');
@@ -92,6 +95,14 @@ export default function HomepageStudioPage() {
 
     useEffect(() => {
         fetchData();
+        // Deep link from the homepage preview banner: /admin/anasayfa?tab=design
+        const t = setTimeout(() => {
+            const q = new URLSearchParams(window.location.search);
+            const p = q.get('page');
+            if (isPageKey(p)) setDesignPage(p);
+            if (q.get('tab') === 'design') setActiveTab('sections');
+        }, 0);
+        return () => clearTimeout(t);
     }, []);
 
     const openCreateSlide = () => {
@@ -307,7 +318,7 @@ export default function HomepageStudioPage() {
                     }`}
                 >
                     <Sliders className="w-4 h-4" />
-                    Bölüm Sıralama & Görünürlük ({sections.length})
+                    Tasarım Stüdyosu (bölümler & tema)
                 </button>
                 <button
                     onClick={() => setActiveTab('preview')}
@@ -400,84 +411,7 @@ export default function HomepageStudioPage() {
                     )}
                 </div>
             ) : activeTab === 'sections' ? (
-                <div className="bg-[#090912] border border-white/10 rounded-2xl p-6 space-y-4">
-                    <div className="flex items-center justify-between pb-3 border-b border-white/10">
-                        <div>
-                            <h3 className="font-orbitron font-bold text-white text-sm">Ana Sayfa Bölüm Hiyerarşisi</h3>
-                            <p className="text-[11px] text-gray-400">Bölümleri yukarı/aşağı butonları ile sıralayabilir, görünürlüklerini açıp kapatabilirsiniz.</p>
-                        </div>
-                        <button
-                            onClick={fetchData}
-                            className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white text-xs flex items-center gap-1.5"
-                        >
-                            <RefreshCw className="w-3.5 h-3.5" />
-                            Yenile
-                        </button>
-                    </div>
-
-                    <div className="divide-y divide-white/5">
-                        {sections.map((sec, idx) => {
-                            return (
-                                <div key={sec.sectionKey} className="py-3.5 flex items-center justify-between text-xs gap-4">
-                                    <div className="flex items-center gap-3 flex-1">
-                                        <div className="w-7 h-7 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center font-mono text-[11px] text-primary font-bold">
-                                            {idx + 1}
-                                        </div>
-                                        <div>
-                                            <div className="font-semibold text-white flex items-center gap-2">
-                                                {sec.title}
-                                                <span className="text-[10px] font-mono text-gray-500 px-1.5 py-0.5 rounded bg-white/5">{sec.sectionKey}</span>
-                                            </div>
-                                            {sec.subtitle && <div className="text-[11px] text-gray-400">{sec.subtitle}</div>}
-                                        </div>
-                                    </div>
-
-                                    <div className="flex items-center gap-2">
-                                        <div className="flex items-center bg-white/5 rounded-xl border border-white/10 p-0.5">
-                                            <button
-                                                disabled={idx === 0}
-                                                onClick={() => handleMoveSection(idx, 'up')}
-                                                className="p-1.5 hover:bg-white/10 rounded-lg text-gray-400 hover:text-white disabled:opacity-25 disabled:hover:bg-transparent"
-                                                title="Yukarı Taşı"
-                                            >
-                                                <MoveUp className="w-3.5 h-3.5" />
-                                            </button>
-                                            <button
-                                                disabled={idx === sections.length - 1}
-                                                onClick={() => handleMoveSection(idx, 'down')}
-                                                className="p-1.5 hover:bg-white/10 rounded-lg text-gray-400 hover:text-white disabled:opacity-25 disabled:hover:bg-transparent"
-                                                title="Aşağı Taşı"
-                                            >
-                                                <MoveDown className="w-3.5 h-3.5" />
-                                            </button>
-                                        </div>
-
-                                        <button
-                                            onClick={() => openEditSection(sec)}
-                                            className="px-2.5 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white font-semibold flex items-center gap-1"
-                                            title="Bölüm Başlığını Düzenle"
-                                        >
-                                            <Edit3 className="w-3.5 h-3.5" />
-                                            Düzenle
-                                        </button>
-
-                                        <button
-                                            onClick={() => handleToggleSection(sec.sectionKey, sec.isVisible)}
-                                            className={`px-3 py-1.5 rounded-xl font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
-                                                sec.isVisible
-                                                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                                                    : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
-                                            }`}
-                                        >
-                                            {sec.isVisible ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
-                                            <span>{sec.isVisible ? 'Yayında' : 'Gizli'}</span>
-                                        </button>
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-                </div>
+                <HomepageDesignStudio initialPage={designPage} />
             ) : (
                 /* Live Preview Studio */
                 <div className="bg-[#090912] border border-white/10 rounded-2xl p-6 space-y-4">
@@ -516,7 +450,8 @@ export default function HomepageStudioPage() {
 
                     <div className="flex justify-center bg-black/60 p-4 rounded-xl overflow-hidden min-h-[600px]">
                         <iframe
-                            src="/"
+                            title="Ana sayfa canlı önizleme"
+                            src="/?embed=1"
                             className={`border border-white/10 rounded-xl transition-all duration-300 bg-white dark:bg-[#050510] ${
                                 previewDevice === 'desktop'
                                     ? 'w-full h-[700px]'

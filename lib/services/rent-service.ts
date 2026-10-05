@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { logAuditEvent } from '@/lib/audit';
+import { assignmentLabel } from '@/lib/program-track';
 
 export class RentService {
     static async getRentContracts(filters?: { entrepreneurId?: string; status?: string }) {
@@ -619,7 +620,7 @@ export class RentService {
                 logoUrl: e.logoUrl,
                 companyName,
                 companyStatus: e.companyStatus || (companyName ? 'INCORPORATED' : 'NOT_INCORPORATED'),
-                program: e.programAssignments?.[0]?.program?.name || e.program || 'Program Atanmamış',
+                program: (e.programAssignments?.[0] ? assignmentLabel(e.programAssignments[0]) : null) || e.program || 'Program Atanmamış',
                 contractStatus,
                 hasContract: !!activeContract,
                 contract: activeContract ? {

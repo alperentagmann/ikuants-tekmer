@@ -2,6 +2,7 @@ import { test, describe } from 'node:test';
 import assert from 'node:assert';
 import { EmailOutboxService } from '../lib/services/email-outbox-service';
 import { prisma } from '../lib/prisma';
+import nodemailer from 'nodemailer';
 
 describe('2. Email Notification Engine & Outbox', () => {
     test('Template rendering correctly replaces variables and escapes unsafe tags', () => {
@@ -77,8 +78,19 @@ describe('2. Email Notification Engine & Outbox', () => {
             templateKey: 'SYSTEM_TEST',
         });
 
-        // Send immediately or process queue
+        // Without a provider the message must stay in the outbox, never be marked SENT
+        EmailOutboxService.useTransport(null);
+        const previousHost = process.env.SMTP_HOST;
+        process.env.SMTP_HOST = 'smtp.example.com';
+        const queued = await EmailOutboxService.sendEmailImmediately(testEmail.id);
+        process.env.SMTP_HOST = previousHost;
+        assert.strictEqual(queued.status, 'PENDING', 'Without provider the email must stay PENDING');
+        assert.strictEqual(queued.sentAt, null, 'Without provider sentAt must stay empty');
+
+        // With a real transport (jsonTransport records without sending) the message is delivered
+        EmailOutboxService.useTransport(nodemailer.createTransport({ jsonTransport: true }));
         const updated = await EmailOutboxService.sendEmailImmediately(testEmail.id);
+        EmailOutboxService.useTransport(null);
         assert.strictEqual(updated.status, 'SENT', 'Email status must transition to SENT');
         assert.ok(updated.sentAt, 'sentAt timestamp must be recorded');
 

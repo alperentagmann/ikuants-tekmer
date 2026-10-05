@@ -2,13 +2,14 @@ import { cookies } from 'next/headers';
 import bcrypt from 'bcryptjs';
 import { SignJWT, jwtVerify } from 'jose';
 import { prisma } from '@/lib/prisma';
+import { getAuthSecret } from '@/lib/env';
 
 // Re-export maskTcNumber from utils so existing imports continue to work
 export { maskTcNumber } from '@/lib/utils';
 
-const JWT_SECRET = new TextEncoder().encode(
-    process.env.JWT_SECRET || 'super-secure-ikuants-tekmer-jwt-secret-key-change-in-production-2026'
-);
+function getJwtKey(): Uint8Array {
+    return new TextEncoder().encode(getAuthSecret());
+}
 
 const SESSION_COOKIE_NAME = process.env.ADMIN_SESSION_COOKIE_NAME || '__session';
 const SESSION_EXPIRY_DAYS = parseInt(process.env.SESSION_EXPIRY_DAYS || '7', 10);
@@ -31,7 +32,7 @@ export async function createSession(userId: string, ipAddress?: string, userAgen
         .setProtectedHeader({ alg: 'HS256' })
         .setIssuedAt()
         .setExpirationTime(`${SESSION_EXPIRY_DAYS}d`)
-        .sign(JWT_SECRET);
+        .sign(getJwtKey());
 
     // Save session in database for server-side revocation capability
     const session = await prisma.session.create({
@@ -59,7 +60,7 @@ export async function createSession(userId: string, ipAddress?: string, userAgen
 
 export async function validateSession(sessionToken: string) {
     try {
-        const { payload } = await jwtVerify(sessionToken, JWT_SECRET);
+        const { payload } = await jwtVerify(sessionToken, getJwtKey());
         const userId = payload.userId as string;
 
         if (!userId) return null;

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { OrganizationService } from '@/lib/services/organization-service';
+import { PersonService } from '@/lib/services/person-service';
 import { getAuthUser } from '@/lib/auth';
 
 export async function POST(
@@ -15,20 +16,47 @@ export async function POST(
         const { id: organizationId } = await context.params;
         const body = await req.json();
 
-        if (!body.personId) {
-            return NextResponse.json({ success: false, message: 'Personel (Kişi) seçimi zorunludur.' }, { status: 400 });
+        let targetPersonId = body.personId;
+
+        // If user is creating a brand new person in this step
+        if (!targetPersonId && body.newPerson) {
+            const { firstName, lastName, email, phone, title, tcNumber, privacy } = body.newPerson;
+            if (!firstName || !lastName) {
+                return NextResponse.json({ success: false, message: 'Personel ad ve soyadı zorunludur.' }, { status: 400 });
+            }
+
+            const createdPerson = await PersonService.createPerson({
+                firstName,
+                lastName,
+                email: email || null,
+                phone: phone || null,
+                title: title || body.position || null,
+                tcNumber: tcNumber || null,
+                privacy: privacy || null,
+                businessRoles: ['SIRKET_PERSONELI'],
+                status: 'ACTIVE',
+            }, {
+                id: user.id,
+                name: user.name,
+            });
+
+            targetPersonId = createdPerson.id;
+        }
+
+        if (!targetPersonId) {
+            return NextResponse.json({ success: false, message: 'Personel (Kişi) seçimi veya yeni kişi bilgileri zorunludur.' }, { status: 400 });
         }
 
         const membership = await OrganizationService.addPersonnel({
             organizationId,
-            personId: body.personId,
-            role: body.role,
+            personId: targetPersonId,
+            role: body.role || 'EMPLOYEE',
             department: body.department,
             position: body.position,
-            isPrimaryContact: body.isPrimaryContact,
-            isFinanceContact: body.isFinanceContact,
-            isLegalContact: body.isLegalContact,
-            isAuthorizedSignatory: body.isAuthorizedSignatory,
+            isPrimaryContact: Boolean(body.isPrimaryContact),
+            isFinanceContact: Boolean(body.isFinanceContact),
+            isLegalContact: Boolean(body.isLegalContact),
+            isAuthorizedSignatory: Boolean(body.isAuthorizedSignatory),
         }, {
             id: user.id,
             name: user.name,

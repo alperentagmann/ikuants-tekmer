@@ -1,289 +1,80 @@
 "use client";
 import React from "react";
 import { motion } from "framer-motion";
-import { Rocket, Lightbulb, Calendar, Users, MapPin, Trophy, CheckCircle, ArrowRight, Sparkles, Zap, Flame } from "lucide-react";
-import Link from "next/link";
+import { Sparkles, MapPin, Loader2 } from "lucide-react";
+import { ProgramCard, type PublicProgram } from "@/components/programs/ProgramCard";
 
-const programs = [
-    {
-        id: "antsfire",
-        title: "ANTSFire",
-        subtitle: "Kuluçka Programı",
-        tagline: "Kıvılcımı ateşe dönüştür, şirketini ölçekle!",
-        description: "ANTSPARK mezunu veya Ar-Ge odaklı şirketleşmiş girişimler için kişiselleştirilmiş 12 aylık ileri seviye kuluçka programı.",
-        icon: Flame,
-        color: "from-orange-500 to-red-600",
-        glowColor: "rgba(234, 88, 12, 0.4)",
-        stats: [
-            { label: "Süre", value: "12 Ay" },
-            { label: "Kontenjan", value: "10 Girişim" },
-            { label: "Mentorluk", value: "Uygulamalı" },
-        ],
-        features: [
-            "Kişiselleştirilmiş Eğitim Modülleri",
-            "KPI Bazlı Performans Takibi",
-            "Satış & Pilot Odaklı Mentorluk",
-            "Yatırım & Data Room Hazırlığı",
-            "Ofis & Altyapı Desteği",
-            "Hukuk & Finans Danışmanlığı"
-        ],
-        cta: "Programa Göz At",
-        link: "/antsfire"
-    },
-    {
-        id: "antspark",
-        title: "ANTSPARK",
-        subtitle: "Ön Kuluçka Programı",
-        tagline: "Fikrini büyüt, işine dönüştür, geleceğe imzanı at!",
-        description: "Yenilikçi iş fikirlerine sahip girişimcileri fikir aşamasından ticarileşme sürecine taşıyan kapsamlı bir gelişim yolculuğu.",
-        icon: Rocket,
-        color: "from-purple-500 to-pink-500",
-        glowColor: "rgba(168, 85, 247, 0.4)",
-        stats: [
-            { label: "Eğitim Süresi", value: "12 Hafta" },
-            { label: "Katılımcı", value: "20 Girişim" },
-            { label: "Mentorluk", value: "70+ Saat" },
-        ],
-        features: [
-            "Kapsamlı Eğitimler & Atölyeler",
-            "Birebir Mentorluk Desteği",
-            "Yatırımcı Buluşmaları",
-            "Co-Working & Prototipleme Alanı",
-            "TÜBİTAK & KOSGEB Hazırlık",
-            "DEMODAY Final Sunumu"
-        ],
-        cta: "Programa Göz At",
-        link: "/antspark"
-    },
-    {
-        id: "glowup",
-        title: "GLOW UP",
-        subtitle: "Ideathon",
-        tagline: "2 günde fikrini iş modeline dönüştür!",
-        description: "Yenilikçi fikirlerin ortaya çıkarılması, geliştirilmesi ve girişimcilik ekosistemine kazandırılması amacıyla gerçekleştirilen yoğun bir fikir geliştirme programı.",
-        icon: Lightbulb,
-        color: "from-cyan-500 to-blue-500",
-        glowColor: "rgba(6, 182, 212, 0.4)",
-        stats: [
-            { label: "Süre", value: "2 Gün" },
-            { label: "Katılım", value: "Ücretsiz" },
-            { label: "Format", value: "Takım" },
-        ],
-        features: [
-            "İş Modeli Geliştirme Eğitimi",
-            "Sunum Teknikleri Workshop",
-            "Uzman Mentorluk Desteği",
-            "Jüri Önünde Final Sunumu",
-            "Ödüller & Networking",
-            "ANTSPARK'a Direkt Başvuru Hakkı"
-        ],
-        cta: "Etkinliğe Başvur",
-        link: "/glowup-basvuru"
-    }
-];
+interface ProgramsProps {
+    /** Server-provided programs (homepage block); otherwise loaded from the public API. */
+    programs?: PublicProgram[];
+    title?: string;
+    subtitle?: string;
+    eyebrow?: string;
+    showLocation?: boolean;
+    limit?: number;
+}
 
-export const Programs = () => {
-    const [programList, setProgramList] = React.useState(programs);
+export const Programs = ({ programs: initial, title = "GELİŞİM PROGRAMLARI", subtitle = "Fikirden ürüne, girişimden başarıya uzanan yolculuğunda yanındayız. Sana en uygun programı seç ve ekosisteme katıl.", eyebrow = "// PROGRAMLARIMIZ", showLocation = true, limit }: ProgramsProps) => {
+    const [programList, setProgramList] = React.useState<PublicProgram[] | null>(initial || null);
+    const [error, setError] = React.useState(false);
 
     React.useEffect(() => {
-        const load = async () => {
-            try {
-                const res = await fetch('/api/public/programs');
-                const data = await res.json();
-                if (data.success && Array.isArray(data.programs) && data.programs.length > 0) {
-                    const iconMap: Record<string, any> = {
-                        antsfire: Flame,
-                        antspark: Rocket,
-                        glowup: Lightbulb,
-                    };
-                    const colorMap: Record<string, string> = {
-                        antsfire: "from-orange-500 to-red-600",
-                        antspark: "from-purple-500 to-pink-500",
-                        glowup: "from-cyan-500 to-blue-500",
-                    };
-                    const glowMap: Record<string, string> = {
-                        antsfire: "rgba(234, 88, 12, 0.4)",
-                        antspark: "rgba(168, 85, 247, 0.4)",
-                        glowup: "rgba(6, 182, 212, 0.4)",
-                    };
-
-                    setProgramList(data.programs.map((p: any) => {
-                        const slug = (p.slug || '').toLowerCase();
-                        return {
-                            id: p.id || slug,
-                            title: p.name,
-                            subtitle: p.programType || 'Program',
-                            tagline: p.tagline || '',
-                            description: p.shortDesc || p.detailedDesc || '',
-                            icon: iconMap[slug] || Rocket,
-                            color: colorMap[slug] || "from-purple-500 to-pink-500",
-                            glowColor: glowMap[slug] || "rgba(168, 85, 247, 0.4)",
-                            stats: [
-                                p.duration ? { label: "Süre", value: p.duration } : null,
-                                p.quota ? { label: "Kontenjan", value: p.quota } : null,
-                                p.mentorHours ? { label: "Mentorluk", value: p.mentorHours } : null,
-                            ].filter(Boolean),
-                            features: Array.isArray(p.features) && p.features.length > 0
-                                ? p.features.map((f: any) => typeof f === 'string' ? f : f.title || f.desc)
-                                : [
-                                    "Kişiselleştirilmiş Eğitim Modülleri",
-                                    "Birebir Mentorluk Desteği",
-                                    "Yatırımcı Buluşmaları",
-                                    "Co-Working & Prototipleme Alanı"
-                                ],
-                            cta: p.ctaText || "Programa Göz At",
-                            link: p.ctaLink || `/${slug || 'programlar'}`,
-                        };
-                    }));
-                }
-            } catch {
-                // Fallback to static programs
-            }
+        if (initial) return;
+        let cancelled = false;
+        fetch("/api/public/programs")
+            .then((r) => r.json())
+            .then((data) => {
+                if (!cancelled) setProgramList(Array.isArray(data.programs) ? data.programs : []);
+            })
+            .catch(() => {
+                if (!cancelled) setError(true);
+            });
+        return () => {
+            cancelled = true;
         };
-        load();
-    }, []);
+    }, [initial]);
+
+    const list = (programList || []).slice(0, limit || undefined);
 
     return (
-        <section id="programs" className="py-24 relative bg-gray-50 dark:bg-[#050510] transition-colors duration-300">
-            {/* Background Effects */}
-            <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-[100px]" />
-                <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-[100px]" />
+        <section id="programs" className="relative bg-gray-50 py-24 transition-colors duration-300 dark:bg-[#050510]">
+            <div className="pointer-events-none absolute inset-0 overflow-hidden">
+                <div className="absolute left-1/4 top-1/4 h-96 w-96 rounded-full bg-purple-500/10 blur-[100px]" />
+                <div className="absolute bottom-1/4 right-1/4 h-96 w-96 rounded-full bg-cyan-500/10 blur-[100px]" />
             </div>
 
-            <div className="container mx-auto px-6 max-w-7xl relative z-10">
-                {/* Header */}
-                <motion.div
-                    initial={{ opacity: 0, y: 30 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    className="text-center mb-16"
-                >
-                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-gray-200 dark:bg-white/5 dark:border-white/10 mb-6 shadow-sm dark:shadow-none">
-                        <Sparkles className="w-4 h-4 text-purple-600 dark:text-secondary" />
-                        <span className="text-sm text-gray-600 dark:text-gray-400 font-mono">{"// PROGRAMLARIMIZ"}</span>
+            <div className="container relative z-10 mx-auto max-w-7xl px-6">
+                <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="mb-16 text-center">
+                    <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-4 py-2 shadow-sm dark:border-white/10 dark:bg-white/5 dark:shadow-none">
+                        <Sparkles className="h-4 w-4 text-purple-600 dark:text-secondary" />
+                        <span className="font-mono text-sm text-gray-600 dark:text-gray-400">{eyebrow}</span>
                     </div>
-                    <h2 className="font-orbitron font-bold text-4xl md:text-5xl mb-4">
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-gray-900 via-purple-800 to-gray-900 dark:from-white dark:via-purple-200 dark:to-cyan-200">
-                            GELİŞİM PROGRAMLARI
-                        </span>
+                    <h2 className="mb-4 font-orbitron text-4xl font-bold md:text-5xl">
+                        <span className="bg-gradient-to-r from-gray-900 via-purple-800 to-gray-900 bg-clip-text text-transparent dark:from-white dark:via-purple-200 dark:to-cyan-200">{title}</span>
                     </h2>
-                    <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-                        Fikirden ürüne, girişimden başarıya uzanan yolculuğunda yanındayız.
-                        Sana en uygun programı seç ve ekosisteme katıl.
-                    </p>
+                    <p className="mx-auto max-w-2xl text-gray-600 dark:text-gray-400">{subtitle}</p>
                 </motion.div>
 
-                {/* Programs Grid */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    {programList.map((program: any, index: number) => (
-                        <motion.div
-                            key={program.id}
-                            initial={{ opacity: 0, y: 50 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: true }}
-                            transition={{ delay: index * 0.2 }}
-                            className="group relative"
-                        >
-                            {/* Card Glow Effect */}
-                            <div
-                                className="absolute -inset-1 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-xl"
-                                style={{ background: `linear-gradient(135deg, ${program.glowColor}, transparent)` }}
-                            />
-
-                            {/* Card */}
-                            <div className="relative bg-white dark:bg-[#0a0a0a]/80 backdrop-blur-sm border border-gray-200 dark:border-white/10 rounded-2xl overflow-hidden group-hover:border-purple-300 dark:group-hover:border-white/20 transition-all duration-300 shadow-xl dark:shadow-none">
-                                {/* Gradient Top Bar */}
-                                <div className={`h-1 w-full bg-gradient-to-r ${program.color}`} />
-
-                                <div className="p-8">
-                                    {/* Header */}
-                                    <div className="flex items-start justify-between mb-6">
-                                        <div>
-                                            <div className="flex items-center gap-3 mb-2">
-                                                <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${program.color} flex items-center justify-center shadow-lg`}>
-                                                    <program.icon className="w-6 h-6 text-white" />
-                                                </div>
-                                                <div>
-                                                    <h3 className="font-orbitron font-bold text-2xl text-gray-900 dark:text-white">
-                                                        {program.title}
-                                                    </h3>
-                                                    <p className="text-sm text-gray-500 dark:text-gray-400">{program.subtitle}</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Tagline */}
-                                    <p className={`text-lg font-semibold bg-gradient-to-r ${program.color} bg-clip-text text-transparent mb-3`}>
-                                        {program.tagline}
-                                    </p>
-
-                                    {/* Description */}
-                                    <p className="text-gray-600 dark:text-gray-400 text-sm mb-6 leading-relaxed">
-                                        {program.description}
-                                    </p>
-
-                                    {/* Stats */}
-                                    <div className="grid grid-cols-3 gap-4 mb-6">
-                                        {program.stats.map((stat: any) => (
-                                            <div key={stat.label} className="text-center p-3 rounded-lg bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5">
-                                                <div className="text-gray-900 dark:text-white font-bold font-orbitron">{stat.value}</div>
-                                                <div className="text-xs text-gray-500">{stat.label}</div>
-                                            </div>
-                                        ))}
-                                    </div>
-
-                                    {/* Features */}
-                                    <div className="grid grid-cols-2 gap-2 mb-8">
-                                        {program.features.map((feature: any) => (
-                                            <div key={feature} className="flex items-center gap-2 text-sm">
-                                                <CheckCircle className="w-4 h-4 text-green-500 dark:text-green-400 shrink-0" />
-                                                <span className="text-gray-600 dark:text-gray-300">{feature}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-
-                                    {/* CTA */}
-                                    {program.link.startsWith('/') ? (
-                                        <Link
-                                            href={program.link}
-                                            className={`w-full py-4 rounded-xl bg-gradient-to-r ${program.color} text-white font-orbitron font-bold tracking-wide flex items-center justify-center gap-2 group/btn hover:opacity-90 transition-opacity shadow-lg shadow-purple-500/20 dark:shadow-none`}
-                                        >
-                                            {program.cta}
-                                            <ArrowRight className="w-5 h-5 group-hover/btn:translate-x-1 transition-transform" />
-                                        </Link>
-                                    ) : (
-                                        <a
-                                            href={program.link}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className={`w-full py-4 rounded-xl bg-gradient-to-r ${program.color} text-white font-orbitron font-bold tracking-wide flex items-center justify-center gap-2 group/btn hover:opacity-90 transition-opacity shadow-lg shadow-purple-500/20 dark:shadow-none`}
-                                        >
-                                            {program.cta}
-                                            <ArrowRight className="w-5 h-5 group-hover/btn:translate-x-1 transition-transform" />
-                                        </a>
-                                    )}
-                                </div>
-                            </div>
-                        </motion.div>
-                    ))}
-                </div>
-
-                {/* Bottom Info */}
-                <motion.div
-                    initial={{ opacity: 0 }}
-                    whileInView={{ opacity: 1 }}
-                    viewport={{ once: true }}
-                    className="mt-12 text-center"
-                >
-                    <div className="inline-flex items-center gap-3 px-6 py-3 rounded-full bg-white border border-gray-200 dark:bg-white/5 dark:border-white/10 shadow-sm dark:shadow-none">
-                        <MapPin className="w-5 h-5 text-primary" />
-                        <span className="text-gray-600 dark:text-gray-400 text-sm">
-                            Tüm programlar <span className="text-gray-900 dark:text-white font-semibold">İstanbul Kültür Üniversitesi, İKÜANTS TEKMER</span>'de gerçekleştirilmektedir.
-                        </span>
+                {programList === null && !error ? (
+                    <div className="flex justify-center py-16 text-gray-500"><Loader2 className="h-6 w-6 animate-spin" /></div>
+                ) : error || list.length === 0 ? (
+                    <p className="py-16 text-center text-gray-500">{error ? "Programlar şu anda yüklenemedi. Lütfen daha sonra tekrar deneyin." : "Yayında program bulunmuyor."}</p>
+                ) : (
+                    <div className="grid grid-cols-1 gap-8 md:grid-cols-2 xl:grid-cols-3">
+                        {list.map((p, i) => <ProgramCard key={p.id} program={p} index={i} />)}
                     </div>
-                </motion.div>
+                )}
+
+                {showLocation && (
+                    <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} className="mt-12 text-center">
+                        <div className="inline-flex items-center gap-3 rounded-full border border-gray-200 bg-white px-6 py-3 shadow-sm dark:border-white/10 dark:bg-white/5 dark:shadow-none">
+                            <MapPin className="h-5 w-5 text-primary" />
+                            <span className="text-sm text-gray-600 dark:text-gray-400">
+                                Tüm programlar <span className="font-semibold text-gray-900 dark:text-white">İstanbul Kültür Üniversitesi, İKÜANTS TEKMER</span>&apos;de gerçekleştirilmektedir.
+                            </span>
+                        </div>
+                    </motion.div>
+                )}
             </div>
         </section>
     );

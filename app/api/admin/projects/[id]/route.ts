@@ -116,6 +116,32 @@ export async function DELETE(
             return NextResponse.json({ success: false, message: 'Proje bulunamadı' }, { status: 404 });
         }
 
+        // Financial history (funding, receipts, expenses) is never hard-deleted.
+        // Projects that carry financial records are cancelled instead.
+        const [fundingCount, expenseCount] = await Promise.all([
+            prisma.fundingSource.count({ where: { projectId: id } }),
+            prisma.projectExpense.count({ where: { projectId: id } }),
+        ]);
+
+        if (fundingCount > 0 || expenseCount > 0) {
+            await prisma.project.update({ where: { id }, data: { status: 'CANCELLED' } });
+            await logAuditEvent({
+                actorId: user.id,
+                actorName: user.name,
+                action: 'UPDATE',
+                entityType: 'Project',
+                entityId: id,
+                oldValues: { status: project.status },
+                newValues: { status: 'CANCELLED' },
+                diff: `Proje finansal kayıtlar içerdiği için silinmedi, iptal edildi: ${project.title}`,
+            });
+            return NextResponse.json({
+                success: true,
+                archived: true,
+                message: 'Proje finansal kayıtlar içerdiği için silinmedi; durumu "İptal" olarak güncellendi.',
+            });
+        }
+
         await prisma.project.delete({ where: { id } });
 
         await logAuditEvent({

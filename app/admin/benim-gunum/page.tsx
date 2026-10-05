@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { MyWorkStrip } from '@/components/admin/work/MyWorkStrip';
 import Link from 'next/link';
 import {
     Sun,
@@ -230,6 +231,8 @@ export default function BenimGunumPage() {
                     <span>{feedback.message}</span>
                 </div>
             )}
+
+            <MyWorkStrip />
 
             {/* Quick KPI Overview */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">

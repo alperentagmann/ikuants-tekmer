@@ -1,10 +1,12 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { Instagram, Linkedin, Mail, MapPin, Phone } from "lucide-react";
+import { Instagram, Linkedin, Mail, MapPin, Phone, Youtube, Twitter } from "lucide-react";
 import { PartnerLogos } from "@/components/sections/PartnerLogos";
+import { DESIGN_CREDIT, stripCredit } from "@/lib/site-settings";
 
 export const Footer = () => {
+    const [footerLinks, setFooterLinks] = useState<any[]>([]);
     const [settings, setSettings] = useState({
         siteName: 'İKÜANTS TEKMER',
         footerText: 'İKÜANTS Teknoloji Geliştirme Merkezi. Girişimciler için tasarlanmış inovasyon ekosistemi.',
@@ -14,16 +16,25 @@ export const Footer = () => {
         instagram: 'https://www.instagram.com/ikuantstekmer/',
         linkedin: 'https://www.linkedin.com/company/ikuants-tekmer/',
         whatsapp: 'https://chat.whatsapp.com/LAg3l2cUSFOHBn0miCO9lz',
-        copyright: 'Copyright 2025 İKÜANTS TEKMER | Design By Alperen Tağman.'
+        copyright: `Copyright ${new Date().getFullYear()} İKÜANTS TEKMER`,
+        youtube: '',
+        x: '',
     });
 
     useEffect(() => {
         const fetchSettings = async () => {
             try {
-                const res = await fetch('/api/public/settings');
-                const data = await res.json();
+                const [settingsRes, menuRes] = await Promise.all([
+                    fetch('/api/public/settings'),
+                    fetch('/api/public/menus?location=FOOTER'),
+                ]);
+                const data = await settingsRes.json();
                 if (data.success && data.settings) {
                     setSettings(prev => ({ ...prev, ...data.settings }));
+                }
+                const menuData = await menuRes.json();
+                if (menuData.success && Array.isArray(menuData.menuItems) && menuData.menuItems.length > 0) {
+                    setFooterLinks(menuData.menuItems);
                 }
             } catch {
                 // Fallback kept
@@ -51,17 +62,34 @@ export const Footer = () => {
                             </p>
                         </div>
 
-                        {/* Quick Links */}
+                        {/* Quick Links / Dynamic CMS Footer Links */}
                         <div className="space-y-4">
                             <h3 className="text-gray-900 dark:text-white font-bold uppercase tracking-wider text-sm border-l-2 border-secondary pl-3">
                                 Hızlı Erişim
                             </h3>
                             <ul className="space-y-2 text-sm">
-                                <li><Link href="/" className="hover:text-secondary transition-colors">Ana Sayfa</Link></li>
-                                <li><Link href="/girisimciler" className="hover:text-secondary transition-colors">Girişimciler</Link></li>
-                                <li><Link href="/mentorler" className="hover:text-secondary transition-colors">Mentörler</Link></li>
-                                <li><Link href="/programlar" className="hover:text-secondary transition-colors">Programlar</Link></li>
-                                <li><Link href="/basvuru" className="hover:text-secondary transition-colors">Başvuru</Link></li>
+                                {footerLinks.length > 0 ? (
+                                    footerLinks.map((item: any) => (
+                                        <li key={item.id}>
+                                            <Link
+                                                href={item.url}
+                                                target={item.openInNewTab ? '_blank' : undefined}
+                                                rel={item.isExternal ? 'noopener noreferrer' : undefined}
+                                                className="hover:text-secondary transition-colors"
+                                            >
+                                                {item.label}
+                                            </Link>
+                                        </li>
+                                    ))
+                                ) : (
+                                    <>
+                                        <li><Link href="/" className="hover:text-secondary transition-colors">Ana Sayfa</Link></li>
+                                        <li><Link href="/girisimciler" className="hover:text-secondary transition-colors">Girişimciler</Link></li>
+                                        <li><Link href="/mentorler" className="hover:text-secondary transition-colors">Mentörler</Link></li>
+                                        <li><Link href="/programlar" className="hover:text-secondary transition-colors">Programlar</Link></li>
+                                        <li><Link href="/basvuru" className="hover:text-secondary transition-colors">Başvuru</Link></li>
+                                    </>
+                                )}
                             </ul>
                         </div>
 
@@ -102,6 +130,16 @@ export const Footer = () => {
                                         <Linkedin className="w-5 h-5" />
                                     </a>
                                 )}
+                                {settings.youtube && (
+                                    <a href={settings.youtube} target="_blank" rel="noopener noreferrer" aria-label="YouTube" className="p-2 bg-gray-200 dark:bg-white/5 rounded hover:bg-red-600 hover:text-white transition-all transform hover:scale-110">
+                                        <Youtube className="w-5 h-5" />
+                                    </a>
+                                )}
+                                {settings.x && (
+                                    <a href={settings.x} target="_blank" rel="noopener noreferrer" aria-label="X" className="p-2 bg-gray-200 dark:bg-white/5 rounded hover:bg-black hover:text-white transition-all transform hover:scale-110">
+                                        <Twitter className="w-5 h-5" />
+                                    </a>
+                                )}
                                 {settings.whatsapp && (
                                     <a href={settings.whatsapp} target="_blank" rel="noopener noreferrer" aria-label="WhatsApp" className="p-2 bg-gray-200 dark:bg-white/5 rounded hover:bg-green-500 hover:text-white transition-all transform hover:scale-110">
                                         <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
@@ -114,8 +152,14 @@ export const Footer = () => {
                     </div>
 
                     <div className="border-t border-white/10 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-xs">
-                        <p className="text-center md:text-left">{settings.copyright}</p>
-                        <p className="text-center md:text-right">Tüm hakları saklıdır.</p>
+                        {/* The designer credit is fixed in code and is not editable from the admin panel */}
+                        <p className="text-center md:text-left">
+                            {stripCredit(settings.copyright)} <span aria-hidden="true">|</span> <span data-credit="locked">{DESIGN_CREDIT}.</span>
+                        </p>
+                        <div className="flex flex-wrap items-center justify-center gap-4 md:justify-end">
+                            <button type="button" onClick={() => window.dispatchEvent(new Event('open-cookie-preferences'))} className="hover:text-primary hover:underline">Çerez tercihleri</button>
+                            <span>Tüm hakları saklıdır.</span>
+                        </div>
                     </div>
                 </div>
             </footer>

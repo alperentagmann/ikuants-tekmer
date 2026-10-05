@@ -91,6 +91,45 @@ export const NewsService = {
         }
     },
 
+    /** One published article by slug (detail page) plus a few recent ones for "related news". */
+    async getPublicBySlug(slug: string) {
+        const item = await prisma.news.findFirst({ where: { slug, status: 'PUBLISHED', isArchived: false }, include: { category: true } });
+        if (!item) return null;
+        const related = await prisma.news.findMany({
+            where: { status: 'PUBLISHED', isArchived: false, id: { not: item.id } },
+            include: { category: true },
+            orderBy: [{ publishedAt: 'desc' }, { createdAt: 'desc' }],
+            take: 3,
+        });
+        await prisma.news.update({ where: { id: item.id }, data: { viewCount: { increment: 1 } } }).catch(() => undefined);
+        const shape = (n: typeof item) => ({
+            id: n.id,
+            title: n.title,
+            slug: n.slug,
+            excerpt: n.excerpt || '',
+            content: n.content,
+            date: n.eventDate || (n.publishedAt ? new Intl.DateTimeFormat('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' }).format(n.publishedAt) : ''),
+            publishedAt: n.publishedAt,
+            updatedAt: n.updatedAt,
+            category: n.category?.name || 'Duyuru',
+            image: n.coverImage || null,
+            imageAlt: n.coverAltText || n.title,
+            gallery: (() => {
+                try {
+                    const g = n.gallery ? JSON.parse(n.gallery) : [];
+                    return Array.isArray(g) ? g.filter((x): x is string => typeof x === 'string') : [];
+                } catch {
+                    return [];
+                }
+            })(),
+            registrationLink: n.registrationLink || null,
+            videoUrl: n.videoUrl || null,
+            seoTitle: n.seoTitle || null,
+            seoDescription: n.seoDescription || null,
+        });
+        return { item: shape(item), related: related.map(shape) };
+    },
+
     async getAdminNews(params?: {
         search?: string;
         status?: string;

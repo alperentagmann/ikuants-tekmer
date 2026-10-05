@@ -15,7 +15,8 @@ interface BreadcrumbProps {
 }
 
 export function Breadcrumb({ items, className = '' }: BreadcrumbProps) {
-    const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://ikuantstekmer.com';
+    // Same value on server and client (window.location differs and breaks hydration)
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://ikuantstekmer.com';
 
     const breadcrumbListSchema = {
         '@context': 'https://schema.org',

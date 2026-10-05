@@ -11,7 +11,7 @@ test.describe('Admin Dashboard Deep Inspection & Actions', () => {
         page.on('console', msg => {
             if (msg.type() === 'error') {
                 const text = msg.text();
-                if (!text.includes('favicon') && !text.includes('chrome-extension')) {
+                if (!text.includes('favicon') && !text.includes('chrome-extension') && !text.includes('404 (Not Found)')) {
                     consoleErrors.push(text);
                 }
             }

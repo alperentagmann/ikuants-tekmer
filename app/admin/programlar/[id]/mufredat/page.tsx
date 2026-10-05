@@ -55,9 +55,9 @@ export default function ProgramCurriculumPage() {
             const progData = await progRes.json();
             const mentorData = await mentorRes.json();
 
-            if (trainingsData.success) setTrainings(trainingsData.trainings);
+            if (trainingsData.success) setTrainings(trainingsData.trainings || []);
             if (progData.success) setProgram(progData.program);
-            if (mentorData.success) setMentors(mentorData.mentors);
+            if (mentorData.success) setMentors(mentorData.items || mentorData.mentors || []);
         } catch (e) {
             console.error(e);
         } finally {

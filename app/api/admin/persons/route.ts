@@ -11,11 +11,20 @@ export async function GET(req: NextRequest) {
     try {
         const { searchParams } = new URL(req.url);
         const search = searchParams.get('search') || undefined;
+        const businessRole = searchParams.get('businessRole') || undefined;
+        const organizationId = searchParams.get('organizationId') || undefined;
         const status = searchParams.get('status') || undefined;
         const limit = searchParams.get('limit') ? Number(searchParams.get('limit')) : 100;
         const offset = searchParams.get('offset') ? Number(searchParams.get('offset')) : 0;
 
-        const result = await PersonService.getPersons({ search, status, limit, offset });
+        const result = await PersonService.getPersons({
+            search,
+            businessRole,
+            organizationId,
+            status,
+            limit,
+            offset,
+        });
         return NextResponse.json({ success: true, ...result });
     } catch (error: any) {
         return NextResponse.json({ success: false, message: error.message }, { status: 500 });
@@ -41,6 +50,6 @@ export async function POST(req: NextRequest) {
 
         return NextResponse.json({ success: true, item: person, person });
     } catch (error: any) {
-        return NextResponse.json({ success: false, message: error.message }, { status: 500 });
+        return NextResponse.json({ success: false, message: error.message }, { status: 400 });
     }
 }

@@ -80,7 +80,7 @@ export default function AdminTerimlerPage() {
         return matchesSearch && matchesGroup;
     });
 
-    const groups = Array.from(new Set(labels.map((l) => l.group)));
+    const groups = Array.from(new Set(labels.map((l) => l.group).filter(Boolean)));
 
     return (
         <div className="space-y-6">

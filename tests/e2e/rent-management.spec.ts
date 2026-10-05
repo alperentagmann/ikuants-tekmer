@@ -3,6 +3,18 @@ import { loginAsAdmin } from './helpers/auth';
 import { prisma } from '../../lib/prisma';
 
 test.describe('Rent Management & Partial Payment Accruals E2E', () => {
+    let createdContractId: string | null = null;
+
+    test.afterEach(async () => {
+        // Runs even when an assertion fails, so no test contract is left in the rent lists
+        if (!createdContractId) return;
+        const contractId = createdContractId;
+        createdContractId = null;
+        await prisma.rentPayment.deleteMany({ where: { accrual: { contractId } } });
+        await prisma.rentAccrual.deleteMany({ where: { contractId } });
+        await prisma.rentContract.deleteMany({ where: { id: contractId } });
+    });
+
     test.beforeEach(async ({ context }) => {
         await loginAsAdmin(context);
     });
@@ -26,6 +38,7 @@ test.describe('Rent Management & Partial Payment Accruals E2E', () => {
                 status: 'ACTIVE',
             },
         });
+        createdContractId = contract.id;
 
         // 2. Navigate to /admin/finans/kiralar
         await page.goto('/admin/finans/kiralar');
@@ -76,12 +89,5 @@ test.describe('Rent Management & Partial Payment Accruals E2E', () => {
             expect(afterFull?.paidAmount).toBe(18000);
             expect(afterFull?.remainingAmount).toBe(0);
         }
-
-        // Cleanup
-        if (accrual) {
-            await prisma.rentPayment.deleteMany({ where: { accrualId: accrual.id } });
-            await prisma.rentAccrual.delete({ where: { id: accrual.id } });
-        }
-        await prisma.rentContract.delete({ where: { id: contract.id } });
     });
 });

@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentAdminUser } from '@/lib/auth';
 import { hasPermission } from '@/lib/rbac';
-import { logAuditEvent } from '@/lib/audit';
+import { requireAdmin, errorResponse } from '@/lib/api-guard';
+import { PermissionAdminService } from '@/lib/services/permission-admin-service';
 
 export async function GET() {
     try {
@@ -32,38 +33,13 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+    const auth = await requireAdmin(request, 'view', 'users');
+    if (auth.error) return auth.error;
     try {
-        const user = await getCurrentAdminUser();
-        if (!user || !hasPermission(user, 'manage', 'roles')) {
-            return NextResponse.json({ success: false, message: 'Yetkisiz' }, { status: 403 });
-        }
-
-        const body = await request.json();
-        const { name, slug, description, permissionIds } = body;
-
-        const role = await prisma.role.create({
-            data: {
-                name,
-                slug,
-                description,
-                permissions: permissionIds ? {
-                    create: permissionIds.map((pid: string) => ({ permissionId: pid })),
-                } : undefined,
-            },
-        });
-
-        await logAuditEvent({
-            actorId: user.id,
-            actorEmail: user.email,
-            actorName: user.name,
-            action: 'CREATE',
-            entityType: 'Role',
-            entityId: role.id,
-            diff: `Created role "${role.name}" with ${permissionIds?.length || 0} permissions`,
-        });
-
+        const body = (await request.json()) as { name?: string; description?: string | null; permissionIds?: string[] };
+        const role = await PermissionAdminService.createRole({ name: String(body.name || ''), description: body.description, permissionIds: Array.isArray(body.permissionIds) ? body.permissionIds.map(String) : [] }, auth.user);
         return NextResponse.json({ success: true, role });
-    } catch (e: any) {
-        return NextResponse.json({ success: false, message: e.message || 'Hata' }, { status: 500 });
+    } catch (error) {
+        return errorResponse(error, 'Rol oluşturulamadı');
     }
 }

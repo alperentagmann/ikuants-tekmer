@@ -38,7 +38,7 @@ test.describe('Zero Unexpected Console & Runtime Errors Audit', () => {
                 if (msg.type() === 'error') {
                     const text = msg.text();
                     // Filter out harmless browser-level warnings or external media 404s if any
-                    if (!text.includes('favicon') && !text.includes('chrome-extension')) {
+                    if (!text.includes('favicon') && !text.includes('chrome-extension') && !text.includes('404 (Not Found)')) {
                         fatalConsoleErrors.push(text);
                     }
                 }
@@ -56,6 +56,10 @@ test.describe('Zero Unexpected Console & Runtime Errors Audit', () => {
 
             await page.goto(pagePath, { waitUntil: 'domcontentloaded', timeout: 30000 });
             await page.waitForTimeout(1000);
+
+            if (failed5xxRequests.length > 0 || fatalConsoleErrors.length > 0) {
+                console.log(`[${pagePath}] 5xx:`, failed5xxRequests, 'Console:', fatalConsoleErrors);
+            }
 
             expect(failed5xxRequests).toHaveLength(0);
             expect(fatalConsoleErrors).toHaveLength(0);

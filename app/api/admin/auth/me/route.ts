@@ -15,8 +15,11 @@ export async function GET() {
                 name: user.name,
                 email: user.email,
                 isSuperAdmin: user.isSuperAdmin,
-                roles: user.userRoles?.map((ur: any) => ur.role.name) || [],
-                permissions: user.userRoles?.flatMap((ur: any) => ur.role.permissions.map((p: any) => `${p.permission.action}:${p.permission.resource}`)) || [],
+                roles: user.userRoles?.map((ur) => ur.role.name) || [],
+                permissions: Array.from(new Set([
+                    ...(user.userRoles?.flatMap((ur) => ur.role.permissions.map((p) => `${p.permission.action}:${p.permission.resource}`)) || []),
+                    ...(user.userPermissions?.filter((up) => up.isGranted).map((up) => `${up.permission.action}:${up.permission.resource}`) || []),
+                ])).filter((perm) => !(user.userPermissions || []).some((up) => !up.isGranted && `${up.permission.action}:${up.permission.resource}` === perm)),
             },
         });
     } catch {

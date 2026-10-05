@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect } from 'react';
+import { ProgramAppearanceEditor } from '@/components/admin/programs/ProgramAppearanceEditor';
 import { DataTable, Column } from '@/components/admin/DataTable';
 import { StatusBadge } from '@/components/admin/StatusBadge';
 import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
@@ -138,7 +139,13 @@ export default function AdminProgramlarPage() {
         {
             key: 'applyStatus',
             header: 'Başvuru Durumu',
-            render: (item) => <StatusBadge status={item.applyStatus || 'OPEN'} />,
+            // The open application campaign decides whether applications are accepted
+            render: (item) => (
+                <div className="space-y-1">
+                    <StatusBadge status={item.applyOpen ? 'OPEN' : 'CLOSED'} />
+                    {item.applyUrl && <div className="font-mono text-[10px] text-gray-500">{item.applyUrl}</div>}
+                </div>
+            ),
         },
         {
             key: 'actions',
@@ -204,7 +211,7 @@ export default function AdminProgramlarPage() {
                 </div>
 
                 {!editingItem && !isCreating && (
-                    <button
+                    <button data-intent="create"
                         onClick={() => {
                             setEditingItem({
                                 name: '',
@@ -288,7 +295,7 @@ export default function AdminProgramlarPage() {
                         {[
                             { key: 'general', label: '1. Genel Bilgiler', icon: Sparkles },
                             { key: 'audience', label: '2. Hedef Kitle & Şartlar', icon: Target },
-                            { key: 'media', label: '3. Medya & Görseller', icon: ImageIcon },
+                            { key: 'media', label: '3. Görünüm, Afiş & Renkler', icon: ImageIcon },
                             { key: 'dates', label: '4. Tarihler & CTA', icon: Calendar },
                             { key: 'sections', label: '5. Aşamalar & SSS', icon: Layers },
                             { key: 'blocks', label: '6. Blok İçerik Oluşturucu', icon: Layout },
@@ -487,52 +494,8 @@ export default function AdminProgramlarPage() {
 
                         {/* TAB 3: MEDIA & VISUALS */}
                         {activeEditorTab === 'media' && (
-                            <div className="space-y-4 animate-in fade-in">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-xs font-mono text-gray-400 mb-1">Hero / Banner Görseli URL</label>
-                                        <input
-                                            type="text"
-                                            value={editingItem.heroUrl || ''}
-                                            onChange={(e) => setEditingItem({ ...editingItem, heroUrl: e.target.value, coverUrl: e.target.value })}
-                                            placeholder="/images/hero-slide-2.jpg"
-                                            className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:border-primary outline-none"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-mono text-gray-400 mb-1">Mobil Hero Görseli URL</label>
-                                        <input
-                                            type="text"
-                                            value={editingItem.mobileHeroUrl || ''}
-                                            onChange={(e) => setEditingItem({ ...editingItem, mobileHeroUrl: e.target.value })}
-                                            placeholder="/images/hero-slide-2.jpg"
-                                            className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:border-primary outline-none"
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-xs font-mono text-gray-400 mb-1">Program Logo URL</label>
-                                        <input
-                                            type="text"
-                                            value={editingItem.logoUrl || ''}
-                                            onChange={(e) => setEditingItem({ ...editingItem, logoUrl: e.target.value })}
-                                            placeholder="/images/logo-tekmer.png"
-                                            className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:border-primary outline-none"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-mono text-gray-400 mb-1">Renk Gradyanı / Teması</label>
-                                        <input
-                                            type="text"
-                                            value={editingItem.colorCode || ''}
-                                            onChange={(e) => setEditingItem({ ...editingItem, colorCode: e.target.value })}
-                                            placeholder="from-purple-500 to-pink-500"
-                                            className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:border-primary outline-none"
-                                        />
-                                    </div>
-                                </div>
+                            <div className="animate-in fade-in">
+                                <ProgramAppearanceEditor value={editingItem} onChange={setEditingItem} />
                             </div>
                         )}
 

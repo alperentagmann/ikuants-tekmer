@@ -182,7 +182,7 @@ export default function AdminMentorlerPage() {
                 </div>
 
                 {!editingItem && !isCreating && (
-                    <button
+                    <button data-intent="create"
                         onClick={() => {
                             setEditingItem({
                                 name: '',

@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { prisma } from '../../lib/prisma';
 import { loginAsAdmin } from './helpers/auth';
+import { clickAndWaitForSave } from './helpers/mutation';
 
 test.describe('7. SSS — FAQ E2E CRUD', () => {
     const TEST_QUESTION = 'E2E Test: TEKMER Ön Kuluçka Başvurusu Nasıl Yapılır?';
@@ -52,7 +53,7 @@ test.describe('7. SSS — FAQ E2E CRUD', () => {
         await modal.locator('textarea').first().fill(TEST_ANSWER);
 
         // Kaydet
-        await modal.getByRole('button', { name: 'Kaydet' }).click();
+        await clickAndWaitForSave(page, modal.getByRole('button', { name: 'Kaydet' }));
         await page.waitForTimeout(1000);
 
         // 3. DB kontrolü
@@ -87,7 +88,7 @@ test.describe('7. SSS — FAQ E2E CRUD', () => {
 
         const editModal = page.locator('div.fixed');
         await editModal.locator('textarea').first().fill(UPDATED_ANSWER);
-        await editModal.getByRole('button', { name: 'Kaydet' }).click();
+        await clickAndWaitForSave(page, editModal.getByRole('button', { name: 'Kaydet' }));
         await page.waitForTimeout(1000);
 
         // 6. Public'ta refresh sonrası yeni cevabı doğrula
@@ -109,7 +110,7 @@ test.describe('7. SSS — FAQ E2E CRUD', () => {
 
         const updatedCard = page.locator('div.rounded-xl').filter({ hasText: TEST_QUESTION }).first();
         const deleteBtn = updatedCard.locator('button').nth(1);
-        await deleteBtn.click();
+        await clickAndWaitForSave(page, deleteBtn);
         await page.waitForTimeout(1000);
 
         // 8. Public'tan çıkmalı

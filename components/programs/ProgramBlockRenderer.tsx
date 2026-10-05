@@ -234,7 +234,7 @@ export const ProgramBlockRenderer: React.FC<BlockProps> = ({ block, program }) =
                         </p>
                         <div className="pt-4">
                             <Link
-                                href={program.ctaLink || '/basvuru'}
+                                href={program.applyUrl || program.detailUrl || '/programlar'}
                                 className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-primary to-purple-600 text-white font-bold text-sm tracking-wide shadow-xl shadow-primary/30 hover:scale-105 transition-all"
                             >
                                 <span>{program.ctaText || 'HEMEN BAŞVUR'}</span>
