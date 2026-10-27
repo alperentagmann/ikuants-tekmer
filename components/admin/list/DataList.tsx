@@ -11,7 +11,9 @@ import { useApi, LoadingRows, ErrorState, TableShell, th, td } from '@/component
 
 export type ListColumn<T> = { key: string; label: string; sortable?: boolean; align?: 'right'; render?: (row: T) => React.ReactNode; className?: string };
 type Opt = { value: string; label: string };
-export type ListFilter = { key: string; label: string; type: 'select' | 'text' | 'year'; options?: Opt[] | ((draft: Record<string, string>) => Opt[]); placeholder?: string; resets?: string[] };
+export type ListFilter = { key: string; label: string; type: 'select' | 'text' | 'year' | 'month'; options?: Opt[] | ((draft: Record<string, string>) => Opt[]); placeholder?: string; resets?: string[]; required?: boolean };
+
+const MONTHS = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'].map((label, i) => ({ value: String(i + 1), label }));
 
 type Result<T> = { items: T[]; total: number; page: number; pageSize: number; pageCount: number };
 type State = { q: string; filters: Record<string, string>; archived: boolean };
@@ -33,7 +35,7 @@ function buildQuery(s: State, extra: Record<string, string | number | undefined>
 }
 
 export function DataList<T extends { id: string; isArchived?: boolean }>({
-    endpoint, label, columns, filters = [], searchPlaceholder = 'Ara', rowActions, canExport, reloadKey = 0, empty, archiveToggle = true, initialFilters = {},
+    endpoint, label, columns, filters = [], searchPlaceholder = 'Ara', rowActions, canExport, reloadKey = 0, empty, archiveToggle = true, initialFilters = {}, extraParams = {}, rowClassName, summary,
 }: {
     endpoint: string;
     /** Tablonun erişilebilir adı */
@@ -47,6 +49,11 @@ export function DataList<T extends { id: string; isArchived?: boolean }>({
     empty: { title: string; description?: string; action?: React.ReactNode };
     archiveToggle?: boolean;
     initialFilters?: Record<string, string>;
+    /** Filtre formunda görünmeyen sabit sorgu parametreleri (ör. rapor türü) */
+    extraParams?: Record<string, string>;
+    rowClassName?: (row: T) => string;
+    /** Tablonun üstünde yanıttaki ek alanlardan özet (ör. uyarı sayısı) */
+    summary?: (data: Record<string, unknown>) => React.ReactNode;
 }) {
     const blank: State = { q: '', filters: { ...initialFilters }, archived: false };
     const [draft, setDraft] = useState<State>(blank);
@@ -57,8 +64,9 @@ export function DataList<T extends { id: string; isArchived?: boolean }>({
     const [exporting, setExporting] = useState<string | null>(null);
     const [exportError, setExportError] = useState<string | null>(null);
 
-    const query = buildQuery(applied, { sort: sort?.key, dir: sort?.dir, page, pageSize });
-    const list = useApi<Result<T>>(`${endpoint}?${query}`);
+    const missing = filters.filter((f) => f.required && !applied.filters[f.key]).map((f) => f.label);
+    const query = buildQuery(applied, { ...extraParams, sort: sort?.key, dir: sort?.dir, page, pageSize });
+    const list = useApi<Result<T>>(missing.length ? null : `${endpoint}?${query}`);
     const { reload } = list;
     useEffect(() => { if (reloadKey) reload(); }, [reloadKey, reload]);
 
@@ -73,7 +81,7 @@ export function DataList<T extends { id: string; isArchived?: boolean }>({
 
     const exportFile = async (format: 'xlsx' | 'pdf') => {
         setExportError(null);
-        const url = `${endpoint}?${buildQuery(applied, { sort: sort?.key, dir: sort?.dir, export: format })}`;
+        const url = `${endpoint}?${buildQuery(applied, { ...extraParams, sort: sort?.key, dir: sort?.dir, export: format })}`;
         if (format === 'pdf') {
             // Yazdırmaya hazır sayfa yeni sekmede açılır; tarayıcıdan "PDF olarak kaydet"
             window.open(url, '_blank', 'noopener');
@@ -114,15 +122,15 @@ export function DataList<T extends { id: string; isArchived?: boolean }>({
                 </div>
                 {filters.map((f) => {
                     const id = `${label}-${f.key}`;
-                    const opts = f.type === 'year' ? yearOptions() : typeof f.options === 'function' ? f.options(draft.filters) : f.options ?? [];
+                    const opts = f.type === 'year' ? yearOptions() : f.type === 'month' ? MONTHS : typeof f.options === 'function' ? f.options(draft.filters) : f.options ?? [];
                     return (
                         <div key={f.key} className="min-w-0 lg:w-48">
-                            <label className="mb-1.5 block text-xs font-medium text-gray-300" htmlFor={id}>{f.label}</label>
+                            <label className="mb-1.5 block text-xs font-medium text-gray-300" htmlFor={id}>{f.label}{f.required && <span className="text-rose-400" aria-hidden> *</span>}</label>
                             {f.type === 'text' ? (
                                 <input id={id} value={draft.filters[f.key] ?? ''} onChange={(e) => setFilter(f, e.target.value)} placeholder={f.placeholder} className={`${ctl} w-full`} />
                             ) : (
                                 <select id={id} value={draft.filters[f.key] ?? ''} onChange={(e) => setFilter(f, e.target.value)} className={`${ctl} w-full`}>
-                                    <option value="">{f.placeholder ?? 'Tümü'}</option>
+                                    <option value="">{f.placeholder ?? (f.required ? 'Seçin' : 'Tümü')}</option>
                                     {opts.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                                 </select>
                             )}
@@ -141,17 +149,20 @@ export function DataList<T extends { id: string; isArchived?: boolean }>({
                 </div>
                 {canExport && (
                     <div className="flex flex-wrap items-center gap-2 lg:ml-auto">
-                        <Button type="button" size="sm" onClick={() => exportFile('xlsx')} loading={exporting === 'xlsx'}><Download className="h-3.5 w-3.5" aria-hidden /> Excel</Button>
-                        <Button type="button" size="sm" onClick={() => exportFile('pdf')} title="Yazdırmaya hazır sayfa açılır; tarayıcıdan PDF olarak kaydedin"><FileText className="h-3.5 w-3.5" aria-hidden /> PDF</Button>
+                        <Button type="button" size="sm" disabled={missing.length > 0} onClick={() => exportFile('xlsx')} loading={exporting === 'xlsx'}><Download className="h-3.5 w-3.5" aria-hidden /> Excel</Button>
+                        <Button type="button" size="sm" disabled={missing.length > 0} onClick={() => exportFile('pdf')} title="Yazdırmaya hazır sayfa açılır; tarayıcıdan PDF olarak kaydedin"><FileText className="h-3.5 w-3.5" aria-hidden /> PDF</Button>
                     </div>
                 )}
             </form>
             {exportError && <p role="alert" className="border-b border-white/5 px-4 py-2 text-xs text-red-300">{exportError}</p>}
 
-            {list.error ? <ErrorState error={list.error} onRetry={list.reload} /> : !data ? <LoadingRows /> : data.total === 0 ? (
+            {missing.length ? (
+                <div className="p-4"><EmptyState title={`Sorgu için ${missing.join(', ')} seçin`} description="Zorunlu filtreleri seçip Ara’ya basın." /></div>
+            ) : list.error ? <ErrorState error={list.error} onRetry={list.reload} /> : !data ? <LoadingRows /> : data.total === 0 ? (
                 <div className="p-4">{hasFilter ? <EmptyState title="Filtreye uyan kayıt yok" description="Filtreleri değiştirin veya Temizle ile tüm kayıtları görün." /> : <EmptyState {...empty} />}</div>
             ) : (
                 <>
+                    {summary?.(data as unknown as Record<string, unknown>)}
                     <div aria-busy={list.loading} className={list.loading ? 'opacity-60 transition-opacity' : ''}>
                         <TableShell>
                             <caption className="sr-only">{label}</caption>
@@ -175,7 +186,7 @@ export function DataList<T extends { id: string; isArchived?: boolean }>({
                             </thead>
                             <tbody className="divide-y divide-white/5">
                                 {data.items.map((row) => (
-                                    <tr key={row.id} className={`hover:bg-white/[0.02] ${row.isArchived ? 'opacity-60' : ''}`}>
+                                    <tr key={row.id} className={`hover:bg-white/[0.02] ${row.isArchived ? 'opacity-60' : ''} ${rowClassName?.(row) ?? ''}`}>
                                         {columns.map((c) => (
                                             <td key={c.key} className={`${td} ${c.align === 'right' ? 'text-right tabular-nums' : ''} ${c.className ?? ''}`}>
                                                 {c.render ? c.render(row) : String((row as Record<string, unknown>)[c.key] ?? '—')}

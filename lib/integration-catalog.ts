@@ -82,4 +82,5 @@ export const API_SCOPES: Record<string, string> = {
     'tasks:read': 'Görev listesi (başlık, durum, termin)',
     'reservations:read': 'Rezervasyon listesi (alan, zaman, durum)',
     'finance:read': 'Satış faturası özetleri',
+    'pdks:write': 'PDKS kart okuyucu: giriş-çıkış hareketi gönderme (POST /api/v1/pdks/events)',
 };

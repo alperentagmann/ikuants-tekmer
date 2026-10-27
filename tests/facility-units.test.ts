@@ -117,7 +117,7 @@ describe('Alan yönetimi — veritabanı akışı', () => {
         await assert.rejects(() => FacilityUnitService.create('assignments', { unitId: ids.office, entrepreneurId: ids.ent2, startDate: iso(5) }, user, actor), /eşleştirilmiş/);
         await FacilityUnitService.create('assignments', { unitId: ids.common, entrepreneurId: ids.ent, startDate: iso(-1) }, user, actor);
         await FacilityUnitService.create('assignments', { unitId: ids.common, entrepreneurId: ids.ent2, startDate: iso(-1) }, user, actor);
-        const list = await FacilityUnitService.list('buildings', new URLSearchParams(`q=${encodeURIComponent(RUN)}`), user, actor) as { items: { occupancy: { byCountPct: number; rentableArea: number } }[] };
+        const list = await FacilityUnitService.list('buildings', new URLSearchParams(`q=${encodeURIComponent(RUN)}`), user, actor) as unknown as { items: { occupancy: { byCountPct: number; rentableArea: number } }[] };
         assert.deepStrictEqual([list.items[0].occupancy.byCountPct, list.items[0].occupancy.rentableArea], [100, 40]);
         await assert.rejects(() => FacilityUnitService.update('units', ids.office, { archived: true }, user, actor), /tahsisi var/);
     });
@@ -146,12 +146,12 @@ describe('Alan yönetimi — veritabanı akışı', () => {
         assert.equal(out.fields.yetkili.value, 'Yetkili QA');
         assert.ok(out.fields.toplamKira.value.includes('24.000'));
         // Sözleşme bağlanınca "bağlanmamış" sayısına girmez
-        const rows = await FacilityUnitService.list('assignments', new URLSearchParams(`entrepreneurId=${ids.ent}`), user, actor) as { items: { unitId: string; contractNo: string | null }[] };
+        const rows = await FacilityUnitService.list('assignments', new URLSearchParams(`entrepreneurId=${ids.ent}`), user, actor) as unknown as { items: { unitId: string; contractNo: string | null }[] };
         assert.equal(rows.items.find((r) => r.unitId === ids.office)?.contractNo, `${RUN}-K1`);
     });
 
     test('sözleşmesi olmayan tahsiste firmanın mevcut sözleşmesi önerilir', async () => {
-        const rows = await FacilityUnitService.list('assignments', new URLSearchParams(`entrepreneurId=${ids.ent}`), user, actor) as { items: { unitId: string; suggestedContracts: { id: string }[] }[] };
+        const rows = await FacilityUnitService.list('assignments', new URLSearchParams(`entrepreneurId=${ids.ent}`), user, actor) as unknown as { items: { unitId: string; suggestedContracts: { id: string }[] }[] };
         const common = rows.items.find((r) => r.unitId === ids.common)!;
         assert.deepStrictEqual(common.suggestedContracts.map((c) => c.id), [ids.contract]);
     });
