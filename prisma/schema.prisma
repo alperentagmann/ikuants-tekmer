@@ -376,6 +376,8 @@ model Entrepreneur {
 
   applications     Application[]
   spaceAssignments SpaceAssignment[]
+  accessCards      AccessCard[]
+  accessEvents     AccessEvent[]
 
   @@index([status])
   @@index([sector])
@@ -3268,6 +3270,7 @@ model RentContract {
   id              String   @id @default(uuid())
   entrepreneurId  String
   spaceFacilityId String? // Facility / Room / Desk ID
+  unitId          String? // Bağımsız bölüm (bina → kat → bölüm)
   spaceName       String // e.g. "Ofis 204", "Ortak Çalışma Masası 12"
   roomDeskNo      String? // e.g. "Masa 4", "Oda 204"
   areaM2          Float? // e.g. 24.5 m²
@@ -3316,6 +3319,7 @@ model RentContract {
   organization         Organization?          @relation(fields: [organizationId], references: [id], onDelete: SetNull)
   financeContactPerson Person?                @relation("RentFinanceContact", fields: [financeContactPersonId], references: [id], onDelete: SetNull)
   facility             Facility?              @relation(fields: [spaceFacilityId], references: [id], onDelete: SetNull)
+  unit                 SpaceUnit?             @relation(fields: [unitId], references: [id], onDelete: SetNull)
   accruals             RentAccrual[]
   documents            RentContractDocument[]
 
@@ -3525,6 +3529,7 @@ model Person {
   privacyConsents   String?   @db.Text // JSON with full KVKK consent history and status
   status            String    @default("ACTIVE") // ACTIVE, PASSIVE, ARCHIVED
   userId            String?   @unique
+  accessCards       AccessCard[]
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 
@@ -3698,7 +3703,8 @@ model ApplicationCampaign {
 
 model SpaceAssignment {
   id             String    @id @default(uuid())
-  facilityId     String
+  facilityId     String? // halka açık tesis kartı (eski tahsisler); kalıcı ofis tahsisinde unitId kullanılır
+  unitId         String? // bina → kat → bağımsız bölüm
   entrepreneurId String?
   organizationId String?
   applicationId  String? // TEKMER application that started the process
@@ -3712,13 +3718,15 @@ model SpaceAssignment {
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
-  facility     Facility      @relation(fields: [facilityId], references: [id], onDelete: Restrict)
+  facility     Facility?     @relation(fields: [facilityId], references: [id], onDelete: Restrict)
+  unit         SpaceUnit?    @relation(fields: [unitId], references: [id], onDelete: Restrict)
   entrepreneur Entrepreneur? @relation(fields: [entrepreneurId], references: [id], onDelete: SetNull)
   organization Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
   application  Application?  @relation(fields: [applicationId], references: [id], onDelete: SetNull)
   rentContract RentContract? @relation(fields: [rentContractId], references: [id], onDelete: SetNull)
 
   @@index([facilityId])
+  @@index([unitId])
   @@index([entrepreneurId])
   @@index([organizationId])
   @@index([status])
@@ -4153,4 +4161,186 @@ model FinanceMovement {
   @@index([partyId])
   @@index([salesInvoiceId])
   @@index([kind])
+}
+
+// =====================================================================================
+// ALAN YÖNETİMİ — bina → kat → bağımsız bölüm, poliçeler
+// Kalıcı ofis tahsisi SpaceAssignment.unitId ile, kira RentContract.unitId ile bağlanır.
+// Bölümün "dolu" olması aktif SpaceAssignment kaydından hesaplanır; ayrıca saklanmaz.
+// =====================================================================================
+model Building {
+  id           String   @id @default(uuid())
+  name         String
+  address      String?
+  totalArea    Float? // m²
+  leasableArea Float? // m²
+  notes        String?  @db.Text
+  isArchived   Boolean  @default(false)
+  createdById  String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  floors   Floor[]
+  policies InsurancePolicy[]
+  devices  AccessDevice[]
+
+  @@index([isArchived])
+}
+
+model Floor {
+  id           String   @id @default(uuid())
+  buildingId   String
+  name         String
+  sortOrder    Int      @default(0)
+  planImageUrl String?
+  notes        String?  @db.Text
+  isArchived   Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  building Building    @relation(fields: [buildingId], references: [id], onDelete: Restrict)
+  units    SpaceUnit[]
+
+  @@index([buildingId])
+}
+
+model SpaceUnit {
+  id         String   @id @default(uuid())
+  floorId    String
+  code       String // bina içinde benzersiz (serviste denetlenir)
+  unitType   String // OFFICE, WORKSHOP, STORAGE, COMMON
+  area       Float // m²
+  capacity   Int?
+  status     String   @default("AVAILABLE") // AVAILABLE, MAINTENANCE, RESERVED — DOLU aktif tahsisten hesaplanır
+  notes      String?  @db.Text
+  isArchived Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  floor            Floor             @relation(fields: [floorId], references: [id], onDelete: Restrict)
+  spaceAssignments SpaceAssignment[]
+  rentContracts    RentContract[]
+  policies         InsurancePolicy[]
+
+  @@index([floorId])
+  @@index([status])
+}
+
+model InsurancePolicy {
+  id          String   @id @default(uuid())
+  buildingId  String?
+  unitId      String?
+  policyType  String // SystemParameter (POLICY_TYPE) anahtarı
+  coverage    String?  @db.Text
+  insurer     String
+  policyNo    String
+  startDate   DateTime
+  endDate     DateTime
+  premium     Float?
+  currency    String   @default("TRY")
+  documentUrl String?
+  notes       String?  @db.Text
+  isArchived  Boolean  @default(false)
+  createdById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  building Building?  @relation(fields: [buildingId], references: [id], onDelete: Restrict)
+  unit     SpaceUnit? @relation(fields: [unitId], references: [id], onDelete: Restrict)
+
+  @@unique([insurer, policyNo])
+  @@index([endDate])
+}
+
+// Yönetilebilir parametreler (seçenek listeleri, eşik değerleri). Koda gömülmeyen değerler burada.
+model SystemParameter {
+  id          String   @id @default(uuid())
+  category    String
+  key         String
+  label       String
+  value       String?
+  description String?
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+  updatedById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([category, key])
+  @@index([category, isActive])
+}
+
+// =====================================================================================
+// PDKS — RFID kart, okuyucu cihaz, giriş-çıkış hareketi
+// Kimlik numarası Person kaydında şifreli tutulur; burada kopyalanmaz.
+// =====================================================================================
+model AccessCard {
+  id             String    @id @default(uuid())
+  cardUid        String    @unique // RFID UID, büyük harf HEX, ayırıcısız
+  label          String? // kartın üzerindeki numara / etiket
+  holderType     String // STAFF (TEKMER personeli), MEMBER (girişim çalışanı), VISITOR, OTHER
+  personId       String?
+  entrepreneurId String?
+  holderName     String // görüntü adı (kişi silinse de hareket geçmişi okunur)
+  status         String    @default("ACTIVE") // ACTIVE, LOST, BLOCKED, RETURNED
+  validFrom      DateTime?
+  validUntil     DateTime?
+  issuedAt       DateTime  @default(now())
+  returnedAt     DateTime?
+  notes          String?   @db.Text
+  createdById    String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  person       Person?       @relation(fields: [personId], references: [id], onDelete: SetNull)
+  entrepreneur Entrepreneur? @relation(fields: [entrepreneurId], references: [id], onDelete: SetNull)
+  events       AccessEvent[]
+
+  @@index([personId])
+  @@index([entrepreneurId])
+  @@index([status])
+}
+
+model AccessDevice {
+  id         String    @id @default(uuid())
+  code       String    @unique // cihazın gönderdiği kimlik
+  name       String
+  buildingId String?
+  location   String?
+  direction  String    @default("BOTH") // IN, OUT, BOTH (BOTH: yön olaydan gelir)
+  isActive   Boolean   @default(true)
+  lastSeenAt DateTime?
+  notes      String?   @db.Text
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  building Building?     @relation(fields: [buildingId], references: [id], onDelete: SetNull)
+  events   AccessEvent[]
+}
+
+model AccessEvent {
+  id             String   @id @default(uuid())
+  cardId         String?
+  cardUid        String
+  holderName     String
+  holderType     String
+  entrepreneurId String?
+  direction      String // IN, OUT
+  occurredAt     DateTime
+  source         String // MANUAL, CSV, DEVICE
+  deviceId       String?
+  externalId     String?  @unique // cihaz olay kimliği (tekrar gönderimde mükerrer kayıt yok)
+  note           String?
+  isVoid         Boolean  @default(false)
+  voidReason     String?
+  createdById    String?
+  createdAt      DateTime @default(now())
+
+  card         AccessCard?   @relation(fields: [cardId], references: [id], onDelete: SetNull)
+  device       AccessDevice? @relation(fields: [deviceId], references: [id], onDelete: SetNull)
+  entrepreneur Entrepreneur? @relation(fields: [entrepreneurId], references: [id], onDelete: SetNull)
+
+  @@unique([cardUid, occurredAt, direction]) // aynı kişi + zaman + yön tekrarı reddedilir
+  @@index([occurredAt])
+  @@index([entrepreneurId, occurredAt])
 }

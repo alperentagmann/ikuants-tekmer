@@ -95,6 +95,14 @@ export function sanitizeSvg(svgContent: string): { isValid: boolean; sanitizedSv
 }
 
 /**
+ * Excel (xlsx) hücresi için formül enjeksiyonu koruması. CSV'den farklı olarak tırnaklama yapmaz;
+ * sayılar sayı olarak kalır, formül karakteriyle başlayan metinlerin başına ' eklenir.
+ */
+export function sanitizeSheetValue<T>(value: T): T | string {
+    return typeof value === 'string' && /^[=+\-@\t\r]/.test(value) ? `'${value}` : value;
+}
+
+/**
  * Escape values for CSV / Excel export to prevent CSV Formula Injection (Item 90)
  * Characters: '=', '+', '-', '@', '\t', '\r'
  */

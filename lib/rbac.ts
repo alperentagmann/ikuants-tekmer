@@ -335,6 +335,16 @@ export const SYSTEM_PERMISSIONS = [
     { action: 'create', resource: 'facilities', description: 'Yeni alan oluşturma' },
     { action: 'update', resource: 'facilities', description: 'Alan bilgileri, 3D/360 medya ve tahsisleri düzenleme' },
     { action: 'delete', resource: 'facilities', description: 'Alanı pasife alma / arşivleme' },
+    { action: 'export', resource: 'facilities', description: 'Bina, bölüm, tahsis ve poliçe listelerini dışa aktarma' },
+
+    // PDKS (RFID kart, giriş-çıkış)
+    { action: 'view', resource: 'pdks', description: 'Giriş-çıkış hareketlerini ve çalışma süresi raporlarını görme' },
+    { action: 'manage', resource: 'pdks', description: 'Kart tanımlama, manuel hareket, CSV içe aktarma, cihaz yönetimi' },
+    { action: 'view_identity', resource: 'pdks', description: 'PDKS ekranlarında maskesiz kimlik numarasını görme (denetlenir)' },
+
+    // Sistem parametreleri
+    { action: 'view', resource: 'parameters', description: 'Sistem parametrelerini (seçenek listeleri, eşikler) görme' },
+    { action: 'manage', resource: 'parameters', description: 'Sistem parametrelerini ekleme / düzenleme / pasife alma' },
     { action: 'view', resource: 'reservations', description: 'Rezervasyon taleplerini görüntüleme' },
     { action: 'approve', resource: 'reservations', description: 'Rezervasyon onaylama, reddetme, alternatif önerme' },
     { action: 'create', resource: 'reservations', description: 'Admin adına rezervasyon oluşturma' },
@@ -439,6 +449,8 @@ export const DEFAULT_ROLES = [
             { action: '*', resource: 'interactions' },
             { action: '*', resource: 'facilities' },
             { action: '*', resource: 'reservations' },
+            { action: '*', resource: 'pdks' },
+            { action: '*', resource: 'parameters' },
             { action: 'view', resource: 'documents' },
             { action: 'upload', resource: 'documents' },
             { action: 'view', resource: 'reports' },
@@ -463,6 +475,7 @@ export const DEFAULT_ROLES = [
             { action: 'view', resource: 'entrepreneurs' },
             { action: 'view', resource: 'persons' },
             { action: 'view', resource: 'facilities' },
+            { action: 'export', resource: 'facilities' },
             { action: 'view', resource: 'documents' },
             { action: 'upload', resource: 'documents' },
             { action: 'view', resource: 'reports' },

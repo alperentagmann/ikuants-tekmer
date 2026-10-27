@@ -23,6 +23,7 @@ export const SpaceAssignmentService = {
             },
             include: {
                 facility: { select: { id: true, title: true } },
+                unit: { select: { code: true, floor: { select: { name: true, building: { select: { name: true } } } } } },
                 organization: { select: { id: true, name: true } },
                 entrepreneur: { select: { id: true, name: true } },
                 application: { select: { id: true, applicationNumber: true } },

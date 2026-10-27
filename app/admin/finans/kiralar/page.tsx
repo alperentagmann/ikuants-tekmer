@@ -1,7 +1,9 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { Suspense, useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
+import { RentContractForm } from '@/components/admin/rent/RentContractForm';
 import {
     Receipt,
     Building2,
@@ -57,7 +59,8 @@ interface EntrepreneurRentItem {
     totalPaidAllTime: number;
 }
 
-export default function RentManagementPage() {
+function RentManagementInner() {
+    const searchParams = useSearchParams();
     const [viewMode, setViewMode] = useState<'ENTREPRENEURS' | 'ACCRUALS'>('ENTREPRENEURS');
     const [entrepreneurs, setEntrepreneurs] = useState<EntrepreneurRentItem[]>([]);
     const [accruals, setAccruals] = useState<any[]>([]);
@@ -79,18 +82,12 @@ export default function RentManagementPage() {
 
     // Create Contract Modal
     const [contractModalItem, setContractModalItem] = useState<EntrepreneurRentItem | null>(null);
-    const [contractForm, setContractForm] = useState({
-        spaceName: 'AntsPark Açık Ofis - Masa 1',
-        contractNo: `KIRA-${Date.now().toString().slice(-6)}`,
-        monthlyRent: '15000',
-        currency: 'TRY',
-        vatRate: '20',
-        dueDay: '5',
-        startDate: new Date().toISOString().split('T')[0],
-        endDate: new Date(Date.now() + 365 * 24 * 3600 * 1000).toISOString().split('T')[0],
-        isWaived: false,
-        notes: ''
-    });
+    const [editContractId, setEditContractId] = useState<string | null>(null);
+    // ?contract=<id> ile gelindiyse (ör. alan tahsisinden) sözleşme düzenleme formu açılır
+    useEffect(() => {
+        const id = searchParams.get('contract');
+        if (id) setEditContractId(id);
+    }, [searchParams]);
 
     // Generate Accrual Modal
     const [showGenerateModal, setShowGenerateModal] = useState(false);
@@ -148,40 +145,6 @@ export default function RentManagementPage() {
 
             setFeedback({ type: 'success', message: 'Kira tahsilatı başarıyla işlendi.' });
             setPaymentItem(null);
-            fetchData();
-        } catch (err: any) {
-            setFeedback({ type: 'error', message: err.message });
-        }
-    };
-
-    const handleCreateContract = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!contractModalItem) return;
-
-        try {
-            const res = await fetch('/api/admin/rent/contracts', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    entrepreneurId: contractModalItem.id,
-                    spaceName: contractForm.spaceName,
-                    contractNo: contractForm.contractNo,
-                    monthlyRent: Number(contractForm.monthlyRent),
-                    currency: contractForm.currency,
-                    vatRate: Number(contractForm.vatRate),
-                    dueDay: Number(contractForm.dueDay),
-                    startDate: contractForm.startDate,
-                    endDate: contractForm.endDate,
-                    isWaived: contractForm.isWaived,
-                    notes: contractForm.notes
-                })
-            });
-
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error || 'Sözleşme oluşturulamadı');
-
-            setFeedback({ type: 'success', message: `${contractModalItem.name} için kira sözleşmesi başarıyla oluşturuldu.` });
-            setContractModalItem(null);
             fetchData();
         } catch (err: any) {
             setFeedback({ type: 'error', message: err.message });
@@ -430,7 +393,7 @@ export default function RentManagementPage() {
                                                 ) : (
                                                     <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-semibold bg-amber-500/15 text-amber-400 border border-amber-500/30">
                                                         <ShieldAlert className="w-3 h-3" />
-                                                        Sözleşme Yok
+                                                        Sözleşme kaydı girilmemiş
                                                     </span>
                                                 )}
                                             </td>
@@ -495,6 +458,24 @@ export default function RentManagementPage() {
                                                             >
                                                                 + Ödeme Al
                                                             </button>
+                                                        )}
+                                                        {ent.contract && (
+                                                            <>
+                                                                <button
+                                                                    onClick={() => setEditContractId(ent.contract!.id)}
+                                                                    className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold border border-slate-700 transition-colors cursor-pointer"
+                                                                >
+                                                                    Düzenle
+                                                                </button>
+                                                                <a
+                                                                    href={`/api/admin/rent/contracts/${ent.contract.id}/print`}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold border border-slate-700 transition-colors"
+                                                                >
+                                                                    Çıktı
+                                                                </a>
+                                                            </>
                                                         )}
                                                         <Link
                                                             href={`/admin/girisimciler/${ent.id}`}
@@ -690,135 +671,19 @@ export default function RentManagementPage() {
                 </div>
             )}
 
-            {/* Create Contract Modal */}
-            {contractModalItem && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4">
-                    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-lg w-full shadow-2xl">
-                        <div className="flex items-center justify-between mb-4">
-                            <div>
-                                <h3 className="text-lg font-bold text-white">Kira Sözleşmesi Ekle</h3>
-                                <p className="text-xs text-slate-400">{contractModalItem.name} için yeni alan tahsisi ve sözleşme</p>
-                            </div>
-                            <button onClick={() => setContractModalItem(null)} className="text-slate-400 hover:text-white">
-                                <X className="w-5 h-5" />
-                            </button>
-                        </div>
-
-                        <form onSubmit={handleCreateContract} className="space-y-4">
-                            <div className="grid grid-cols-2 gap-3">
-                                <div>
-                                    <label className="block text-xs font-semibold text-slate-300 mb-1">Ofis / Alan Adı *</label>
-                                    <input
-                                        type="text"
-                                        required
-                                        value={contractForm.spaceName}
-                                        onChange={(e) => setContractForm({ ...contractForm, spaceName: e.target.value })}
-                                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:border-emerald-500 outline-none"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-semibold text-slate-300 mb-1">Sözleşme No *</label>
-                                    <input
-                                        type="text"
-                                        required
-                                        value={contractForm.contractNo}
-                                        onChange={(e) => setContractForm({ ...contractForm, contractNo: e.target.value })}
-                                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:border-emerald-500 outline-none"
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-3 gap-3">
-                                <div>
-                                    <label className="block text-xs font-semibold text-slate-300 mb-1">Aylık Net Kira *</label>
-                                    <input
-                                        type="number"
-                                        required
-                                        value={contractForm.monthlyRent}
-                                        onChange={(e) => setContractForm({ ...contractForm, monthlyRent: e.target.value })}
-                                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:border-emerald-500 outline-none"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-semibold text-slate-300 mb-1">Para Birimi</label>
-                                    <select
-                                        value={contractForm.currency}
-                                        onChange={(e) => setContractForm({ ...contractForm, currency: e.target.value })}
-                                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-2 py-2 text-xs text-white focus:border-emerald-500 outline-none"
-                                    >
-                                        <option value="TRY">TRY</option>
-                                        <option value="USD">USD</option>
-                                        <option value="EUR">EUR</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-semibold text-slate-300 mb-1">Vade Günü</label>
-                                    <input
-                                        type="number"
-                                        min="1"
-                                        max="31"
-                                        value={contractForm.dueDay}
-                                        onChange={(e) => setContractForm({ ...contractForm, dueDay: e.target.value })}
-                                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:border-emerald-500 outline-none"
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-3">
-                                <div>
-                                    <label className="block text-xs font-semibold text-slate-300 mb-1">Başlangıç Tarihi *</label>
-                                    <input
-                                        type="date"
-                                        required
-                                        value={contractForm.startDate}
-                                        onChange={(e) => setContractForm({ ...contractForm, startDate: e.target.value })}
-                                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:border-emerald-500 outline-none"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-semibold text-slate-300 mb-1">Bitiş Tarihi *</label>
-                                    <input
-                                        type="date"
-                                        required
-                                        value={contractForm.endDate}
-                                        onChange={(e) => setContractForm({ ...contractForm, endDate: e.target.value })}
-                                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:border-emerald-500 outline-none"
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="flex items-center gap-2 pt-1">
-                                <input
-                                    type="checkbox"
-                                    id="isWaived-cb"
-                                    checked={contractForm.isWaived}
-                                    onChange={(e) => setContractForm({ ...contractForm, isWaived: e.target.checked })}
-                                    className="rounded border-slate-700 bg-slate-950 text-primary"
-                                />
-                                <label htmlFor="isWaived-cb" className="text-xs text-slate-300">
-                                    Kira Muafiyeti (Ücretsiz Kuluçka / Destek Kapsamı)
-                                </label>
-                            </div>
-
-                            <div className="flex justify-end gap-2 pt-3 border-t border-slate-800">
-                                <button
-                                    type="button"
-                                    onClick={() => setContractModalItem(null)}
-                                    className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-semibold"
-                                >
-                                    İptal
-                                </button>
-                                <button
-                                    id="submit-contract-btn"
-                                    type="submit"
-                                    className="px-5 py-2 rounded-xl bg-primary hover:bg-primary/80 text-white text-xs font-bold cursor-pointer"
-                                >
-                                    Sözleşmeyi Kaydet
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
+            {/* Kira sözleşmesi (tüm alanlar) — yeni veya düzenleme */}
+            {(contractModalItem || editContractId) && (
+                <RentContractForm
+                    contractId={editContractId ?? undefined}
+                    entrepreneurId={contractModalItem?.id}
+                    onClose={() => { setContractModalItem(null); setEditContractId(null); }}
+                    onSaved={() => {
+                        setFeedback({ type: 'success', message: editContractId ? 'Kira sözleşmesi güncellendi.' : `${contractModalItem?.name ?? ''} için kira sözleşmesi oluşturuldu.` });
+                        setContractModalItem(null);
+                        setEditContractId(null);
+                        fetchData();
+                    }}
+                />
             )}
 
             {/* Generate Accruals Modal */}
@@ -875,5 +740,13 @@ export default function RentManagementPage() {
                 </div>
             )}
         </div>
+    );
+}
+
+export default function RentManagementPage() {
+    return (
+        <Suspense>
+            <RentManagementInner />
+        </Suspense>
     );
 }

@@ -3,10 +3,11 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ImageGalleryEditor, type GalleryImage } from '@/components/admin/ImageGalleryEditor';
 import Link from 'next/link';
-import { Building2, CalendarClock, KeySquare, Search, Plus, Pencil, Boxes, CheckCircle2, XCircle, Clock, Repeat, UserPlus, Archive, ExternalLink, Image as ImageIcon } from 'lucide-react';
+import { Building2, CalendarClock, KeySquare, Search, Plus, Pencil, Boxes, CheckCircle2, XCircle, Clock, Repeat, UserPlus, Archive, FilePlus2, Printer, Image as ImageIcon } from 'lucide-react';
 import { PageHeader, Button, Card, Badge, Alert, Skeleton, EmptyState, Drawer, Modal, Tabs, Field, TextInput, TextArea, Select, Toggle, KeyValue, inputClass, api, formatDate } from '@/components/admin/ui';
 import { ExperienceEditor } from '@/components/admin/spaces/ExperienceEditor';
 import { PricingMachinesEditor } from '@/components/admin/spaces/PricingMachinesEditor';
+import { RentContractForm } from '@/components/admin/rent/RentContractForm';
 import { facilityPricing, isMachineType, pricingLabel, type FacilityPricing, type MachineInfo } from '@/lib/machines';
 
 type Tab = 'alanlar' | 'rezervasyonlar' | 'tahsisler' | 'musaitlik';
@@ -30,7 +31,7 @@ interface Reservation {
 }
 interface Assignment {
     id: string; status: string; unitLabel: string | null; startDate: string | null; endDate: string | null; notes: string | null;
-    facility: { id: string; title: string }; organization: { id: string; name: string } | null; entrepreneur: { id: string; name: string } | null;
+    facility: { id: string; title: string } | null; unit?: { code: string; floor: { name: string; building: { name: string } } } | null; organization: { id: string; name: string } | null; entrepreneur: { id: string; name: string } | null;
     application: { id: string; applicationNumber: string } | null; rentContract: { id: string; contractNo: string; status: string } | null;
 }
 
@@ -91,6 +92,7 @@ export default function SpacesPage() {
     const [orgResults, setOrgResults] = useState<{ id: string; name: string }[]>([]);
     const [entResults, setEntResults] = useState<{ id: string; name: string }[]>([]);
     const [contractFor, setContractFor] = useState<Assignment | null>(null);
+    const [newContractFor, setNewContractFor] = useState<Assignment | null>(null);
     const [contracts, setContracts] = useState<{ id: string; contractNo: string; spaceName: string; status: string }[]>([]);
 
     const [check, setCheck] = useState({ spaceId: '', date: '', startTime: '14:00', endTime: '16:00', participantCount: 1 });
@@ -299,12 +301,12 @@ export default function SpacesPage() {
                                 <tbody className="divide-y divide-white/5">
                                     {assignments.map((a) => (
                                         <tr key={a.id}>
-                                            <td className="px-4 py-3 text-gray-100">{a.facility.title}{a.unitLabel ? <span className="text-gray-500"> · {a.unitLabel}</span> : null}</td>
+                                            <td className="px-4 py-3 text-gray-100">{a.unit ? `${a.unit.floor.building.name} · ${a.unit.floor.name} · ${a.unit.code}` : a.facility?.title ?? '—'}{a.unitLabel ? <span className="text-gray-500"> · {a.unitLabel}</span> : null}</td>
                                             <td className="px-4 py-3 text-xs">{a.organization ? <Link className="text-primary hover:underline" href={`/admin/rehber?organizationId=${a.organization.id}`}>{a.organization.name}</Link> : null}{a.entrepreneur ? <div><Link className="text-primary hover:underline" href={`/admin/girisimciler/${a.entrepreneur.id}`}>{a.entrepreneur.name}</Link></div> : null}</td>
                                             <td className="px-4 py-3"><Badge tone={ASSIGN_STATUS[a.status]?.tone || 'neutral'}>{ASSIGN_STATUS[a.status]?.label || a.status}</Badge></td>
                                             <td className="px-4 py-3 text-xs text-gray-400">{formatDate(a.startDate)} – {formatDate(a.endDate)}</td>
                                             <td className="px-4 py-3 text-xs">{a.application ? <Link className="text-primary hover:underline" href={`/admin/basvurular/${a.application.id}`}>{a.application.applicationNumber}</Link> : 'Manuel'}</td>
-                                            <td className="px-4 py-3 text-xs">{a.rentContract ? <Link className="text-primary hover:underline" href="/admin/finans/kiralar">{a.rentContract.contractNo}</Link> : <span className="text-gray-500">Sözleşme yok</span>}</td>
+                                            <td className="px-4 py-3 text-xs">{a.rentContract ? <span className="inline-flex items-center gap-1.5"><Link className="text-primary hover:underline" href={`/admin/finans/kiralar?contract=${a.rentContract.id}`}>{a.rentContract.contractNo}</Link><a href={`/api/admin/rent/contracts/${a.rentContract.id}/print`} target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white" aria-label={`${a.rentContract.contractNo} çıktısı`}><Printer className="h-3.5 w-3.5" /></a></span> : <Badge tone="warning">Bağlanmamış</Badge>}</td>
                                             <td className="px-4 py-3">
                                                 <div className="flex flex-wrap gap-1">
                                                     {a.status === 'PLANNED' && <Button size="sm" variant="success" onClick={() => {
@@ -314,7 +316,7 @@ export default function SpacesPage() {
                                                     {a.status === 'ACTIVE' && <Button size="sm" onClick={() => act(() => api(`/api/admin/space-assignments/${a.id}`, { method: 'PATCH', json: { status: 'ENDED' } }))}>Sonlandır</Button>}
                                                     {a.status === 'PLANNED' && <Button size="sm" variant="ghost" onClick={() => act(() => api(`/api/admin/space-assignments/${a.id}`, { method: 'PATCH', json: { status: 'CANCELLED' } }))}>İptal</Button>}
                                                     {!a.rentContract && a.entrepreneur && <Button size="sm" onClick={async () => { setContractFor(a); const d = await api<{ items: { id: string; contractNo: string; spaceName: string; status: string }[] }>(`/api/admin/rent/contracts?entrepreneurId=${a.entrepreneur!.id}`).catch(() => ({ items: [] })); setContracts(d.items); }}>Sözleşme Bağla</Button>}
-                                                    {!a.rentContract && a.entrepreneur && <Link href={`/admin/girisimciler/${a.entrepreneur.id}/finans-kira`} className="inline-flex items-center gap-1 rounded-md bg-white/5 px-2 py-1 text-xs text-gray-200 hover:bg-white/10"><ExternalLink className="h-3 w-3" />Sözleşme Oluştur</Link>}
+                                                    {!a.rentContract && a.entrepreneur && <Button size="sm" icon={FilePlus2} onClick={() => setNewContractFor(a)}>Sözleşme Oluştur</Button>}
                                                 </div>
                                             </td>
                                         </tr>
@@ -482,8 +484,10 @@ export default function SpacesPage() {
                 </div>
             </Modal>
 
+            {newContractFor && <RentContractForm entrepreneurId={newContractFor.entrepreneur?.id} assignmentId={newContractFor.id} onClose={() => setNewContractFor(null)} onSaved={() => { setNewContractFor(null); setNotice('Sözleşme oluşturuldu ve tahsise bağlandı.'); loadAssignments(); }} />}
+
             <Modal open={Boolean(contractFor)} onClose={() => setContractFor(null)} title="Sözleşme bağla" description="Girişimin mevcut kira sözleşmelerinden birini bu tahsise bağlayın.">
-                {contracts.length === 0 ? <p className="text-sm text-gray-400">Bu girişimin kira sözleşmesi yok. Önce sözleşme oluşturun.</p> : (
+                {contracts.length === 0 ? <div className="space-y-3"><p className="text-sm text-gray-400">Bu girişim için kayıtlı kira sözleşmesi bulunamadı. Sözleşmeyi tüm bilgileriyle buradan oluşturabilirsiniz; tahsise otomatik bağlanır.</p><Button variant="primary" icon={FilePlus2} onClick={() => { setNewContractFor(contractFor); setContractFor(null); }}>Sözleşme Oluştur</Button></div> : (
                     <ul className="space-y-1">
                         {contracts.map((c) => <li key={c.id}><button type="button" className="w-full rounded-lg border border-white/10 px-3 py-2 text-left text-sm text-gray-200 hover:border-primary" onClick={async () => { if (!contractFor) return; const ok = await act(() => api(`/api/admin/space-assignments/${contractFor.id}`, { method: 'PATCH', json: { rentContractId: c.id } })); if (ok) setContractFor(null); }}>{c.contractNo} · {c.spaceName} <span className="text-xs text-gray-500">({c.status})</span></button></li>)}
                     </ul>
