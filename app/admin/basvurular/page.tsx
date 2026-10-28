@@ -7,6 +7,7 @@ import { PageHeader, Button, Card, Badge, Alert, Skeleton, EmptyState, Modal, Fi
 import { APPLICATION_STATUSES } from '@/lib/constants/application';
 import { APPLICANT_TYPES, applicantTypeLabel, applicationTypeLabel } from '@/lib/forms/schema';
 import { sanitizeCsvCellClient } from './csv';
+import { StatusBoard } from '@/components/admin/StatusBoard';
 
 type View = 'all' | 'program' | 'tekmer' | 'other';
 
@@ -271,31 +272,27 @@ export default function ApplicationCenterPage() {
                     </div>
                 </Card>
             ) : (
-                <div className="flex gap-3 overflow-x-auto pb-3">
-                    {Array.from(stageMap.entries()).map(([key, items]) => (
-                        <div key={key} className="w-72 shrink-0 rounded-xl border border-white/10 bg-white/[0.02]">
-                            <div className="flex items-center justify-between border-b border-white/10 px-3 py-2">
-                                <span className="text-xs font-semibold text-gray-200">{statusLabel(key, pipelineStages)}</span>
-                                <Badge>{items.length}</Badge>
+                <StatusBoard
+                    label="Başvuru aşamaları"
+                    columns={Array.from(stageMap.keys()).map((key) => ({ key, label: statusLabel(key, pipelineStages), tone: stageTone(key) }))}
+                    items={rows}
+                    getStatus={(r) => r.status}
+                    emptyText="Başvuru yok"
+                    onMove={async (r, to) => {
+                        await api(`/api/admin/applications/${r.id}`, { method: 'PUT', json: { status: to, reason: 'Pipeline panosunda taşındı' } });
+                        void load();
+                    }}
+                    renderCard={(r) => (
+                        <Link href={`/admin/basvurular/${r.id}`} draggable={false} className="block hover:text-white">
+                            <div className="flex items-center justify-between gap-2">
+                                <span className="font-mono text-[10px] text-gray-500">{r.applicationNumber}</span>
+                                <Badge tone={r.applicationType === 'TEKMER' ? 'warning' : 'primary'}>{applicationTypeLabel(r.applicationType)}</Badge>
                             </div>
-                            <ul className="max-h-[65vh] space-y-2 overflow-y-auto p-2">
-                                {items.length === 0 && <li className="p-3 text-center text-[11px] text-gray-600">Başvuru yok</li>}
-                                {items.map((r) => (
-                                    <li key={r.id}>
-                                        <Link href={`/admin/basvurular/${r.id}`} className="block rounded-lg border border-white/10 bg-black/20 p-2.5 hover:border-primary/40">
-                                            <div className="flex items-center justify-between gap-2">
-                                                <span className="font-mono text-[10px] text-gray-500">{r.applicationNumber}</span>
-                                                <Badge tone={r.applicationType === 'TEKMER' ? 'warning' : 'primary'}>{applicationTypeLabel(r.applicationType)}</Badge>
-                                            </div>
-                                            <div className="mt-1 truncate text-sm text-gray-100">{r.applicantName}</div>
-                                            <div className="truncate text-[11px] text-gray-500">{r.campaign?.name || 'Kampanyasız'}</div>
-                                        </Link>
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-                    ))}
-                </div>
+                            <div className="mt-1 truncate text-sm text-gray-100">{r.applicantName}</div>
+                            <div className="truncate text-[11px] text-gray-500">{r.campaign?.name || 'Kampanyasız'}</div>
+                        </Link>
+                    )}
+                />
             )}
 
             <Modal

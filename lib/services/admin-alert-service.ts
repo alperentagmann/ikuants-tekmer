@@ -2,7 +2,7 @@ import { prisma } from '@/lib/prisma';
 import { logAuditEvent } from '@/lib/audit';
 import { EmailOutboxService, escapeHtml } from '@/lib/services/email-outbox-service';
 import { IntegrationService } from '@/lib/services/integration-service';
-import { ALERT_EVENTS, ALERT_RULES_KEY, getAlertRules, resolveAlertRecipients, sanitizeAlertRules, type AlertEvent, type AlertRules } from '@/lib/services/alert-recipients';
+import { ALERT_EVENTS, ALERT_RULES_KEY, getAlertRules, getAlertSettings, resolveAlertRecipients, resolveGlobalRecipients, sanitizeAlertGlobal, sanitizeAlertRules, serializeAlertSettings, type AlertEvent, type AlertGlobal, type AlertRules } from '@/lib/services/alert-recipients';
 
 const WEBHOOK_EVENT_OF: Record<AlertEvent, string> = {
     APPLICATION_NEW: 'application.created',
@@ -66,16 +66,37 @@ export const AdminAlertService = {
 
     getRules: getAlertRules,
 
-    async saveRules(input: unknown, actor: { id: string; email: string; name: string }): Promise<AlertRules> {
-        const before = await getAlertRules();
+    getSettings: getAlertSettings,
+
+    /** Saves event rules and, when given, the global recipients (omitted global keeps the stored one). */
+    async saveRules(input: unknown, actor: { id: string; email: string; name: string }, globalInput?: unknown): Promise<{ rules: AlertRules; global: AlertGlobal }> {
+        const before = await getAlertSettings();
         const rules = sanitizeAlertRules(input);
+        const global = globalInput === undefined ? before.global : sanitizeAlertGlobal(globalInput);
+        const value = serializeAlertSettings(rules, global);
         await prisma.siteSetting.upsert({
             where: { key: ALERT_RULES_KEY },
-            update: { value: JSON.stringify(rules) },
-            create: { key: ALERT_RULES_KEY, value: JSON.stringify(rules), group: 'NOTIFICATIONS', isPublic: false, description: 'Admin bildirim kuralları' },
+            update: { value },
+            create: { key: ALERT_RULES_KEY, value, group: 'NOTIFICATIONS', isPublic: false, description: 'Admin bildirim kuralları ve alıcılar' },
         });
-        await logAuditEvent({ actorId: actor.id, actorEmail: actor.email, actorName: actor.name, action: 'UPDATE', entityType: 'AlertRules', entityId: ALERT_RULES_KEY, oldValues: before, newValues: rules });
-        return rules;
+        await logAuditEvent({ actorId: actor.id, actorEmail: actor.email, actorName: actor.name, action: 'UPDATE', entityType: 'AlertRules', entityId: ALERT_RULES_KEY, oldValues: before, newValues: { rules, global } });
+        return { rules, global };
+    },
+
+    /** Queues a test e-mail to everyone who receives every alert, so the recipient list can be checked end to end. */
+    async sendTest(actor: { id: string; email: string; name: string }): Promise<{ queued: number; recipients: string[] }> {
+        const recipients = await resolveGlobalRecipients();
+        const html = `<div style="font-family:Arial,sans-serif;line-height:1.6;color:#1e293b;max-width:600px;margin:0 auto;padding:24px;border:1px solid #e2e8f0;border-radius:12px">
+            <div style="font-size:12px;letter-spacing:.08em;color:#7c3aed;font-weight:700;text-transform:uppercase">Test bildirimi</div>
+            <h2 style="margin:6px 0 16px">Bildirim e-postaları bu adrese ulaşıyor</h2>
+            <p>Bu ileti ${escapeHtml(actor.name)} tarafından Ayarlar › Bildirimler ekranından gönderildi. Başvuru, kira, sözleşme ve poliçe uyarıları bu adrese de gelecektir.</p>
+            <p style="color:#94a3b8;font-size:12px">İKÜANTS TEKMER yönetim sistemi</p>
+        </div>`;
+        for (const r of recipients) {
+            await EmailOutboxService.enqueueEmail({ recipientEmail: r.email, recipientName: r.name, subject: 'İKÜANTS TEKMER — Test bildirimi', templateKey: 'ALERT_TEST', htmlBody: html, entityType: 'AlertRules', entityId: ALERT_RULES_KEY });
+        }
+        await logAuditEvent({ actorId: actor.id, actorEmail: actor.email, actorName: actor.name, action: 'CREATE', entityType: 'AlertTestEmail', entityId: ALERT_RULES_KEY, newValues: { recipients: recipients.map((r) => r.email) } });
+        return { queued: recipients.length, recipients: recipients.map((r) => r.email) };
     },
 
     async preview(event: AlertEvent) {

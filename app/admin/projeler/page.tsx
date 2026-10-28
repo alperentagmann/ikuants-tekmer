@@ -1,5 +1,15 @@
 "use client";
 import React, { useState, useEffect } from 'react';
+import { StatusBoard } from '@/components/admin/StatusBoard';
+
+const PROJECT_COLUMNS = [
+    { key: 'PROPOSAL', label: 'Teklif / başvuru', tone: 'neutral' as const },
+    { key: 'APPROVED', label: 'Onaylandı', tone: 'info' as const },
+    { key: 'ACTIVE', label: 'Devam ediyor', tone: 'warning' as const },
+    { key: 'COMPLETED', label: 'Tamamlandı', tone: 'success' as const },
+    { key: 'SUSPENDED', label: 'Askıda', tone: 'neutral' as const },
+    { key: 'CANCELLED', label: 'İptal', tone: 'danger' as const },
+];
 import {
     FolderKanban, Plus, Search, Calendar, DollarSign,
     AlertTriangle, CheckCircle2, FileText, ChevronRight, Download
@@ -28,6 +38,7 @@ interface ProjectItem {
 export default function ProjectsPage() {
     const [projects, setProjects] = useState<ProjectItem[]>([]);
     const [loading, setLoading] = useState(true);
+    const [display, setDisplay] = useState<'grid' | 'board'>('grid');
     const [search, setSearch] = useState('');
     const [projectType, setProjectType] = useState('');
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -147,6 +158,10 @@ export default function ProjectsPage() {
                     ))}
                 </div>
 
+                <div className="flex rounded-lg border border-white/10 p-0.5" role="group" aria-label="Görünüm">
+                    <button type="button" onClick={() => setDisplay('grid')} aria-pressed={display === 'grid'} className={`rounded-md px-2.5 py-1 text-xs ${display === 'grid' ? 'bg-white/10 text-white' : 'text-gray-400'}`}>Kartlar</button>
+                    <button type="button" onClick={() => setDisplay('board')} aria-pressed={display === 'board'} className={`rounded-md px-2.5 py-1 text-xs ${display === 'board' ? 'bg-white/10 text-white' : 'text-gray-400'}`}>Pano (sürükle)</button>
+                </div>
                 <div className="relative w-full md:w-64">
                     <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
                     <input
@@ -168,6 +183,26 @@ export default function ProjectsPage() {
                     <div className="text-sm font-semibold text-white">Henüz kayıtlı proje bulunmuyor</div>
                     <p className="text-xs text-gray-500">KOSGEB veya TÜBİTAK hibe projelerini ekleyerek kilometre taşı takibini başlatın.</p>
                 </div>
+            ) : display === 'board' ? (
+                <StatusBoard
+                    label="Proje durumları"
+                    columns={PROJECT_COLUMNS}
+                    items={projects}
+                    getStatus={(p) => p.status}
+                    emptyText="Proje yok"
+                    onMove={async (p, to) => {
+                        const res = await fetch(`/api/admin/projects/${p.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: to }) });
+                        const j = await res.json().catch(() => ({}));
+                        if (!res.ok || j.success === false) throw new Error(j.message || 'Proje durumu değiştirilemedi.');
+                        void fetchProjects();
+                    }}
+                    renderCard={(p) => (
+                        <a href={`/admin/projeler/${p.id}`} draggable={false} className="block">
+                            <span className="line-clamp-2 text-sm text-gray-100">{p.title}</span>
+                            <span className="mt-1 block text-[11px] text-gray-500">{[p.code, p.fundingAgency].filter(Boolean).join(' · ')}</span>
+                        </a>
+                    )}
+                />
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {projects.map((p) => (

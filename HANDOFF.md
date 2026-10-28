@@ -80,3 +80,16 @@ Son doğrulama: 2026-10-05, yerel ortam (gömülü PostgreSQL, Node.js, Next.js 
 
 [README.md](README.md) · [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) · [ADMIN_GUIDE.md](ADMIN_GUIDE.md) ·
 [docs/AI_SETUP.md](docs/AI_SETUP.md) · [docs/FORM_CENTER_GUIDE.md](docs/FORM_CENTER_GUIDE.md) · [docs/3D_ASSET_GUIDE.md](docs/3D_ASSET_GUIDE.md) · [.env.example](.env.example)
+
+## Sürükle-bırak durum panoları ve uyarı e-postası alıcıları (2026-10-28)
+
+- `components/admin/StatusBoard.tsx`: kartı sütunlar arasında sürükleyerek durum değiştirme (her kartta ayrıca "Aşamaya taşı" menüsü). Sunucu reddederse kart geri döner.
+  Kullanıldığı ekranlar: Başvurular (pipeline), Görevler ("Pano (sürükle)"), Projeler ("Pano (sürükle)"), İletişim talepleri ("Pano (sürükle)").
+- Proje ve iletişim talebi uçları artık yalnız geçerli durumları kabul eder (400 döner).
+- Ayarlar › Bildirimler › "Uyarı e-postası alıcıları":
+  - Kurum e-postası (ör. bilgi@ikuantstekmer.com) her uyarıyı alır.
+  - Süper Yöneticiler her uyarıyı alır; kapatılamaz.
+  - Admin rolündeki kullanıcılar her uyarıyı kişisel e-postalarına alır; kişi bazında kapatılabilir.
+  - "Test e-postası gönder" düğmesi alıcı listesini uçtan uca dener.
+  - Ayar `alert_rules` satırında `_global` anahtarında saklanır; migration gerekmez.
+- SMTP tanımlı değilse e-postalar outbox'ta PENDING bekler. Canlıda `SMTP_HOST/PORT/USER/PASS/FROM` girilmelidir.

@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect } from 'react';
+import { StatusBoard } from '@/components/admin/StatusBoard';
 import { DataTable, Column } from '@/components/admin/DataTable';
 import { StatusBadge } from '@/components/admin/StatusBadge';
 import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
@@ -9,6 +10,7 @@ export default function AdminIletisimPage() {
     const [contacts, setContacts] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<'all' | 'MESSAGE' | 'MEETING' | 'VISIT'>('all');
+    const [display, setDisplay] = useState<'list' | 'board'>('list');
     const [selectedContact, setSelectedContact] = useState<any | null>(null);
 
     const fetchContacts = async () => {
@@ -135,7 +137,39 @@ export default function AdminIletisimPage() {
                 </div>
             </div>
 
-            {/* Table */}
+            <div className="flex justify-end">
+                <div className="flex rounded-lg border border-white/10 p-0.5" role="group" aria-label="Görünüm">
+                    <button type="button" onClick={() => setDisplay('list')} aria-pressed={display === 'list'} className={`rounded-md px-2.5 py-1 text-xs ${display === 'list' ? 'bg-white/10 text-white' : 'text-gray-400'}`}>Liste</button>
+                    <button type="button" onClick={() => setDisplay('board')} aria-pressed={display === 'board'} className={`rounded-md px-2.5 py-1 text-xs ${display === 'board' ? 'bg-white/10 text-white' : 'text-gray-400'}`}>Pano (sürükle)</button>
+                </div>
+            </div>
+
+            {display === 'board' ? (
+                <StatusBoard
+                    label="Talep durumları"
+                    columns={[
+                        { key: 'NEW', label: 'Yeni', tone: 'warning' },
+                        { key: 'CONFIRMED', label: 'Onaylandı / planlandı', tone: 'info' },
+                        { key: 'RESPONDED', label: 'Yanıtlandı', tone: 'success' },
+                        { key: 'CANCELLED', label: 'İptal', tone: 'danger' },
+                    ]}
+                    items={contacts}
+                    getStatus={(c) => c.status}
+                    emptyText="Talep yok"
+                    onMove={async (c, to) => {
+                        const res = await fetch(`/api/admin/contacts/${c.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: to }) });
+                        const j = await res.json().catch(() => ({}));
+                        if (!res.ok || j.success === false) throw new Error(j.message || j.error || 'Durum değiştirilemedi.');
+                        void fetchContacts();
+                    }}
+                    renderCard={(c) => (
+                        <button type="button" onClick={() => setSelectedContact(c)} className="block w-full text-left">
+                            <span className="block truncate text-sm text-gray-100">{c.fullName}</span>
+                            <span className="block truncate text-[11px] text-gray-500">{[c.company, c.meetingTopic || c.visitTopic || c.message].filter(Boolean).join(' · ')}</span>
+                        </button>
+                    )}
+                />
+            ) : (
             <DataTable
                 data={contacts}
                 columns={columns}
@@ -143,6 +177,7 @@ export default function AdminIletisimPage() {
                 exportFileName="ikuants-talepler"
                 onRowClick={(item) => setSelectedContact(item)}
             />
+            )}
 
             {/* Detail Drawer / Modal */}
             {selectedContact && (

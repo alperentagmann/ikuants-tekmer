@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import { DomainError } from '@/lib/errors';
 import { logAuditEvent } from '@/lib/audit';
 import { addTimelineEvent } from '@/lib/timeline';
 
@@ -95,6 +96,7 @@ export const ContactService = {
     async updateStatus(id: string, status: string, actor?: { id: string; name: string; email: string }) {
         const old = await prisma.contactRequest.findUnique({ where: { id } });
         if (!old) throw new Error('Contact request not found');
+        if (!['NEW', 'CONFIRMED', 'RESPONDED', 'CANCELLED'].includes(status)) throw new DomainError('Geçersiz talep durumu.');
 
         const updated = await prisma.contactRequest.update({
             where: { id },

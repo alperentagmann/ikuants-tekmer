@@ -3,6 +3,7 @@ import { ContactService } from '@/lib/services/contact-service';
 import { getCurrentAdminUser } from '@/lib/auth';
 import { hasPermission } from '@/lib/rbac';
 import { prisma } from '@/lib/prisma';
+import { DomainError } from '@/lib/errors';
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     try {
@@ -39,6 +40,6 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
         return NextResponse.json({ success: true, message: 'Talep güncellendi.' });
     } catch (e: any) {
-        return NextResponse.json({ success: false, message: e.message || 'Hata' }, { status: 500 });
+        return NextResponse.json({ success: false, message: e.message || 'Hata' }, { status: e instanceof DomainError ? 400 : 500 });
     }
 }

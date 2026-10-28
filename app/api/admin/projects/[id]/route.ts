@@ -69,6 +69,9 @@ export async function PUT(
         }
 
         // Update main project details
+        if (body.status !== undefined && !['PROPOSAL', 'APPROVED', 'ACTIVE', 'COMPLETED', 'SUSPENDED', 'CANCELLED'].includes(String(body.status))) {
+            return NextResponse.json({ success: false, message: 'Geçersiz proje durumu.' }, { status: 400 });
+        }
         const updated = await prisma.project.update({
             where: { id },
             data: {

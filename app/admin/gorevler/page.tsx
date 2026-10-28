@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { StatusBoard } from '@/components/admin/StatusBoard';
 import { TaskWorkPanel } from '@/components/admin/tasks/TaskWorkPanel';
 import { TaskWorkOsPanel, type WorkOsTask } from '@/components/admin/work/TaskWorkOsPanel';
 import { AvatarStack } from '@/components/admin/work/people';
@@ -71,6 +72,7 @@ export default function TasksPage() {
     const [error, setError] = useState<string | null>(null);
     const [notice, setNotice] = useState<{ text: string; taskId?: string } | null>(null);
     const [scope, setScope] = useState<Scope>('all');
+    const [display, setDisplay] = useState<'list' | 'board'>('list');
     const [statusFilter, setStatusFilter] = useState('');
     const [search, setSearch] = useState('');
     const [teamFilter, setTeamFilter] = useState('');
@@ -280,12 +282,39 @@ export default function TasksPage() {
                         <input aria-label="Görev ara" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Görev ara..." className={`${inputClass} pl-9`} />
                     </div>
                     <Select aria-label="Ekip" value={teamFilter} onChange={(e) => setTeamFilter(e.target.value)} placeholder="Tüm ekipler" options={[...teams.map((t) => ({ value: t.id, label: t.name })), { value: 'none', label: 'Ekipsiz işler' }]} className="md:w-52" />
+                    <div className="flex rounded-lg border border-white/10 p-0.5" role="group" aria-label="Görünüm">
+                        <button type="button" onClick={() => setDisplay('list')} aria-pressed={display === 'list'} className={`rounded-md px-2.5 py-1.5 text-xs ${display === 'list' ? 'bg-white/10 text-white' : 'text-gray-400'}`}>Liste</button>
+                        <button type="button" onClick={() => setDisplay('board')} aria-pressed={display === 'board'} className={`rounded-md px-2.5 py-1.5 text-xs ${display === 'board' ? 'bg-white/10 text-white' : 'text-gray-400'}`}>Pano (sürükle)</button>
+                    </div>
                     <Select aria-label="Durum" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} placeholder="Tüm durumlar" options={(Object.keys(STATUS_LABEL) as Status[]).map((s) => ({ value: s, label: `${STATUS_LABEL[s]}${counts[s] ? ` (${counts[s]})` : ''}` }))} className="md:w-56" />
                 </div>
             </Card>
 
             {loading ? <Skeleton rows={6} /> : tasks.length === 0 ? (
                 <EmptyState icon={CheckSquare} title="Bu görünümde görev yok." action={<Button variant="primary" icon={Plus} onClick={() => setCreateOpen(true)}>Görev Oluştur</Button>} />
+            ) : display === 'board' ? (
+                <StatusBoard
+                    label="Görev durumları"
+                    columns={(Object.keys(STATUS_LABEL) as Status[]).map((k) => ({ key: k, label: STATUS_LABEL[k], tone: STATUS_TONE[k] }))}
+                    items={tasks}
+                    getStatus={(t) => t.status}
+                    emptyText="Görev yok"
+                    onMove={async (t, to) => {
+                        // İş akışı kuralları sunucuda (kontrol zorunluluğu, yetki); uygun eylem hedef duruma göre seçilir
+                        await api('/api/admin/tasks', { method: 'PUT', json: { taskId: t.id, status: to } });
+                        setNotice({ text: `"${t.title}" → ${STATUS_LABEL[to as Status]}`, taskId: t.id });
+                        void load();
+                    }}
+                    renderCard={(t) => (
+                        <button type="button" onClick={() => setDetailId(t.id)} className="block w-full text-left">
+                            <span className="line-clamp-2 text-sm text-gray-100">{t.title}</span>
+                            <span className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] text-gray-500">
+                                {t.dueDate && <span>{formatDate(t.dueDate)}</span>}
+                                {t.assignees?.length ? <span>{t.assignees.map((a) => a.user.name).filter(Boolean).slice(0, 2).join(', ')}</span> : null}
+                            </span>
+                        </button>
+                    )}
+                />
             ) : (
                 <Card padded={false} className="overflow-x-auto">
                     <table className="w-full min-w-[980px] text-left text-sm">
