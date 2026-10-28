@@ -49,7 +49,7 @@ export async function PUT(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    if (!auth.user.isSuperAdmin && !hasPermission(auth.user, "edit", "rent")) {
+    if (!auth.user.isSuperAdmin && !hasPermission(auth.user, "update", "rent")) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

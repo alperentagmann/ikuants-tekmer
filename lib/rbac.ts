@@ -278,6 +278,16 @@ export const SYSTEM_PERMISSIONS = [
     { action: 'view', resource: 'events', description: 'Etkinlikleri görüntüleme' },
     { action: 'create', resource: 'events', description: 'Yeni etkinlik oluşturma' },
     { action: 'edit', resource: 'events', description: 'Etkinlik ve biletleri düzenleme' },
+    { action: 'delete', resource: 'events', description: 'Etkinliği arşivleme / silme' },
+    { action: 'delete', resource: 'trainings', description: 'Eğitimi arşivleme / silme' },
+    { action: 'view', resource: 'approvals', description: 'Onay bekleyen içerikleri görme' },
+    { action: 'publish', resource: 'approvals', description: 'Onaylanan içeriği yayınlama' },
+    { action: 'view', resource: 'directory', description: 'Rehber şirket listesini görme' },
+    { action: 'create', resource: 'directory', description: 'Rehbere şirket ekleme' },
+    { action: 'view', resource: 'homepage', description: 'Ana sayfa bloklarını görme' },
+    { action: 'create', resource: 'homepage', description: 'Ana sayfa bloğu ekleme' },
+    { action: 'edit', resource: 'homepage', description: 'Ana sayfa bloklarını düzenleme' },
+    { action: 'delete', resource: 'homepage', description: 'Ana sayfa bloğunu kaldırma' },
 
     // Settings & Customization
     { action: 'manage', resource: 'settings', description: 'Site ayarlarını yönetme' },
@@ -392,6 +402,7 @@ export const SYSTEM_PERMISSIONS = [
     { action: 'update', resource: 'rent', description: 'Kira sözleşmesi ve ayarlarını düzenleme' },
     { action: 'payment', resource: 'rent', description: 'Kira tahsilatı ve kısmi ödeme kaydetme' },
     { action: 'reminder', resource: 'rent', description: 'Otomatik ve manuel kira hatırlatma gönderme' },
+    { action: 'export', resource: 'rent', description: 'Kira raporu ve girişim kira ekstresini dışa aktarma' },
 
     // Invoice Management
     { action: 'view', resource: 'invoice', description: 'Fatura ve finansal belgeleri görüntüleme' },

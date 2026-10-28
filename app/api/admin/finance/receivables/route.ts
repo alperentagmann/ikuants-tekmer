@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
         const isExport = searchParams.get('export') === 'true';
 
         if (isExport) {
-            if (!auth.user.isSuperAdmin && !hasPermission(auth.user, 'export', 'finance') && !hasPermission(auth.user, 'manage', 'finance')) {
+            if (!auth.user.isSuperAdmin && !hasPermission(auth.user, 'export', 'finance') && !hasPermission(auth.user, 'update', 'finance')) {
                 return NextResponse.json({ success: false, error: 'Alacakları dışa aktarma yetkiniz bulunmuyor' }, { status: 403 });
             }
 
@@ -137,7 +137,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ success: true, data });
         }
 
-        if (!auth.user.isSuperAdmin && !hasPermission(auth.user, 'manage', 'finance') && !hasPermission(auth.user, 'create', 'finance')) {
+        if (!auth.user.isSuperAdmin && !hasPermission(auth.user, 'update', 'finance') && !hasPermission(auth.user, 'create', 'finance')) {
             return NextResponse.json({ success: false, error: 'Alacak kaydı oluşturma yetkiniz bulunmuyor' }, { status: 403 });
         }
 

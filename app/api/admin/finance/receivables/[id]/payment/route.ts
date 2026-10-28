@@ -19,7 +19,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
             return NextResponse.json({ success: false, error: 'Yetkisiz erişim' }, { status: 401 });
         }
 
-        if (!auth.user.isSuperAdmin && !hasPermission(auth.user, 'manage', 'finance') && !hasPermission(auth.user, 'update', 'finance')) {
+        if (!auth.user.isSuperAdmin && !hasPermission(auth.user, 'update', 'finance') && !hasPermission(auth.user, 'update', 'finance')) {
             return NextResponse.json({ success: false, error: 'Tahsilat kaydetme yetkiniz bulunmuyor' }, { status: 403 });
         }
 

@@ -18,7 +18,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
     try {
         const user = await getCurrentAdminUser();
-        if (!user || !hasPermission(user, 'create', 'settings')) {
+        if (!user || !hasPermission(user, 'manage', 'settings')) {
             return NextResponse.json({ success: false, message: 'Yetkisiz' }, { status: 403 });
         }
 

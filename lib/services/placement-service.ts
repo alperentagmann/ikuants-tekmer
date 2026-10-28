@@ -111,40 +111,75 @@ export class PlacementService {
         const media = v.signedMediaId ? await prisma.media.findUnique({ where: { id: v.signedMediaId } }) : null;
         if (v.signedMediaId && !media) throw fieldError('Yüklenen belge bulunamadı.', 400, 'signedMediaId');
 
-        // ── 2) Kayıtlar ─────────────────────────────────────────────────────
-        let entrepreneurId = v.entrepreneurId ?? null;
-        if (!entrepreneurId) {
-            const base = slugify(v.newFirm!.name);
-            const slug = (await prisma.entrepreneur.findUnique({ where: { slug: base } })) ? `${base}-${Date.now().toString(36)}` : base;
-            const e = await prisma.entrepreneur.create({ data: { name: v.newFirm!.name, slug, sector: v.newFirm!.sector, email: v.newFirm!.email ?? null, phone: v.newFirm!.phone ?? null, isPublished: false, status: 'ACTIVE' } });
-            entrepreneurId = e.id;
-            await logAuditEvent({ actorId: actor.id, actorName: actor.name ?? undefined, actorEmail: actor.email ?? undefined, action: 'CREATE', entityType: 'Entrepreneur', entityId: e.id, newValues: { name: e.name, via: 'placement' } });
-        }
-        const organizationId = await this.upsertCompany(entrepreneurId, v.organizationId ?? null, v.company, v.newFirm?.name ?? null, actor);
+        // ── 2) Kayıtlar — eşzamanlı bir işlem son boş yeri alırsa bu çağrıda oluşanlar geri alınır ──
+        const created = { entrepreneurId: null as string | null, organizationId: null as string | null, contractId: null as string | null, assignments: [] as string[], documents: [] as string[] };
+        try {
+            let entrepreneurId = v.entrepreneurId ?? null;
+            if (!entrepreneurId) {
+                const base = slugify(v.newFirm!.name);
+                const slug = (await prisma.entrepreneur.findUnique({ where: { slug: base } })) ? `${base}-${Date.now().toString(36)}` : base;
+                const e = await prisma.entrepreneur.create({ data: { name: v.newFirm!.name, slug, sector: v.newFirm!.sector, email: v.newFirm!.email ?? null, phone: v.newFirm!.phone ?? null, isPublished: false, status: 'ACTIVE' } });
+                entrepreneurId = e.id;
+                created.entrepreneurId = e.id;
+                await logAuditEvent({ actorId: actor.id, actorName: actor.name ?? undefined, actorEmail: actor.email ?? undefined, action: 'CREATE', entityType: 'Entrepreneur', entityId: e.id, newValues: { name: e.name, via: 'placement' } });
+            }
+            const hadOrg = Boolean(v.organizationId) || Boolean(await prisma.entrepreneurOrganization.findFirst({ where: { entrepreneurId, isPrimary: true } }));
+            const organizationId = await this.upsertCompany(entrepreneurId, v.organizationId ?? null, v.company, v.newFirm?.name ?? null, actor);
+            if (!hadOrg && organizationId) created.organizationId = organizationId;
 
-        const units = await prisma.spaceUnit.findMany({ where: { id: { in: unitIds } }, include: { floor: { include: { building: true } } } });
-        const ordered = v.units.map((u) => ({ ...u, unit: units.find((x) => x.id === u.unitId)! }));
-        let contractId = existingContract?.id ?? null;
-        if (wantsContract) {
-            const c = v.contract as Record<string, unknown>;
-            const spaceName = ordered.map((o) => `${o.unit.floor.building.name} · ${o.unit.floor.name} · ${o.unit.code}${o.unitLabel ? ` (${o.unitLabel})` : ''}`).join(', ').slice(0, 200);
-            const created = await RentContractFormService.create({
-                ...c, entrepreneurId, organizationId, unitId: ordered[0].unitId, spaceName,
-                areaM2: Math.round(ordered.reduce((s, o) => s + o.unit.area, 0) * 100) / 100,
-                spaceType: ordered.every((o) => o.unit.unitType === 'DESK') ? 'SHARED_DESK' : ordered[0].unit.unitType === 'WORKSHOP' ? 'WORKSHOP' : 'OFFICE',
-                commercialTitle: c.commercialTitle || v.company?.legalName || undefined,
-                startDate: v.startDate, endDate: v.endDate,
-            }, actor);
-            contractId = created.id;
+            const units = await prisma.spaceUnit.findMany({ where: { id: { in: unitIds } }, include: { floor: { include: { building: true } } } });
+            const ordered = v.units.map((u) => ({ ...u, unit: units.find((x) => x.id === u.unitId)! }));
+            let contractId = existingContract?.id ?? null;
+            if (wantsContract) {
+                const c = v.contract as Record<string, unknown>;
+                const spaceName = ordered.map((o) => `${o.unit.floor.building.name} · ${o.unit.floor.name} · ${o.unit.code}${o.unitLabel ? ` (${o.unitLabel})` : ''}`).join(', ').slice(0, 200);
+                const createdContract = await RentContractFormService.create({
+                    ...c, entrepreneurId, organizationId, unitId: ordered[0].unitId, spaceName,
+                    areaM2: Math.round(ordered.reduce((s, o) => s + o.unit.area, 0) * 100) / 100,
+                    spaceType: ordered.every((o) => o.unit.unitType === 'DESK') ? 'SHARED_DESK' : ordered[0].unit.unitType === 'WORKSHOP' ? 'WORKSHOP' : 'OFFICE',
+                    commercialTitle: c.commercialTitle || v.company?.legalName || undefined,
+                    startDate: v.startDate, endDate: v.endDate,
+                }, actor);
+                contractId = createdContract.id;
+                created.contractId = createdContract.id;
+            }
+            const assignmentIds: string[] = [];
+            for (const o of ordered) {
+                const a = await FacilityUnitService.create('assignments', { unitId: o.unitId, unitLabel: o.unitLabel, entrepreneurId, rentContractId: contractId, startDate: v.startDate, endDate: v.endDate, notes: v.notes }, user, actor);
+                assignmentIds.push(a.id);
+                created.assignments.push(a.id);
+            }
+            if (contractId && media) await this.attachSignedDocument(contractId, media.id, actor);
+            await addTimelineEvent({ entityType: 'Entrepreneur', entityId: entrepreneurId, eventType: 'ASSIGNED', title: `Yerleştirme: ${ordered.map((o) => o.unit.code + (o.unitLabel ? ` (${o.unitLabel})` : '')).join(', ')}${contractId ? ' · sözleşme bağlandı' : ''}`, actorId: actor.id, actorName: actor.name ?? null });
+            return { entrepreneurId, organizationId, contractId, assignmentIds };
+        } catch (error) {
+            await this.rollback(created, actor);
+            throw error;
         }
-        const assignmentIds: string[] = [];
-        for (const o of ordered) {
-            const a = await FacilityUnitService.create('assignments', { unitId: o.unitId, unitLabel: o.unitLabel, entrepreneurId, rentContractId: contractId, startDate: v.startDate, endDate: v.endDate, notes: v.notes }, user, actor);
-            assignmentIds.push(a.id);
+    }
+
+    /** Yarıda kalan yerleştirmede yalnız bu çağrıda oluşturulan kayıtları kaldırır (önceden var olanlara dokunmaz). */
+    private static async rollback(c: { entrepreneurId: string | null; organizationId: string | null; contractId: string | null; assignments: string[] }, actor: Actor) {
+        try {
+            if (c.assignments.length) await prisma.spaceAssignment.deleteMany({ where: { id: { in: c.assignments } } });
+            if (c.contractId) {
+                await prisma.rentContractDocument.deleteMany({ where: { contractId: c.contractId } });
+                await prisma.rentAccrual.deleteMany({ where: { contractId: c.contractId } });
+                await prisma.rentContract.deleteMany({ where: { id: c.contractId } });
+            }
+            if (c.organizationId) {
+                await prisma.entrepreneurOrganization.deleteMany({ where: { organizationId: c.organizationId } });
+                await prisma.organization.deleteMany({ where: { id: c.organizationId } });
+            }
+            if (c.entrepreneurId) {
+                await prisma.entrepreneurOrganization.deleteMany({ where: { entrepreneurId: c.entrepreneurId } });
+                await prisma.activityTimeline.deleteMany({ where: { entityId: c.entrepreneurId } });
+                await prisma.entrepreneur.deleteMany({ where: { id: c.entrepreneurId } });
+            }
+            await logAuditEvent({ actorId: actor.id, actorName: actor.name ?? undefined, actorEmail: actor.email ?? undefined, action: 'ROLLBACK', entityType: 'Placement', entityId: c.entrepreneurId, newValues: c });
+        } catch (e) {
+            console.error('placement rollback failed', e);
         }
-        if (contractId && media) await this.attachSignedDocument(contractId, media.id, actor);
-        await addTimelineEvent({ entityType: 'Entrepreneur', entityId: entrepreneurId, eventType: 'ASSIGNED', title: `Yerleştirme: ${ordered.map((o) => o.unit.code + (o.unitLabel ? ` (${o.unitLabel})` : '')).join(', ')}${contractId ? ' · sözleşme bağlandı' : ''}`, actorId: actor.id, actorName: actor.name ?? null });
-        return { entrepreneurId, organizationId, contractId, assignmentIds };
     }
 
     /** Şirket kaydı: seçilen / girişime bağlı şirket güncellenir, yoksa oluşturulup girişime bağlanır. Boş alanlar mevcut değeri silmez. */

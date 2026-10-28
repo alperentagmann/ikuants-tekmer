@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ success: false, error: 'Yetkisiz erişim' }, { status: 401 });
         }
 
-        if (!auth.user.isSuperAdmin && !hasPermission(auth.user, 'export', 'rent') && !hasPermission(auth.user, 'manage', 'rent')) {
+        if (!auth.user.isSuperAdmin && !hasPermission(auth.user, 'export', 'rent') && !hasPermission(auth.user, 'export', 'rent')) {
             return NextResponse.json({ success: false, error: 'Kira raporu dışa aktarma yetkiniz bulunmuyor' }, { status: 403 });
         }
 

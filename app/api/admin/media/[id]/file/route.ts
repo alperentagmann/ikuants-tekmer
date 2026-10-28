@@ -24,8 +24,11 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     if (documents.some((d) => d.visibility === 'RESTRICTED') && !hasPermission(user, 'view_restricted', 'documents') && !hasPermission(user, 'view_sensitive', 'applications')) {
         return NextResponse.json({ success: false, message: 'Bu dosyayı görüntüleme yetkiniz yok' }, { status: 403 });
     }
+    // Kira sözleşmesine bağlı taranmış belge: kira görme yetkisi yeterli
+    const rentDoc = hasPermission(user, 'view', 'rent') ? await prisma.rentContractDocument.count({ where: { fileUrl: `/api/admin/media/${id}/file` } }) : 0;
     const allowed =
         hasPermission(user, 'view', 'media') ||
+        rentDoc > 0 ||
         documents.some((d) => {
             if (d.visibility === 'RESTRICTED' && !hasPermission(user, 'view_restricted', 'documents')) return false;
             if (d.entityType === 'Application' || d.entityType === 'Submission') return hasPermission(user, 'view', 'applications') || hasPermission(user, 'view', 'forms');

@@ -61,7 +61,7 @@ const QUICK_CREATE: { label: string; href: string; perm?: string }[] = [
     { label: 'Kira Sözleşmesi', href: '/admin/finans/kiralar', perm: 'create:rent' },
     { label: 'Doküman', href: '/admin/dokumanlar?action=create', perm: 'upload:documents' },
     { label: 'Haber', href: '/admin/haberler?action=create', perm: 'create:news' },
-    { label: 'E-posta', href: '/admin/eposta-merkezi?action=compose', perm: 'view:email_outbox' },
+    { label: 'E-posta', href: '/admin/eposta-merkezi?action=compose', perm: 'manage:email_outbox' },
 ];
 
 function timeAgo(value: string): string {

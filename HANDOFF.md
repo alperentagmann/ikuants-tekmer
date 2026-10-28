@@ -13,6 +13,10 @@ Son doğrulama: 2026-10-05, yerel ortam (gömülü PostgreSQL, Node.js, Next.js 
 | `npx playwright test` | 132 / 132 geçti (tam çalıştırma, 2026-10-05) |
 | Rota taraması | 26 public sayfa, 68 admin sidebar ekranı ve detay sayfaları (sekmeleriyle) konsol / API hatası olmadan açılıyor |
 | Migration | `20261002000000` … `20261005100000_entrepreneur_program_label` (5 adet) yerelde `prisma migrate deploy` ile uygulandı. Production'a **uygulanmadı** — önce production veritabanı yedeği alınmalı. |
+| Migration (2026-10-28) | `20261027140005_facility_units_pdks` (bina / kat / bölüm, poliçe, sistem parametresi, PDKS kart-cihaz-hareket; `SpaceAssignment.unitId`, `RentContract.unitId`, `SpaceAssignment.facilityId` boş olabilir) ve `20261028061336_unit_max_tenants` yerelde uygulandı. Yalnız ekleme yapar, veri silmez. **Kod production'a gitmeden önce** production yedeği alınıp `npx prisma migrate deploy` çalıştırılmalı; aksi hâlde alan, sözleşme ve PDKS ekranları yeni kolonları bulamaz. |
+| Yetki senkronu | Yeni izinler (`facilities:export`, `pdks:*`, `parameters:*`, `rent:export`, `events/trainings:delete`, `approvals`, `directory`, `homepage`) `lib/rbac-sync.ts` ile eklenir (`npm run bootstrap:prod` veya seed). |
+| Parametreler | Yerelde `ALERTS.expiry_warning_days = 30`, `ALERTS.critical_days = 15` girildi; production'da Sistem Parametreleri ekranından aynı değerler girilmeli (girilmezse aynı varsayılanlar kullanılır). |
+| İzin tutarlılığı | `npx tsx scripts/qa/check-permissions.ts` — koddaki her izin denetimi katalogda mı; `npm test` içinde de çalışır. |
 
 ## 2. Modül durumu
 

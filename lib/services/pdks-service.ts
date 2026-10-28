@@ -131,7 +131,7 @@ export class PdksService {
         });
         const today = istanbulDay(new Date());
         const items = rows.map((c) => ({
-            id: c.id, cardUid: c.cardUid, label: c.label, holderType: c.holderType, holderTypeLabel: HOLDER_TYPE_LABELS[c.holderType] ?? c.holderType, holderName: c.holderName,
+            id: c.id, cardUid: c.cardUid, label: c.label, holderType: c.holderType, holderTypeLabel: HOLDER_TYPE_LABELS[c.holderType] ?? c.holderType, holderName: c.person?.fullName ?? c.holderName,
             personId: c.personId, personName: c.person?.fullName ?? null, identityMasked: c.person?.tcNumberMasked ?? null,
             entrepreneurId: c.entrepreneurId, entrepreneurName: c.entrepreneur?.name ?? null, status: c.status, statusLabel: CARD_STATUS_LABELS[c.status] ?? c.status,
             validFrom: c.validFrom, validUntil: c.validUntil, issuedAt: c.issuedAt, returnedAt: c.returnedAt, notes: c.notes, updatedAt: c.updatedAt,

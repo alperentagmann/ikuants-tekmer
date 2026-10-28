@@ -10,7 +10,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
             return NextResponse.json({ success: false, error: 'Yetkisiz erişim' }, { status: 401 });
         }
 
-        if (!auth.user.isSuperAdmin && !hasPermission(auth.user, 'manage', 'finance') && !hasPermission(auth.user, 'update', 'finance')) {
+        if (!auth.user.isSuperAdmin && !hasPermission(auth.user, 'update', 'finance')) {
             return NextResponse.json({ success: false, error: 'Alacak güncelleme yetkiniz bulunmuyor' }, { status: 403 });
         }
 
@@ -31,7 +31,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
             return NextResponse.json({ success: false, error: 'Yetkisiz erişim' }, { status: 401 });
         }
 
-        if (!auth.user.isSuperAdmin && !hasPermission(auth.user, 'manage', 'finance') && !hasPermission(auth.user, 'delete', 'finance')) {
+        if (!auth.user.isSuperAdmin && !hasPermission(auth.user, 'update', 'finance')) {
             return NextResponse.json({ success: false, error: 'Alacak silme yetkiniz bulunmuyor' }, { status: 403 });
         }
 

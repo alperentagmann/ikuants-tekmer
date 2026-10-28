@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ success: false, error: 'Yetkisiz erişim' }, { status: 401 });
         }
 
-        if (!auth.user.isSuperAdmin && !hasPermission(auth.user, 'manage', 'finance')) {
+        if (!auth.user.isSuperAdmin && !hasPermission(auth.user, 'update', 'finance')) {
             return NextResponse.json({ success: false, error: 'Döviz kuru ekleme yetkiniz bulunmuyor' }, { status: 403 });
         }
 

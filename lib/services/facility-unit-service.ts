@@ -620,6 +620,11 @@ export class FacilityUnitService {
             const dup = await prisma.spaceUnit.findFirst({ where: { code: { equals: merged.code, mode: 'insensitive' }, floor: { buildingId: floor.buildingId }, ...(id ? { NOT: { id } } : {}) } });
             if (dup) throw fieldError('Bu bölüm kodu bu binada zaten kullanılıyor.', 409, 'code', dup.isArchived ? 'Arşivdeki bir bölümde kullanılıyor' : 'Mükerrer kod');
         }
+        if (kind === 'units' && id && changed && 'maxTenants' in changed && merged.unitType !== 'COMMON') {
+            const live = (await prisma.spaceAssignment.findMany({ where: { unitId: id, status: { in: LIVE } }, select: { status: true, startDate: true, endDate: true } }))
+                .filter((a) => assignmentState(a.status, a.startDate, a.endDate, todayKey()) !== 'ENDED').length;
+            if (merged.maxTenants < live) throw fieldError(`Bölümde ${live} firma tahsisli; kapasite ${live} altına düşürülemez.`, 409, 'maxTenants', `En az ${live}`);
+        }
         if (kind === 'assignments') {
             const start = new Date(merged.startDate);
             const end = merged.endDate ? new Date(merged.endDate) : null;

@@ -128,6 +128,23 @@ describe('Entegre yerleştirme', () => {
         assert.ok(c2.spaceName.includes('QM-02B') && !c2.spaceName.includes('QM-02 '));
     });
 
+    test('kapasite, içerideki firma sayısının altına düşürülemez', async () => {
+        await assert.rejects(() => FacilityUnitService.update('units', ids.office, { maxTenants: 1 }, user, actor), /altına düşürülemez/);
+        const u = await FacilityUnitService.update('units', ids.office, { maxTenants: 3 }, user, actor);
+        assert.equal(u.maxTenants, 3);
+    });
+
+    test('yarıda kalan yerleştirme: yalnız o çağrıda oluşan kayıtlar geri alınır', async () => {
+        const e = await prisma.entrepreneur.create({ data: { name: `${RUN} Geri`, slug: `${RUN}-geri`, sector: 'Test', isPublished: false } });
+        const c = await RentContractFormService.create({ entrepreneurId: e.id, spaceName: 'QA', contractNo: `${RUN}-RB`, startDate: iso(0), endDate: iso(30), monthlyRent: 1, vatRate: 0, dueDay: 1 }, actor);
+        const a = await prisma.spaceAssignment.create({ data: { unitId: desks[2], entrepreneurId: e.id, rentContractId: c.id, status: 'ACTIVE', startDate: new Date() } });
+        await (PlacementService as unknown as { rollback: (x: unknown, y: unknown) => Promise<void> }).rollback({ entrepreneurId: e.id, organizationId: null, contractId: c.id, assignments: [a.id] }, actor);
+        assert.equal(await prisma.entrepreneur.count({ where: { id: e.id } }), 0);
+        assert.equal(await prisma.rentContract.count({ where: { id: c.id } }), 0);
+        assert.equal(await prisma.spaceAssignment.count({ where: { id: a.id } }), 0);
+        assert.equal(await prisma.entrepreneur.count({ where: { id: ids.entA } }), 1, 'önceden var olan kayda dokunulmaz');
+    });
+
     test('15 gün kala kritik uyarı + bildirim (idempotent)', async () => {
         const c = await RentContractFormService.create({ entrepreneurId: ids.entA, spaceName: 'QA alan', contractNo: `${RUN}-S2`, startDate: iso(-300), endDate: iso(10), monthlyRent: 1, vatRate: 0, dueDay: 1 }, actor);
         const scan = await RenewalAlertService.scan();

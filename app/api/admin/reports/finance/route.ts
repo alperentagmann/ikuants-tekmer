@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ success: false, error: 'Yetkisiz erişim' }, { status: 401 });
         }
 
-        if (!auth.user.isSuperAdmin && !hasPermission(auth.user, 'export', 'finance') && !hasPermission(auth.user, 'manage', 'finance')) {
+        if (!auth.user.isSuperAdmin && !hasPermission(auth.user, 'export', 'finance')) {
             return NextResponse.json({ success: false, error: 'Finans raporu dışa aktarma yetkiniz bulunmuyor' }, { status: 403 });
         }
 

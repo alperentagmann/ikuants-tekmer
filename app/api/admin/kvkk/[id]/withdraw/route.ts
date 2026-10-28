@@ -12,7 +12,7 @@ export async function POST(
     return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
   }
 
-  if (!auth.user.isSuperAdmin && !hasPermission(auth.user, "edit", "kvkk")) {
+  if (!auth.user.isSuperAdmin && !hasPermission(auth.user, "update", "kvkk")) {
     return NextResponse.json({ success: false, error: "Yetkisiz erişim" }, { status: 403 });
   }
 
