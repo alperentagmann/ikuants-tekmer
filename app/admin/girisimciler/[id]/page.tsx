@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Building } from 'lucide-react';
 import { FirmSpaceCard } from '@/components/admin/facilities/FirmSpaceCard';
+import { FirmPeoplePanel } from '@/components/admin/entrepreneur/FirmPeoplePanel';
 import Link from 'next/link';
 import {
     Rocket, ArrowLeft, Globe, Linkedin, Mail, Phone, Calendar,
@@ -649,6 +650,7 @@ export default function EntrepreneurDetailPage() {
             </div>
 
             {activeTab === 'ofis' && <FirmSpaceCard entrepreneurId={id} />}
+            {activeTab === 'kurucular' && <div className="rounded-2xl border border-white/10 bg-[#0e0e18] p-5"><FirmPeoplePanel entrepreneurId={id} /></div>}
 
             {/* TAB CONTENT: GENEL BİLGİLER */}
             {activeTab === 'genel' && (
@@ -980,7 +982,7 @@ export default function EntrepreneurDetailPage() {
             )}
 
             {/* TAB CONTENT: GENERIC PLACEHOLDER FOR OTHER TABS */}
-            {activeTab !== 'genel' && activeTab !== 'programlar' && activeTab !== 'finans' && activeTab !== 'ofis' && (
+            {activeTab !== 'genel' && activeTab !== 'programlar' && activeTab !== 'finans' && activeTab !== 'ofis' && activeTab !== 'kurucular' && (
                 <div className="bg-[#0e0e18] border border-white/10 rounded-2xl p-6 shadow-xl space-y-4">
                     <div className="flex items-center justify-between pb-3 border-b border-white/10">
                         <h3 className="font-orbitron font-bold text-sm text-white capitalize">

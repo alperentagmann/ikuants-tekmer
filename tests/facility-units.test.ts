@@ -72,7 +72,7 @@ describe('Alan yönetimi — veritabanı akışı', () => {
     let user: Parameters<typeof FacilityUnitService.list>[2];
 
     before(async () => {
-        const admin = await prisma.user.findFirst({ where: { isSuperAdmin: true }, include: { userRoles: { include: { role: { include: { permissions: { include: { permission: true } } } } } } } });
+        const admin = await prisma.user.findFirst({ where: { isSuperAdmin: true, isActive: true, email: 'bilgi@ikuantstekmer.com' }, include: { userRoles: { include: { role: { include: { permissions: { include: { permission: true } } } } } } } });
         assert.ok(admin, 'süper yönetici gerekli');
         actor.id = admin!.id;
         user = admin as never;

@@ -1,5 +1,6 @@
 "use client";
 import React, { useState } from "react";
+import { isDarkColor } from '@/lib/homepage-layout';
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowRight, CheckCircle2, X } from "lucide-react";
@@ -22,8 +23,12 @@ export function BlockSection({ style, theme, children, id }: { style: BlockStyle
         style.background === "muted" ? "bg-white dark:bg-white/[0.03]"
         : style.background === "contrast" ? "bg-gray-900 text-white dark:bg-black"
         : style.background === "gradient" ? "text-white"
+        : style.background === "color" ? ""
         : "bg-gray-50 dark:bg-[#050510]";
     const inline: React.CSSProperties = { paddingTop: pad(style, theme), paddingBottom: pad(style, theme) };
+    if (style.background === "color" && style.backgroundColor) inline.backgroundColor = style.backgroundColor;
+    if (style.accent) (inline as Record<string, string>)["--primary"] = style.accent;
+    const tone = isLight(style) ? "text-white" : style.textTone === "dark" || style.background === "color" ? "text-gray-900" : "";
     if (style.background === "gradient") inline.backgroundImage = "linear-gradient(135deg, var(--primary), var(--secondary))";
     if (style.background === "image" && style.backgroundImage) {
         inline.backgroundImage = `linear-gradient(rgba(5,5,16,0.65), rgba(5,5,16,0.75)), url("${style.backgroundImage}")`;
@@ -31,7 +36,7 @@ export function BlockSection({ style, theme, children, id }: { style: BlockStyle
         inline.backgroundPosition = "center";
     }
     return (
-        <section id={id} className={`relative transition-colors duration-300 ${bg} ${style.background === "image" ? "text-white" : ""}`} style={inline}>
+        <section id={id} className={`relative transition-colors duration-300 ${bg} ${tone}`} style={inline}>
             <div className={`container mx-auto max-w-7xl px-6 ${style.align === "left" ? "text-left" : "text-center"}`}>{children}</div>
         </section>
     );
@@ -47,7 +52,7 @@ function Heading({ title, subtitle, light }: { title?: string; subtitle?: string
     );
 }
 
-const isLight = (s: BlockStyle) => s.background === "contrast" || s.background === "gradient" || s.background === "image";
+const isLight = (s: BlockStyle) => s.textTone === "light" || (s.textTone !== "dark" && (s.background === "contrast" || s.background === "gradient" || s.background === "image" || (s.background === "color" && isDarkColor(s.backgroundColor))));
 
 export function BannerBlock({ block, theme }: { block: HomeBlock; theme: HomeTheme }) {
     const c = block.config as { title: string; text: string; buttonText: string; buttonLink: string; imageUrl: string; layout: string; accent: string };

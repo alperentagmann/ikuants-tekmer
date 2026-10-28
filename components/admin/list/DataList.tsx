@@ -114,8 +114,8 @@ export function DataList<T extends { id: string; isArchived?: boolean }>({
 
     return (
         <Card padded={false}>
-            <form onSubmit={search} role="search" aria-label={`${label} filtreleri`} className="flex flex-col gap-3 border-b border-white/5 px-4 py-3 lg:flex-row lg:flex-wrap lg:items-end">
-                <div className="relative min-w-0 flex-1 lg:min-w-[220px] lg:max-w-sm">
+            <form onSubmit={search} role="search" aria-label={`${label} filtreleri`} className="grid gap-3 border-b border-white/5 px-4 py-3 sm:grid-cols-2 sm:items-end lg:flex lg:flex-wrap lg:items-end">
+                <div className="relative min-w-0 flex-1 sm:col-span-2 lg:min-w-[220px] lg:max-w-sm">
                     <label className="mb-1.5 block text-xs font-medium text-gray-300" htmlFor={`${label}-q`}>Arama</label>
                     <Search className="pointer-events-none absolute bottom-2.5 left-3 h-4 w-4 text-gray-500" aria-hidden />
                     <input id={`${label}-q`} value={draft.q} onChange={(e) => setDraft((d) => ({ ...d, q: e.target.value }))} placeholder={searchPlaceholder} className={`${ctl} w-full pl-9`} />

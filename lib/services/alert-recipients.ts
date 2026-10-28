@@ -7,7 +7,7 @@ import { hasPermission, type UserWithPermissions } from '@/lib/rbac';
  * permission are included unless the rule turns that off; extra addresses come from the rule
  * and from ADMIN_NOTIFICATION_EMAIL. Kept free of e-mail code so any service can import it.
  */
-export type AlertEvent = 'APPLICATION_NEW' | 'CONTACT_NEW' | 'FORM_SUBMISSION' | 'RESERVATION_NEW' | 'QUOTE_REQUEST';
+export type AlertEvent = 'APPLICATION_NEW' | 'CONTACT_NEW' | 'FORM_SUBMISSION' | 'RESERVATION_NEW' | 'QUOTE_REQUEST' | 'CONTRACT_RENEWAL' | 'POLICY_RENEWAL' | 'RENT_OVERDUE';
 
 export const ALERT_EVENTS: Record<AlertEvent, { label: string; description: string; perm: [string, string] }> = {
     APPLICATION_NEW: { label: 'Yeni başvuru', description: 'Program, TEKMER ve kampanya başvuruları', perm: ['view', 'applications'] },
@@ -15,6 +15,9 @@ export const ALERT_EVENTS: Record<AlertEvent, { label: string; description: stri
     FORM_SUBMISSION: { label: 'Yeni form gönderimi', description: 'Başvuru / iletişim dışındaki form gönderimleri', perm: ['view', 'forms'] },
     RESERVATION_NEW: { label: 'Yeni rezervasyon talebi', description: 'Alan ve makine rezervasyon talepleri', perm: ['view', 'reservations'] },
     QUOTE_REQUEST: { label: 'Makine fiyat teklifi talebi', description: 'Lazer kesim, dizgi ve 3D baskı teklif talepleri', perm: ['view', 'reservations'] },
+    CONTRACT_RENEWAL: { label: 'Kira sözleşmesi yenileme', description: 'Bitişine kritik gün (varsayılan 15) kalan veya süresi dolan sözleşmeler', perm: ['view', 'rent'] },
+    POLICY_RENEWAL: { label: 'Poliçe yenileme', description: 'Bitişine kritik gün kalan bina / bölüm poliçeleri', perm: ['view', 'facilities'] },
+    RENT_OVERDUE: { label: 'Geciken kira', description: 'Vadesi geçmiş, ödenmemiş kira tahakkukları (firma bazında)', perm: ['view', 'rent'] },
 };
 export const ALERT_EVENT_KEYS = Object.keys(ALERT_EVENTS) as AlertEvent[];
 

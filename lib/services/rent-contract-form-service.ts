@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { notifyChange } from '@/lib/services/change-notifier';
 import { prisma } from '@/lib/prisma';
 import { logAuditEvent } from '@/lib/audit';
 import { addTimelineEvent } from '@/lib/timeline';
@@ -141,6 +142,7 @@ export class RentContractFormService {
         }
         await audit(actor, 'CREATE', c.id, { ...data, entrepreneurId: v.entrepreneurId });
         await addTimelineEvent({ entityType: 'Entrepreneur', entityId: v.entrepreneurId, eventType: 'STATUS_CHANGE', title: `Kira sözleşmesi oluşturuldu: ${c.contractNo}`, actorId: actor.id, actorName: actor.name ?? null });
+        await notifyChange({ title: `Yeni kira sözleşmesi: ${c.contractNo}`, message: `${c.spaceName} · ${c.isWaived ? 'kira muaf' : `${c.monthlyRent} ${c.currency} + KDV`}`, url: `/admin/finans/kiralar?contract=${c.id}`, actorName: actor.name });
         // Tahsis ekranından açıldıysa sözleşme o tahsise bağlanır
         if (opts.assignmentId) {
             const a = await prisma.spaceAssignment.findUnique({ where: { id: opts.assignmentId } });
@@ -167,6 +169,7 @@ export class RentContractFormService {
         const changed = Object.fromEntries(Object.entries(data).filter(([k, val]) => String(val ?? '') !== String((before as Record<string, unknown>)[k] ?? '')));
         await audit(actor, 'UPDATE', id, changed, Object.fromEntries(Object.keys(changed).map((k) => [k, (before as Record<string, unknown>)[k]])));
         await this.syncAssignments(id, changed, before, actor);
+        if (changed.status || 'endDate' in changed || 'monthlyRent' in changed) await notifyChange({ title: `Sözleşme güncellendi: ${before.contractNo}`, message: [changed.status ? `durum ${RENT_CONTRACT_STATUS_LABELS[String(changed.status)] ?? changed.status}` : null, 'endDate' in changed ? 'bitiş tarihi değişti' : null, 'monthlyRent' in changed ? 'kira bedeli değişti' : null].filter(Boolean).join(' · '), url: `/admin/finans/kiralar?contract=${id}`, actorName: actor.name });
         if (changed.status) await addTimelineEvent({ entityType: 'Entrepreneur', entityId: before.entrepreneurId, eventType: 'STATUS_CHANGE', title: `Kira sözleşmesi ${before.contractNo}: ${RENT_CONTRACT_STATUS_LABELS[String(changed.status)] ?? changed.status}`, actorId: actor.id, actorName: actor.name ?? null });
         return prisma.rentContract.findUniqueOrThrow({ where: { id } });
     }

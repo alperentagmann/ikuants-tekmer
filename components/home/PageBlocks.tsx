@@ -1,4 +1,5 @@
 import React from "react";
+import { SiteThemeSync } from '@/components/layout/SiteThemeSync';
 import Link from "next/link";
 import { Hero } from "@/components/sections/Hero";
 import { Differences } from "@/components/sections/Differences";
@@ -59,6 +60,7 @@ export function renderSharedBlock(b: HomeBlock, layout: HomeLayout, data: BlockD
 export function LayoutPage({ layout, preview, studio, studioTab, className, render }: { layout: HomeLayout; preview: boolean; studio: boolean; studioTab: string; className?: string; render: (b: HomeBlock) => React.ReactNode }) {
     return (
         <div className={className} style={themeVariables(layout.theme) as React.CSSProperties}>
+            <SiteThemeSync vars={themeVariables(layout.theme)} />
             {preview && !studio && (
                 <div className="sticky top-20 z-40 flex items-center justify-center gap-3 bg-amber-400 px-4 py-2 text-sm font-semibold text-black">
                     Taslak önizleme — ziyaretçiler yayındaki sürümü görür.
@@ -70,7 +72,8 @@ export function LayoutPage({ layout, preview, studio, studioTab, className, rend
                 if (!node) return null;
                 return (
                     <MaybeStudioBlock key={b.id} enabled={studio} id={b.id} label={BLOCK_LIBRARY[b.type].label}>
-                        {node}
+                        {/* Bölüme özel vurgu rengi hazır bölümlerde de geçerli */}
+                        {b.style.accent ? <div style={{ ['--primary' as string]: b.style.accent } as React.CSSProperties}>{node}</div> : node}
                     </MaybeStudioBlock>
                 );
             })}

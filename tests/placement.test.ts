@@ -22,7 +22,7 @@ describe('Entegre yerleştirme', () => {
     const desks: string[] = [];
 
     before(async () => {
-        const admin = await prisma.user.findFirst({ where: { isSuperAdmin: true }, include: { userRoles: { include: { role: { include: { permissions: { include: { permission: true } } } } } } } });
+        const admin = await prisma.user.findFirst({ where: { isSuperAdmin: true, isActive: true, email: 'bilgi@ikuantstekmer.com' }, include: { userRoles: { include: { role: { include: { permissions: { include: { permission: true } } } } } } } });
         assert.ok(admin);
         actor.id = admin!.id;
         user = admin as never;
@@ -36,6 +36,8 @@ describe('Entegre yerleştirme', () => {
         const ents = [ids.entA, ids.entB, ids.newEnt].filter(Boolean);
         const contracts = await prisma.rentContract.findMany({ where: { entrepreneurId: { in: ents } }, select: { id: true, contractNo: true } });
         await prisma.notification.deleteMany({ where: { targetUrl: { in: contracts.map((c) => `/admin/finans/kiralar?contract=${c.id}`) } } });
+        await prisma.emailOutbox.deleteMany({ where: { entityId: { in: contracts.map((c) => c.id) } } });
+        await prisma.notification.deleteMany({ where: { targetUrl: { in: ents.map((e) => `/admin/girisimciler/${e}`) } } });
         await prisma.spaceAssignment.deleteMany({ where: { entrepreneurId: { in: ents } } });
         await prisma.rentContractDocument.deleteMany({ where: { contractId: { in: contracts.map((c) => c.id) } } });
         await prisma.rentContract.deleteMany({ where: { id: { in: contracts.map((c) => c.id) } } });
@@ -150,8 +152,11 @@ describe('Entegre yerleştirme', () => {
         const scan = await RenewalAlertService.scan();
         assert.equal(scan.criticalDays >= 1, true);
         assert.ok(scan.critical.some((x) => x.id === c.id && x.daysLeft <= scan.criticalDays));
-        await RenewalAlertService.notify();
-        await RenewalAlertService.notify();
-        assert.equal(await prisma.notification.count({ where: { targetUrl: `/admin/finans/kiralar?contract=${c.id}` } }), 1);
+        await RenewalAlertService.notify({ includeOverdueRent: false });
+        await RenewalAlertService.notify({ includeOverdueRent: false });
+        assert.equal(await prisma.notification.count({ where: { targetUrl: `/admin/finans/kiralar?contract=${c.id}`, title: { contains: 'gün içinde bitiyor' } } }), 1);
+        // Uygulama içi değişiklik bildirimi de oluşur; yenileme e-postası kuyruğa girer (SMTP yoksa bekler)
+        assert.equal(await prisma.notification.count({ where: { targetUrl: `/admin/finans/kiralar?contract=${c.id}`, title: { startsWith: 'Yeni kira sözleşmesi' } } }), 1);
+        assert.ok((await prisma.emailOutbox.count({ where: { entityId: c.id, templateKey: 'ALERT_CONTRACT_RENEWAL' } })) >= 1);
     });
 });

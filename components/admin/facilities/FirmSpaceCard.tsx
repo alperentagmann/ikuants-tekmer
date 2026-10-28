@@ -1,8 +1,9 @@
 "use client";
 import { useState } from 'react';
 import Link from 'next/link';
-import { CreditCard, FileSignature, Pencil, Printer, Wand2 } from 'lucide-react';
-import { Badge, Button, Card, EmptyState } from '@/components/admin/ui';
+import { CreditCard, FilePlus2, FileSignature, Pencil, Printer, Wand2 } from 'lucide-react';
+import { Badge, Button, Card, EmptyState, Modal } from '@/components/admin/ui';
+import { PlacementWizard } from './PlacementWizard';
 import { useApi, useMe, LoadingRows, ErrorState, TableShell, th, td, fmtDate, fmtMoney } from '@/components/admin/ops-kit';
 import { RentContractForm } from '@/components/admin/rent/RentContractForm';
 import { StatePill } from './shared';
@@ -20,6 +21,8 @@ export function FirmSpaceCard({ entrepreneurId }: { entrepreneurId: string }) {
     const { can } = useMe();
     const q = useApi<{ overview: Overview }>(`/api/admin/placement?entrepreneurId=${entrepreneurId}`);
     const [edit, setEdit] = useState<string | null>(null);
+    const [placing, setPlacing] = useState(false);
+    const [newContract, setNewContract] = useState(false);
     if (q.error) return <Card padded={false}><ErrorState error={q.error} onRetry={q.reload} /></Card>;
     if (!q.data) return <Card padded={false}><LoadingRows rows={4} /></Card>;
     const o = q.data.overview;
@@ -29,7 +32,8 @@ export function FirmSpaceCard({ entrepreneurId }: { entrepreneurId: string }) {
                 <p className="text-sm text-gray-400">Buradaki her değişiklik alan yönetimi, kira ve panel ekranlarına aynı anda yansır.</p>
                 <div className="flex flex-wrap gap-2">
                     {o.activeCards !== null && <Link href={`/admin/pdks?tab=kartlar`} className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs text-gray-200 hover:bg-white/10"><CreditCard className="h-3.5 w-3.5" aria-hidden /> {o.activeCards} aktif PDKS kartı</Link>}
-                    {can('create', 'facilities') && <Link href={`/admin/alan-yonetimi/yerlestir?entrepreneurId=${entrepreneurId}`} className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-medium text-white hover:bg-primary/90"><Wand2 className="h-3.5 w-3.5" aria-hidden /> Masa / ofis ve sözleşme ekle</Link>}
+                    {can('create', 'rent') && <Button size="sm" icon={FilePlus2} onClick={() => setNewContract(true)}>Yalnız sözleşme ekle</Button>}
+                    {can('create', 'facilities') && <Button size="sm" variant="primary" icon={Wand2} onClick={() => setPlacing(true)}>Masa / ofis ve sözleşme ekle</Button>}
                 </div>
             </div>
             <Card padded={false}>
@@ -74,6 +78,10 @@ export function FirmSpaceCard({ entrepreneurId }: { entrepreneurId: string }) {
                 </Card>
             )}
             {edit && <RentContractForm contractId={edit} onClose={() => setEdit(null)} onSaved={() => { setEdit(null); q.reload(); }} />}
+            {newContract && <RentContractForm entrepreneurId={entrepreneurId} onClose={() => setNewContract(false)} onSaved={(id) => { setNewContract(false); q.reload(); setEdit(id); }} />}
+            <Modal open={placing} onClose={() => { setPlacing(false); q.reload(); }} size="xl" title="Masa / ofis ve sözleşme ekle" description="Kaydedince tahsis, sözleşme ve belge firmaya bağlanır; kira tahsilat ekranına da düşer.">
+                {placing && <PlacementWizard defaultEntrepreneurId={entrepreneurId} onDone={() => q.reload()} />}
+            </Modal>
         </div>
     );
 }

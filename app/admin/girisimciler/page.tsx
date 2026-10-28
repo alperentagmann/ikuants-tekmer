@@ -5,6 +5,8 @@ import { DataTable, Column } from '@/components/admin/DataTable';
 import { StatusBadge } from '@/components/admin/StatusBadge';
 import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
 import { RevisionViewer } from '@/components/admin/RevisionViewer';
+import { FirmSpaceCard } from '@/components/admin/facilities/FirmSpaceCard';
+import { FirmPeoplePanel } from '@/components/admin/entrepreneur/FirmPeoplePanel';
 import { TRACK_OTHER, trackOptions, trackToAssignment } from '@/lib/program-track';
 import {
     Plus, Edit2, Trash2, Rocket, History, Globe, Linkedin,
@@ -549,80 +551,6 @@ export default function AdminGirisimcilerPage() {
                             </div>
                         )}
 
-                        {/* FİZİKSEL ALAN & TEKMER SECTION (Section 202) */}
-                        {!isCreating && (
-                            <div className="p-4 rounded-xl bg-cyan-950/20 border border-cyan-500/30 space-y-3">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-2">
-                                        <Building2 className="w-4 h-4 text-cyan-400" />
-                                        <h3 className="text-xs font-orbitron font-bold text-white uppercase tracking-wider">
-                                            Fiziksel Alan & TEKMER Yerleşimi
-                                        </h3>
-                                    </div>
-                                    <a
-                                        href="/admin/finans/kiralar"
-                                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 text-xs font-semibold border border-cyan-500/40 transition-colors cursor-pointer"
-                                    >
-                                        <DollarSign className="w-3.5 h-3.5" /> Kira & Sözleşme Detayları
-                                    </a>
-                                </div>
-
-                                <div className="grid grid-cols-1 md:grid-cols-4 gap-3 text-xs bg-black/40 p-3 rounded-lg border border-cyan-500/20">
-                                    <div>
-                                        <span className="text-gray-400 block text-[10px] font-mono">Tahsisli Alan:</span>
-                                        <span className="font-semibold text-cyan-300">Ofis 203 / Masa 12</span>
-                                    </div>
-                                    <div>
-                                        <span className="text-gray-400 block text-[10px] font-mono">Sözleşme Tarafı:</span>
-                                        <span className="font-semibold text-white">Tüzel Şirket (A.Ş.)</span>
-                                    </div>
-                                    <div>
-                                        <span className="text-gray-400 block text-[10px] font-mono">Aylık Kira:</span>
-                                        <span className="font-mono text-emerald-400 font-semibold">18.500 TL + KDV</span>
-                                    </div>
-                                    <div>
-                                        <span className="text-gray-400 block text-[10px] font-mono">Kira Durumu:</span>
-                                        <span className="font-semibold text-emerald-400">Güncel / Ödendi</span>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* ŞİRKET & PERSONEL (EKİP) SECTION (Section 259) */}
-                        {!isCreating && (
-                            <div className="p-4 rounded-xl bg-amber-950/20 border border-amber-500/30 space-y-3">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-2">
-                                        <Users className="w-4 h-4 text-amber-400" />
-                                        <h3 className="text-xs font-orbitron font-bold text-white uppercase tracking-wider">
-                                            Şirket & Ekip (Personeller)
-                                        </h3>
-                                    </div>
-                                    <a
-                                        href="/admin/rehber"
-                                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-xs font-semibold border border-amber-500/40 transition-colors cursor-pointer"
-                                    >
-                                        <Plus className="w-3.5 h-3.5" /> Personel / Kişi Ekle
-                                    </a>
-                                </div>
-
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs bg-black/40 p-3 rounded-lg border border-amber-500/20">
-                                    <div>
-                                        <span className="text-gray-400 block text-[10px] font-mono">Bağlı Şirket:</span>
-                                        <span className="font-semibold text-amber-300">{editingItem.name}</span>
-                                    </div>
-                                    <div>
-                                        <span className="text-gray-400 block text-[10px] font-mono">Kayıtlı Personel:</span>
-                                        <span className="font-semibold text-white">4 Çalışan (1 Kurucu, 1 Finans, 2 Geliştirici)</span>
-                                    </div>
-                                    <div>
-                                        <span className="text-gray-400 block text-[10px] font-mono">İmza Yetkilisi:</span>
-                                        <span className="font-mono text-gray-300">{editingItem.founders || 'Belirtilmedi'}</span>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
                         <div className="flex items-center justify-end gap-3 pt-4 border-t border-white/5">
                             <button
                                 type="button"
@@ -644,6 +572,19 @@ export default function AdminGirisimcilerPage() {
                             </button>
                         </div>
                     </form>
+                    {/* Gerçek kayıtlar: ofis / masa / sözleşme ve personel. Form dışında (yerinde ekleme pencereleri form göndermesin). */}
+                    {!isCreating && editingItem?.id && (
+                        <div className="mt-6 space-y-5 border-t border-white/10 pt-5">
+                            <section className="space-y-3 rounded-xl border border-cyan-500/30 bg-cyan-950/20 p-4">
+                                <h3 className="flex items-center gap-2 text-xs font-orbitron font-bold uppercase tracking-wider text-white"><Building2 className="h-4 w-4 text-cyan-400" /> Fiziksel Alan, Masa & Kira Sözleşmesi</h3>
+                                <FirmSpaceCard entrepreneurId={editingItem.id} />
+                            </section>
+                            <section className="space-y-3 rounded-xl border border-amber-500/30 bg-amber-950/20 p-4">
+                                <h3 className="flex items-center gap-2 text-xs font-orbitron font-bold uppercase tracking-wider text-white"><Users className="h-4 w-4 text-amber-400" /> Şirket & Ekip (Personel)</h3>
+                                <FirmPeoplePanel entrepreneurId={editingItem.id} compact />
+                            </section>
+                        </div>
+                    )}
                 </div>
             )}
 

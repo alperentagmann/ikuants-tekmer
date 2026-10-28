@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { notifyChange } from '@/lib/services/change-notifier';
 import { prisma } from '@/lib/prisma';
 import { logAuditEvent } from '@/lib/audit';
 import { addTimelineEvent } from '@/lib/timeline';
@@ -66,6 +67,8 @@ const unitSchema = z.object({
     area: z.coerce.number().pipe(area.refine((n) => n > 0, 'm² sıfırdan büyük olmalı')), capacity: optNum(z.number().int().min(0).max(10000)),
     status: z.enum(UNIT_STATUSES), notes: optStr(),
     maxTenants: z.coerce.number().int().min(1, 'En az 1').max(50),
+    mapX: optNum(z.number().min(0).max(100)),
+    mapY: optNum(z.number().min(0).max(100)),
 });
 const assignmentSchema = z.object({
     unitId: uuid, entrepreneurId: optUuid, organizationId: optUuid, rentContractId: optUuid, unitLabel: optStr(60),
@@ -144,7 +147,7 @@ function unitRow(u: Awaited<ReturnType<typeof loadUnits>>[number], today: string
         area: u.area, capacity: u.capacity, status: u.status, notes: u.notes, isArchived: u.isArchived, updatedAt: u.updatedAt,
         floorId: u.floor.id, floorName: u.floor.name, floorSort: u.floor.sortOrder, buildingId: u.floor.building.id, buildingName: u.floor.building.name,
         displayStatus: ds, displayStatusLabel: ds === 'PARTIAL' && u.unitType !== 'COMMON' ? `Paylaşımlı — ${active.length}/${u.maxTenants}` : UNIT_STATUS_LABELS[ds],
-        maxTenants: u.maxTenants, tenants: active.length, freeSlots: u.unitType === 'COMMON' ? null : Math.max(0, u.maxTenants - active.length),
+        maxTenants: u.maxTenants, mapX: u.mapX, mapY: u.mapY, tenants: active.length, freeSlots: u.unitType === 'COMMON' ? null : Math.max(0, u.maxTenants - active.length),
         currentFirm: firms[0] ?? null, firms, firmCount: firms.length, firmNames: firms.map((f) => (f.label ? `${f.name} (${f.label})` : f.name)).join(', '),
         currentAssignmentEnd: active[0]?.endDate ?? null,
     };
@@ -512,6 +515,20 @@ export class FacilityUnitService {
         await this.validate('assignments', v, null, user);
     }
 
+    /** Kat haritası: plan görseli + bölümlerin konum ve doluluk bilgisi. */
+    static async floorMap(floorId: string | null) {
+        const floors = await prisma.floor.findMany({ where: { isArchived: false, building: { isArchived: false } }, orderBy: [{ building: { name: 'asc' } }, { sortOrder: 'asc' }], select: { id: true, name: true, planImageUrl: true, building: { select: { name: true } } } });
+        const floor = floors.find((f) => f.id === floorId) ?? floors.find((f) => f.planImageUrl) ?? floors[0] ?? null;
+        const today = todayKey();
+        const units = floor ? (await loadUnits(false)).filter((u) => u.floorId === floor.id).map((u) => unitRow(u, today)) : [];
+        return {
+            floors: floors.map((f) => ({ id: f.id, label: `${f.building.name} · ${f.name}`, hasPlan: Boolean(f.planImageUrl) })),
+            floor: floor && { id: floor.id, label: `${floor.building.name} · ${floor.name}`, planImageUrl: floor.planImageUrl },
+            units: units.map((u) => ({ id: u.id, code: u.code, unitType: u.unitType, unitTypeLabel: u.unitTypeLabel, area: u.area, capacity: u.capacity, status: u.status, displayStatus: u.displayStatus, displayStatusLabel: u.displayStatusLabel, maxTenants: u.maxTenants, tenants: u.tenants, freeSlots: u.freeSlots, firms: u.firms, currentAssignmentEnd: u.currentAssignmentEnd, mapX: u.mapX, mapY: u.mapY, updatedAt: u.updatedAt })),
+            occupancy: occOf(units),
+        };
+    }
+
     static async get(kind: WritableKind, id: string) {
         const row = await delegate(kind).findUnique({ where: { id } });
         if (!row) throw new DomainError(`${ENTITY[kind].label} bulunamadı.`, 404);
@@ -558,6 +575,7 @@ export class FacilityUnitService {
             const row = await d.update({ where: { id }, data: { status: 'ENDED', endDate: before.endDate && before.endDate < end ? before.endDate : end } });
             await audit(actor, 'FACILITY_UPDATE', 'SpaceAssignment', id, { status: 'ENDED', endDate: row.endDate }, { status: before.status, endDate: before.endDate });
             if (before.entrepreneurId) await addTimelineEvent({ entityType: 'Entrepreneur', entityId: before.entrepreneurId, eventType: 'STATUS_CHANGE', title: 'Bağımsız bölüm tahsisi sonlandırıldı', actorId: actor.id, actorName: actor.name ?? null });
+            await notifyChange({ title: 'Tahsis sonlandırıldı', message: 'Bölüm boşaldı; doluluk güncellendi.', url: '/admin/alan-yonetimi/eslestirme', actorName: actor.name });
             return row;
         }
 

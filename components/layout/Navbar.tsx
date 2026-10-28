@@ -157,7 +157,7 @@ export const Navbar = () => {
                         <ThemeToggle />
                         <Link
                             href="/basvuru"
-                            className="px-6 py-2.5 bg-gradient-to-r from-primary to-purple-600 text-white hover:opacity-90 transition-all duration-300 rounded-lg font-semibold text-sm tracking-wide shadow-lg shadow-primary/25"
+                            className="px-6 py-2.5 bg-gradient-to-r from-primary to-[var(--site-secondary,#9333ea)] text-white hover:opacity-90 transition-all duration-300 rounded-lg font-semibold text-sm tracking-wide shadow-lg shadow-primary/25"
                         >
                             HEMEN BAŞVUR
                         </Link>
@@ -232,7 +232,7 @@ export const Navbar = () => {
                             ))}
                             <Link
                                 href="/basvuru"
-                                className="w-full py-3 mt-4 bg-gradient-to-r from-primary to-purple-600 text-white text-center transition-all rounded-lg font-semibold"
+                                className="w-full py-3 mt-4 bg-gradient-to-r from-primary to-[var(--site-secondary,#9333ea)] text-white text-center transition-all rounded-lg font-semibold"
                                 onClick={() => setIsOpen(false)}
                             >
                                 HEMEN BAŞVUR

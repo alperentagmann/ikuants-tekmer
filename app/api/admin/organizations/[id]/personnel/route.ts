@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { OrganizationService } from '@/lib/services/organization-service';
 import { PersonService } from '@/lib/services/person-service';
 import { getAuthUser } from '@/lib/auth';
+import { hasPermission } from '@/lib/rbac';
 
 export async function POST(
     req: NextRequest,
@@ -10,6 +11,9 @@ export async function POST(
     const user = await getAuthUser(req);
     if (!user) {
         return NextResponse.json({ success: false, message: 'Yetkisiz erişim' }, { status: 401 });
+    }
+    if (!hasPermission(user, 'update', 'persons')) {
+        return NextResponse.json({ success: false, message: 'Bu işlem için yetkiniz yok' }, { status: 403 });
     }
 
     try {
@@ -72,6 +76,9 @@ export async function DELETE(req: NextRequest) {
     const user = await getAuthUser(req);
     if (!user) {
         return NextResponse.json({ success: false, message: 'Yetkisiz erişim' }, { status: 401 });
+    }
+    if (!hasPermission(user, 'update', 'persons')) {
+        return NextResponse.json({ success: false, message: 'Bu işlem için yetkiniz yok' }, { status: 403 });
     }
 
     try {

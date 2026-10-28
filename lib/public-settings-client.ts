@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import type { PublicSettings } from '@/lib/site-settings';
 
-export type ClientPublicSettings = Omit<PublicSettings, 'cookiePolicy'>;
+export type ClientPublicSettings = Omit<PublicSettings, 'cookiePolicy'> & { themeVars?: Record<string, string> };
 
 let cached: Promise<ClientPublicSettings | null> | null = null;
 

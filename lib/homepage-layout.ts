@@ -16,10 +16,24 @@ export type BlockType =
 export type PageKey = 'home' | 'programlar' | 'destekler' | 'kullanim-alanlari';
 
 export interface BlockStyle {
-    background: 'default' | 'muted' | 'contrast' | 'gradient' | 'image';
+    background: 'default' | 'muted' | 'contrast' | 'gradient' | 'image' | 'color';
     backgroundImage?: string | null;
+    /** background = 'color' iken kullanılan özel arka plan rengi (#hex) */
+    backgroundColor?: string | null;
+    /** Yazı tonu: auto = arka plana göre otomatik */
+    textTone?: 'auto' | 'light' | 'dark';
+    /** Bu bölüme özel vurgu rengi (buton, başlık vurgusu); boşsa tema rengi */
+    accent?: string | null;
     paddingY: 'none' | 'sm' | 'md' | 'lg';
     align: 'left' | 'center';
+}
+
+/** #hex rengin açık mı koyu mu olduğu (yazı tonunu otomatik seçmek için). */
+export function isDarkColor(hex: string | null | undefined): boolean {
+    if (!hex || !/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(hex)) return false;
+    const h = hex.length === 4 ? hex.slice(1).split('').map((c) => c + c).join('') : hex.slice(1);
+    const [r, g, b] = [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16) / 255).map((c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b < 0.4;
 }
 
 export interface HomeBlock {
@@ -224,8 +238,11 @@ export function sanitizeLayout(input: unknown, page: PageKey = 'home'): HomeLayo
                 visible: b.visible !== false,
                 config: sanitizeConfig(type, (b.config || {}) as Record<string, unknown>),
                 style: {
-                    background: oneOf(s.background, ['default', 'muted', 'contrast', 'gradient', 'image'] as const, 'default'),
+                    background: oneOf(s.background, ['default', 'muted', 'contrast', 'gradient', 'image', 'color'] as const, 'default'),
                     backgroundImage: safeLink(s.backgroundImage) || null,
+                    backgroundColor: HEX.test(str(s.backgroundColor)) ? str(s.backgroundColor) : null,
+                    textTone: oneOf(s.textTone, ['auto', 'light', 'dark'] as const, 'auto'),
+                    accent: HEX.test(str(s.accent)) ? str(s.accent) : null,
                     paddingY: oneOf(s.paddingY, ['none', 'sm', 'md', 'lg'] as const, 'md'),
                     align: oneOf(s.align, ['left', 'center'] as const, 'center'),
                 },
@@ -242,6 +259,8 @@ export function themeVariables(theme: HomeTheme): Record<string, string> {
     const vars: Record<string, string> = {};
     if (primary) vars['--primary'] = primary;
     if (secondary) vars['--secondary'] = secondary;
+    // Site çerçevesindeki (menü düğmesi) ikinci renk; tanımsızsa orijinal mor kalır
+    if (secondary) vars['--site-secondary'] = secondary;
     if (theme.fontStyle === 'modern') vars['--font-orbitron'] = 'var(--font-inter), Inter, system-ui, sans-serif';
     if (theme.fontStyle === 'classic') vars['--font-orbitron'] = 'Georgia, "Times New Roman", serif';
     return vars;

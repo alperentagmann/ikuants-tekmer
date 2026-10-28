@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { notifyChange } from '@/lib/services/change-notifier';
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { logAuditEvent } from '@/lib/audit';
@@ -265,6 +266,7 @@ export class PdksService {
             else result.rejected.push({ index: i, reason: r.reason });
         }
         await prisma.accessDevice.update({ where: { id: device.id }, data: { lastSeenAt: new Date() } });
+        if (result.unknownCards) await notifyChange({ title: `Tanımsız kart okutuldu (${device.name})`, message: `${result.unknownCards} hareket tanımsız kartla. Kartı tanımlayın veya güvenliği kontrol edin.`, url: '/admin/pdks?tab=hareketler', type: 'SYSTEM_ALERT' });
         await logAuditEvent({ actorName: `API: ${apiKeyName}`, action: 'PDKS_DEVICE_INGEST', entityType: 'AccessDevice', entityId: device.id, newValues: { ...result, rejected: result.rejected.length } });
         return result;
     }

@@ -74,6 +74,9 @@ export const WEBHOOK_EVENTS: Record<string, string> = {
     'quote.requested': 'Makine fiyat teklifi talebi',
     'task.completed': 'Görev tamamlandı',
     'invoice.issued': 'Satış faturası kesildi',
+    'contract.expiring': 'Kira sözleşmesi bitişe yaklaştı / süresi doldu',
+    'policy.expiring': 'Poliçe bitişe yaklaştı',
+    'rent.overdue': 'Kira tahakkuku gecikti',
 };
 
 /** Scopes an external system's API key can be granted (read-only, no personal identity data). */

@@ -65,7 +65,7 @@ describe('PDKS — veritabanı akışı', () => {
     let admin: Parameters<typeof PdksService.revealIdentity>[1];
 
     before(async () => {
-        const u = await prisma.user.findFirst({ where: { isSuperAdmin: true }, include: { userRoles: { include: { role: { include: { permissions: { include: { permission: true } } } } } } } });
+        const u = await prisma.user.findFirst({ where: { isSuperAdmin: true, isActive: true, email: 'bilgi@ikuantstekmer.com' }, include: { userRoles: { include: { role: { include: { permissions: { include: { permission: true } } } } } } } });
         assert.ok(u);
         actor.id = u!.id;
         admin = u as never;

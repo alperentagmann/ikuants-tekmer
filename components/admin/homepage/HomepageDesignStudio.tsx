@@ -130,13 +130,24 @@ function BlockConfigEditor({ block, onChange, forms }: { block: HomeBlock; onCha
                 <div className="space-y-3 border-t border-white/10 pt-4">
                     <div className="text-xs font-semibold uppercase tracking-wide text-gray-400">Bölüm görünümü</div>
                     <div className="grid grid-cols-2 gap-3">
-                        <Field label="Arka plan"><Select value={s.background} onChange={(e) => setS({ background: e.target.value as HomeBlock['style']['background'] })} options={[{ value: 'default', label: 'Sayfa rengi' }, { value: 'muted', label: 'Açık kutu' }, { value: 'contrast', label: 'Koyu' }, { value: 'gradient', label: 'Tema renk geçişi' }, { value: 'image', label: 'Görsel' }]} /></Field>
+                        <Field label="Arka plan"><Select value={s.background} onChange={(e) => setS({ background: e.target.value as HomeBlock['style']['background'] })} options={[{ value: 'default', label: 'Sayfa rengi' }, { value: 'muted', label: 'Açık kutu' }, { value: 'contrast', label: 'Koyu' }, { value: 'gradient', label: 'Tema renk geçişi' }, { value: 'color', label: 'Özel renk' }, { value: 'image', label: 'Görsel' }]} /></Field>
+                        <Field label="Yazı tonu"><Select value={s.textTone || 'auto'} onChange={(e) => setS({ textTone: e.target.value as NonNullable<HomeBlock['style']['textTone']> })} options={[{ value: 'auto', label: 'Otomatik' }, { value: 'light', label: 'Açık (beyaz)' }, { value: 'dark', label: 'Koyu' }]} /></Field>
                         <Field label="Dikey boşluk"><Select value={s.paddingY} onChange={(e) => setS({ paddingY: e.target.value as HomeBlock['style']['paddingY'] })} options={[{ value: 'none', label: 'Yok' }, { value: 'sm', label: 'Az' }, { value: 'md', label: 'Orta' }, { value: 'lg', label: 'Çok' }]} /></Field>
                         <Field label="Hizalama"><Select value={s.align} onChange={(e) => setS({ align: e.target.value as HomeBlock['style']['align'] })} options={[{ value: 'center', label: 'Ortalı' }, { value: 'left', label: 'Sola dayalı' }]} /></Field>
                     </div>
                     {s.background === 'image' && <ImageInput label="Arka plan görseli" value={s.backgroundImage || ''} onChange={(v) => setS({ backgroundImage: v })} />}
+                    {s.background === 'color' && <Field label="Arka plan rengi"><div className="flex items-center gap-2"><input type="color" aria-label="Arka plan rengi" value={s.backgroundColor || '#0f172a'} onChange={(e) => setS({ backgroundColor: e.target.value })} className="h-9 w-12 rounded" /><span className="font-mono text-xs text-gray-400">{s.backgroundColor || 'seçilmedi'}</span></div></Field>}
                 </div>
             )}
+            <div className="space-y-2 border-t border-white/10 pt-4">
+                <div className="text-xs font-semibold uppercase tracking-wide text-gray-400">Bölüm vurgu rengi</div>
+                <div className="flex items-center gap-2">
+                    <input type="color" aria-label="Bölüm vurgu rengi" value={s.accent || '#7c3aed'} onChange={(e) => setS({ accent: e.target.value })} className="h-9 w-12 rounded" />
+                    <span className="font-mono text-xs text-gray-400">{s.accent || 'Tema rengi'}</span>
+                    {s.accent && <Button size="sm" variant="ghost" onClick={() => setS({ accent: null })}>Tema rengine dön</Button>}
+                </div>
+                <p className="text-[11px] text-gray-500">Yalnız bu bölümdeki buton ve vurgular için; tüm site rengi “Tasarım dili” sekmesinden.</p>
+            </div>
         </div>
     );
 }

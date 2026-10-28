@@ -10,6 +10,9 @@ const WEBHOOK_EVENT_OF: Record<AlertEvent, string> = {
     FORM_SUBMISSION: 'form.submitted',
     RESERVATION_NEW: 'reservation.created',
     QUOTE_REQUEST: 'quote.requested',
+    CONTRACT_RENEWAL: 'contract.expiring',
+    POLICY_RENEWAL: 'policy.expiring',
+    RENT_OVERDUE: 'rent.overdue',
 };
 
 export interface AlertMessage {

@@ -6,6 +6,7 @@ import { cx } from '@/components/admin/ui';
 const ITEMS = [
     { href: '/admin/alan-yonetimi', label: 'Alan - Bina Detay', exact: true },
     { href: '/admin/alan-yonetimi/yerlestir', label: 'Firma Yerleştir' },
+    { href: '/admin/alan-yonetimi/harita', label: 'Kat Haritası' },
     { href: '/admin/alan-yonetimi/katlar', label: 'Bina Kat Bilgileri' },
     { href: '/admin/alan-yonetimi/bolumler', label: 'Bağımsız Bölüm Yönetimi' },
     { href: '/admin/alan-yonetimi/eslestirme', label: 'Firma - Bölüm Eşleştirme' },

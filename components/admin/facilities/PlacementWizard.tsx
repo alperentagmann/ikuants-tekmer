@@ -18,14 +18,14 @@ const oneYear = () => { const d = new Date(); d.setFullYear(d.getFullYear() + 1)
  * Firma yerleştirme — tek kayıt: firma + şirket + masa/ofis (masa no) + tarihler + sözleşme + ıslak imzalı tarama.
  * Kaydedince her şey birbirine bağlanır; sonradan sözleşmede yapılan tarih / fesih değişiklikleri tahsislere yansır.
  */
-export function PlacementWizard({ defaultEntrepreneurId, onDone }: { defaultEntrepreneurId?: string; onDone?: (r: Result) => void }) {
+export function PlacementWizard({ defaultEntrepreneurId, defaultUnitIds, onDone }: { defaultEntrepreneurId?: string; defaultUnitIds?: string[]; onDone?: (r: Result) => void }) {
     const q = useApi<{ lookups: Lookups }>('/api/admin/placement');
     if (q.error) return <Card padded={false}><ErrorState error={q.error} onRetry={q.reload} /></Card>;
     if (!q.data) return <Card padded={false}><LoadingRows rows={6} /></Card>;
-    return <Inner l={q.data.lookups} defaultEntrepreneurId={defaultEntrepreneurId} onDone={onDone} />;
+    return <Inner l={q.data.lookups} defaultEntrepreneurId={defaultEntrepreneurId} defaultUnitIds={defaultUnitIds} onDone={onDone} />;
 }
 
-function Inner({ l, defaultEntrepreneurId, onDone }: { l: Lookups; defaultEntrepreneurId?: string; onDone?: (r: Result) => void }) {
+function Inner({ l, defaultEntrepreneurId, defaultUnitIds, onDone }: { l: Lookups; defaultEntrepreneurId?: string; defaultUnitIds?: string[]; onDone?: (r: Result) => void }) {
     const [mode, setMode] = useState<'existing' | 'new'>(defaultEntrepreneurId || l.entrepreneurs.length ? 'existing' : 'new');
     const [entrepreneurId, setEntrepreneurId] = useState(defaultEntrepreneurId ?? '');
     const [newFirm, setNewFirm] = useState({ name: '', sector: '', email: '', phone: '' });
@@ -35,7 +35,7 @@ function Inner({ l, defaultEntrepreneurId, onDone }: { l: Lookups; defaultEntrep
     const effectiveCompany = companyTouched ? company : { organizationId: ent?.organization?.id ?? '', legalName: s(ent?.organization?.legalName ?? ''), taxNumber: s(ent?.organization?.taxNumber), taxOffice: s(ent?.organization?.taxOffice), address: s(ent?.organization?.address) };
     const setC = (k: keyof typeof company, v: string) => { setCompanyTouched(true); setCompany({ ...effectiveCompany, [k]: v }); };
 
-    const [picked, setPicked] = useState<{ unitId: string; unitLabel: string }[]>([]);
+    const [picked, setPicked] = useState<{ unitId: string; unitLabel: string }[]>((defaultUnitIds ?? []).filter((id) => l.units.some((u) => u.id === id)).map((unitId) => ({ unitId, unitLabel: '' })));
     const [unitQuery, setUnitQuery] = useState('');
     const [onlyFree, setOnlyFree] = useState(true);
     const [dates, setDates] = useState({ startDate: toDateInput(new Date()), endDate: oneYear() });

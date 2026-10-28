@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { notifyChange } from '@/lib/services/change-notifier';
 import { prisma } from '@/lib/prisma';
 import { logAuditEvent } from '@/lib/audit';
 import { addTimelineEvent } from '@/lib/timeline';
@@ -151,6 +152,7 @@ export class PlacementService {
             }
             if (contractId && media) await this.attachSignedDocument(contractId, media.id, actor);
             await addTimelineEvent({ entityType: 'Entrepreneur', entityId: entrepreneurId, eventType: 'ASSIGNED', title: `Yerleştirme: ${ordered.map((o) => o.unit.code + (o.unitLabel ? ` (${o.unitLabel})` : '')).join(', ')}${contractId ? ' · sözleşme bağlandı' : ''}`, actorId: actor.id, actorName: actor.name ?? null });
+            await notifyChange({ title: 'Firma yerleştirildi', message: `${ordered.map((o) => o.unit.code + (o.unitLabel ? ` (${o.unitLabel})` : '')).join(', ')}${contractId ? ' · sözleşme bağlandı' : ''}`, url: `/admin/girisimciler/${entrepreneurId}`, actorName: actor.name });
             return { entrepreneurId, organizationId, contractId, assignmentIds };
         } catch (error) {
             await this.rollback(created, actor);
@@ -216,6 +218,7 @@ export class PlacementService {
         const doc = await prisma.rentContractDocument.create({ data: { contractId, documentType: opts.documentType ?? 'SIGNED_CONTRACT', title: opts.title ?? 'Islak imzalı kira sözleşmesi (taranmış)', fileUrl: url, documentDate: opts.documentDate ?? contract.contractDate, version: (last?.version ?? 0) + 1, uploadedById: actor.id } });
         if ((opts.documentType ?? 'SIGNED_CONTRACT') === 'SIGNED_CONTRACT') await prisma.rentContract.update({ where: { id: contractId }, data: { contractDocUrl: url } });
         await logAuditEvent({ actorId: actor.id, actorName: actor.name ?? undefined, actorEmail: actor.email ?? undefined, action: 'FILE_UPLOAD', entityType: 'RentContract', entityId: contractId, newValues: { documentId: doc.id, mediaId, version: doc.version } });
+        await notifyChange({ title: `Sözleşme belgesi yüklendi: ${contract.contractNo}`, message: `${doc.title} · sürüm ${doc.version}`, url: `/admin/finans/kiralar?contract=${contractId}`, actorName: actor.name });
         return doc;
     }
 

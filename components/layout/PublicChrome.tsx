@@ -22,9 +22,11 @@ export function PublicChrome({ children }: { children: React.ReactNode }) {
     const motion = settings?.animation.motion || "full";
     return (
         <MotionConfig reducedMotion={motion === "full" ? "user" : "always"}>
+            <div id="site-theme-root" className="flex min-h-screen flex-col" style={(settings?.themeVars ?? {}) as React.CSSProperties}>
             <Navbar />
             <main className="flex-grow pt-20">{children}</main>
             <Footer />
+            </div>
             <CookieConsent />
             <SuccessCelebration settings={settings?.animation || null} />
             <NavigationPolish />

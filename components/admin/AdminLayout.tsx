@@ -7,6 +7,7 @@ import { AdminSidebar } from './AdminSidebar';
 import { CommandPalette } from './CommandPalette';
 import { AiAssistantDrawer } from './AiAssistantDrawer';
 import { ActionIntentListener } from './ActionIntentListener';
+import { ScrollAssist } from './ScrollAssist';
 import { NAV_SECTIONS } from './nav-config';
 
 /** Section and page title of the current admin route (longest matching menu link). */
@@ -335,6 +336,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                 </header>
 
                 <main className={`flex-1 w-full mx-auto p-4 sm:p-6 md:p-8 min-w-0 ${pathname.startsWith('/admin/tasarim-studyosu') || pathname.startsWith('/admin/gorevler/kanban') ? 'max-w-[1720px]' : 'max-w-7xl'}`}>{children}</main>
+                <ScrollAssist />
             </div>
 
             <CommandPalette isOpen={isPaletteOpen} onClose={() => setIsPaletteOpen(false)} user={currentUser} />
