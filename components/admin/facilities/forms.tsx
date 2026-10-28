@@ -75,9 +75,9 @@ export function FloorForm({ row, lookups, onClose, onSaved, defaultBuildingId }:
 
 export function UnitForm({ row, lookups, onClose, onSaved }: FormProps) {
     const [buildingId, setBuildingId] = useState(row ? lookups.floors.find((x) => x.id === row.floorId)?.buildingId ?? '' : '');
-    const f = useForm({ floorId: str(row?.floorId), code: str(row?.code), unitType: str(row?.unitType || 'OFFICE'), area: str(row?.area), capacity: str(row?.capacity), status: str(row?.status || 'AVAILABLE'), notes: str(row?.notes) });
+    const f = useForm({ floorId: str(row?.floorId), code: str(row?.code), unitType: str(row?.unitType || 'DESK'), area: str(row?.area), capacity: str(row?.capacity), maxTenants: str(row?.maxTenants ?? 1), status: str(row?.status || 'AVAILABLE'), notes: str(row?.notes) });
     const s = useSave('units', 'Bölüm', row, onSaved);
-    const save = () => f.submit(() => s.save({ ...f.values, area: numOrEmpty(f.values.area), capacity: numOrEmpty(f.values.capacity) }), s.onError);
+    const save = () => f.submit(() => s.save({ ...f.values, area: numOrEmpty(f.values.area), capacity: numOrEmpty(f.values.capacity), maxTenants: Number(f.values.maxTenants || 1) }), s.onError);
     return (
         <Shell title={row ? 'Bölümü düzenle' : 'Yeni bağımsız bölüm'} saving={f.saving} onClose={onClose} onSave={save} problem={s.problem}>
             <LSelect label="Bina" required placeholder="Bina seçin" options={lookups.buildings.map((b) => ({ value: b.id, label: b.name }))} value={buildingId} onChange={(e) => { setBuildingId(e.target.value); f.set('floorId', ''); }} />
@@ -86,6 +86,7 @@ export function UnitForm({ row, lookups, onClose, onSaved }: FormProps) {
             <LSelect label="Tür" required options={lookups.unitTypes} {...f.bind('unitType')} />
             <LInput label="Alan (m²)" type="number" min="0" step="0.01" required {...f.bind('area')} />
             <LInput label="Kapasite (kişi)" type="number" min="0" {...f.bind('capacity')} />
+            <LInput label="Aynı anda kaç firmaya verilebilir" type="number" min="1" max="50" required hint="Paylaşımlı masa / ofis için 2 veya daha fazla" {...f.bind('maxTenants')} />
             <LSelect label="Durum" options={lookups.unitStatuses} hint="Dolu durumu firma tahsisinden otomatik gelir" {...f.bind('status')} />
             <LTextArea label="Not" className="sm:col-span-2" {...f.bind('notes')} />
         </Shell>
@@ -96,7 +97,7 @@ export function UnitForm({ row, lookups, onClose, onSaved }: FormProps) {
 export function AssignmentForm({ row, lookups, onClose, onSaved, defaultUnitId }: FormProps & { defaultUnitId?: string }) {
     const [firmKind, setFirmKind] = useState<'entrepreneur' | 'organization'>(row?.organizationId && !row?.entrepreneurId ? 'organization' : 'entrepreneur');
     const f = useForm({
-        unitId: str(row?.unitId ?? defaultUnitId), entrepreneurId: str(row?.entrepreneurId), organizationId: str(row?.organizationId), rentContractId: str(row?.rentContractId),
+        unitId: str(row?.unitId ?? defaultUnitId), unitLabel: str(row?.unitLabel), entrepreneurId: str(row?.entrepreneurId), organizationId: str(row?.organizationId), rentContractId: str(row?.rentContractId),
         startDate: toDateInput(row?.startDate ?? new Date()), endDate: toDateInput(row?.endDate), notes: str(row?.notes),
     });
     const s = useSave('assignments', 'Tahsis', row, onSaved);
@@ -121,12 +122,40 @@ export function AssignmentForm({ row, lookups, onClose, onSaved, defaultUnitId }
                 ? <LSelect label="Girişim" required placeholder="Girişim seçin" options={lookups.entrepreneurs.map((x) => ({ value: x.id, label: x.name }))} {...f.bind('entrepreneurId')} />
                 : <LSelect label="Kurum" required placeholder="Kurum seçin" options={lookups.organizations.map((x) => ({ value: x.id, label: x.name }))} {...f.bind('organizationId')} error={f.errors.organizationId || f.errors.entrepreneurId} />}
             <LSelect label="Bağımsız bölüm" required placeholder="Bölüm seçin" options={lookups.units.map((u) => ({ value: u.id, label: u.label }))} {...f.bind('unitId')} />
+            <LInput label="Masa / yer no" placeholder="ör. Masa 2 (paylaşımlı ofiste)" {...f.bind('unitLabel')} />
             <LInput label="Başlangıç" type="date" required {...f.bind('startDate')} />
             <LInput label="Bitiş" type="date" hint="Boş bırakılırsa açık uçlu" {...f.bind('endDate')} />
             {contracts ? (
                 <LSelect label="Kira sözleşmesi" className="sm:col-span-2" placeholder={contractOptions.length ? 'Sözleşme seçin' : 'Bu firmanın sözleşmesi yok — kaydettikten sonra listeden “Sözleşme oluştur”'} options={contractOptions} {...f.bind('rentContractId')} />
             ) : <p className="text-xs text-gray-500 sm:col-span-2">Kira sözleşmesi bağlamak için kira görme yetkisi gerekir.</p>}
             <LTextArea label="Not" className="sm:col-span-2" {...f.bind('notes')} />
+        </Shell>
+    );
+}
+
+/** Toplu bölüm ekleme: ör. önek "MASA-", 1'den 30 masa → MASA-01 … MASA-30. Var olan kodlar atlanır. */
+export function BulkUnitsForm({ lookups, onClose, onSaved }: { lookups: Lookups; onClose: () => void; onSaved: (msg: string) => void }) {
+    const [buildingId, setBuildingId] = useState(lookups.buildings[0]?.id ?? '');
+    const f = useForm({ floorId: '', prefix: 'MASA-', startNo: '1', count: '30', digits: '2', unitType: 'DESK', area: '', capacity: '1', maxTenants: '1' });
+    const [problem, setProblem] = useState<string | null>(null);
+    const preview = (() => { const n = Number(f.values.count) || 0, st = Number(f.values.startNo) || 0, d = Number(f.values.digits) || 1; return n ? `${f.values.prefix}${String(st).padStart(d, '0')} … ${f.values.prefix}${String(st + n - 1).padStart(d, '0')}` : ''; })();
+    const save = () => f.submit(async () => {
+        setProblem(null);
+        const r = await api<{ result: { created: string[]; skipped: string[] } }>('/api/admin/facility-units/bulk-units', { method: 'POST', json: { ...f.values, startNo: Number(f.values.startNo), count: Number(f.values.count), digits: Number(f.values.digits), area: numOrEmpty(f.values.area), capacity: numOrEmpty(f.values.capacity), maxTenants: Number(f.values.maxTenants || 1) } });
+        onSaved(`${r.result.created.length} bölüm eklendi${r.result.skipped.length ? `, ${r.result.skipped.length} kod zaten vardı (${r.result.skipped.slice(0, 5).join(', ')}${r.result.skipped.length > 5 ? '…' : ''})` : ''}.`);
+    }, (e) => { if (!e.data?.fieldErrors) setProblem(e.message); });
+    return (
+        <Shell title="Toplu masa / ofis ekle" saving={f.saving} onClose={onClose} onSave={save} problem={problem}>
+            <LSelect label="Bina" required placeholder="Bina seçin" options={lookups.buildings.map((b) => ({ value: b.id, label: b.name }))} value={buildingId} onChange={(e) => { setBuildingId(e.target.value); f.set('floorId', ''); }} />
+            <LSelect label="Kat" required placeholder={buildingId ? 'Kat seçin' : 'Önce bina seçin'} options={lookups.floors.filter((x) => x.buildingId === buildingId).map((x) => ({ value: x.id, label: x.name }))} {...f.bind('floorId')} />
+            <LSelect label="Tür" required options={lookups.unitTypes} {...f.bind('unitType')} />
+            <LInput label="Kod öneki" required {...f.bind('prefix')} />
+            <LInput label="Başlangıç no" type="number" min="0" required {...f.bind('startNo')} />
+            <LInput label="Adet" type="number" min="1" max="200" required {...f.bind('count')} hint={preview} />
+            <LInput label="Numara hanesi" type="number" min="1" max="4" {...f.bind('digits')} hint="2 → 01, 02 …" />
+            <LInput label="Her birinin alanı (m²)" type="number" min="0" step="0.01" required {...f.bind('area')} />
+            <LInput label="Kapasite (kişi)" type="number" min="0" {...f.bind('capacity')} />
+            <LInput label="Aynı anda kaç firmaya verilebilir" type="number" min="1" max="50" {...f.bind('maxTenants')} />
         </Shell>
     );
 }

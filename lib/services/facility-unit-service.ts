@@ -10,7 +10,7 @@ import { applyList, parseListParams, type ListParams } from '@/lib/list/list-que
 import { exportList, parseExportFormat, type ExportColumn } from '@/lib/list/export';
 import {
     UNIT_TYPES, UNIT_TYPE_LABELS, UNIT_STATUSES, UNIT_STATUS_LABELS, POLICY_STATE_LABELS,
-    policyState, rangesOverlap, displayStatus, occupancy, todayKey, dayKey, type PolicyState,
+    policyState, rangesOverlap, displayStatus, hasRoom, occupancy, todayKey, dayKey, type PolicyState,
 } from '@/lib/facilities/calc';
 
 /**
@@ -65,9 +65,10 @@ const unitSchema = z.object({
     floorId: uuid, code: z.string().trim().min(1, 'Kod gerekli').max(40), unitType: z.enum(UNIT_TYPES),
     area: z.coerce.number().pipe(area.refine((n) => n > 0, 'm² sıfırdan büyük olmalı')), capacity: optNum(z.number().int().min(0).max(10000)),
     status: z.enum(UNIT_STATUSES), notes: optStr(),
+    maxTenants: z.coerce.number().int().min(1, 'En az 1').max(50),
 });
 const assignmentSchema = z.object({
-    unitId: uuid, entrepreneurId: optUuid, organizationId: optUuid, rentContractId: optUuid,
+    unitId: uuid, entrepreneurId: optUuid, organizationId: optUuid, rentContractId: optUuid, unitLabel: optStr(60),
     startDate: z.coerce.date({ message: 'Başlangıç tarihi gerekli' }), endDate: nullableDate, notes: optStr(),
 });
 const policySchema = z.object({
@@ -77,11 +78,23 @@ const policySchema = z.object({
     premium: optNum(z.number().finite().min(0).max(1e12)), currency: z.string().trim().length(3), documentUrl: urlOrPath, notes: optStr(),
 });
 
+const bulkSchema = z.object({
+    floorId: uuid,
+    prefix: z.string().trim().min(1, 'Önek gerekli').max(20),
+    startNo: z.coerce.number().int().min(0).max(9999),
+    count: z.coerce.number().int().min(1, 'En az 1').max(200, 'En fazla 200'),
+    digits: z.coerce.number().int().min(1).max(4).default(2),
+    unitType: z.enum(UNIT_TYPES),
+    area: z.coerce.number().pipe(area.refine((n) => n > 0, 'm² sıfırdan büyük olmalı')),
+    capacity: optNum(z.number().int().min(0).max(10000)),
+    maxTenants: z.coerce.number().int().min(1).max(50).default(1),
+});
+
 // Varsayılanlar yalnız oluşturmada: Zod 4'te .partial() varsayılanı yine uygular (gönderilmeyen alan değişmemeli).
 const SCHEMAS = {
     buildings: buildingSchema,
     floors: floorSchema.extend({ sortOrder: floorSchema.shape.sortOrder.default(0) }),
-    units: unitSchema.extend({ status: unitSchema.shape.status.default('AVAILABLE') }),
+    units: unitSchema.extend({ status: unitSchema.shape.status.default('AVAILABLE'), maxTenants: unitSchema.shape.maxTenants.default(1) }),
     assignments: assignmentSchema,
     policies: policySchema.extend({ currency: policySchema.shape.currency.default('TRY') }),
 } as const;
@@ -117,26 +130,27 @@ async function loadUnits(includeArchived: boolean) {
         where: includeArchived ? {} : { isArchived: false },
         include: {
             floor: { select: { id: true, name: true, sortOrder: true, isArchived: true, building: { select: { id: true, name: true, isArchived: true } } } },
-            spaceAssignments: { where: { status: { in: LIVE } }, select: { id: true, status: true, startDate: true, endDate: true, entrepreneur: { select: { id: true, name: true } }, organization: { select: { id: true, name: true } } } },
+            spaceAssignments: { where: { status: { in: LIVE } }, select: { id: true, status: true, startDate: true, endDate: true, unitLabel: true, entrepreneur: { select: { id: true, name: true } }, organization: { select: { id: true, name: true } } } },
         },
     });
 }
 
 function unitRow(u: Awaited<ReturnType<typeof loadUnits>>[number], today: string) {
     const active = u.spaceAssignments.filter((a) => assignmentState(a.status, a.startDate, a.endDate, today) === 'ACTIVE');
-    const firms = active.map((a) => a.entrepreneur ? { id: a.entrepreneur.id, name: a.entrepreneur.name, kind: 'entrepreneur' as const } : a.organization ? { id: a.organization.id, name: a.organization.name, kind: 'organization' as const } : null).filter(Boolean) as { id: string; name: string; kind: 'entrepreneur' | 'organization' }[];
-    const ds = displayStatus(u.status, active.length > 0);
+    const firms = active.map((a) => a.entrepreneur ? { id: a.entrepreneur.id, name: a.entrepreneur.name, kind: 'entrepreneur' as const, label: a.unitLabel } : a.organization ? { id: a.organization.id, name: a.organization.name, kind: 'organization' as const, label: a.unitLabel } : null).filter(Boolean) as { id: string; name: string; kind: 'entrepreneur' | 'organization'; label: string | null }[];
+    const ds = displayStatus(u.status, active.length, u.maxTenants, u.unitType);
     return {
         id: u.id, code: u.code, unitType: u.unitType, unitTypeLabel: UNIT_TYPE_LABELS[u.unitType] ?? u.unitType,
         area: u.area, capacity: u.capacity, status: u.status, notes: u.notes, isArchived: u.isArchived, updatedAt: u.updatedAt,
         floorId: u.floor.id, floorName: u.floor.name, floorSort: u.floor.sortOrder, buildingId: u.floor.building.id, buildingName: u.floor.building.name,
-        displayStatus: ds, displayStatusLabel: UNIT_STATUS_LABELS[ds],
-        currentFirm: firms[0] ?? null, firmCount: firms.length, firmNames: firms.map((f) => f.name).join(', '),
+        displayStatus: ds, displayStatusLabel: ds === 'PARTIAL' && u.unitType !== 'COMMON' ? `Paylaşımlı — ${active.length}/${u.maxTenants}` : UNIT_STATUS_LABELS[ds],
+        maxTenants: u.maxTenants, tenants: active.length, freeSlots: u.unitType === 'COMMON' ? null : Math.max(0, u.maxTenants - active.length),
+        currentFirm: firms[0] ?? null, firms, firmCount: firms.length, firmNames: firms.map((f) => (f.label ? `${f.name} (${f.label})` : f.name)).join(', '),
         currentAssignmentEnd: active[0]?.endDate ?? null,
     };
 }
 export type UnitRow = ReturnType<typeof unitRow>;
-const occOf = (rows: UnitRow[]) => occupancy(rows.map((u) => ({ unitType: u.unitType, area: u.area, occupied: u.displayStatus === 'OCCUPIED' })));
+const occOf = (rows: UnitRow[]) => occupancy(rows.map((u) => ({ unitType: u.unitType, area: u.area, occupied: u.tenants > 0 })));
 
 async function buildingRows(p: ListParams, today: string) {
     const [buildings, units] = await Promise.all([
@@ -166,7 +180,7 @@ async function unitRows(p: ListParams, today: string) {
     const f = p.filters;
     return (await loadUnits(p.includeArchived))
         .map((u) => unitRow(u, today))
-        .filter((u) => (!f.buildingId || u.buildingId === f.buildingId) && (!f.floorId || u.floorId === f.floorId) && (!f.unitType || u.unitType === f.unitType) && (!f.status || u.displayStatus === f.status));
+        .filter((u) => (!f.buildingId || u.buildingId === f.buildingId) && (!f.floorId || u.floorId === f.floorId) && (!f.unitType || u.unitType === f.unitType) && (!f.status || u.displayStatus === f.status || (f.status === 'HAS_ROOM' && u.unitType !== 'COMMON' && u.status === 'AVAILABLE' && (u.freeSlots ?? 0) > 0)));
 }
 
 async function assignmentRows(p: ListParams, today: string, user: UserLike) {
@@ -198,7 +212,7 @@ async function assignmentRows(p: ListParams, today: string, user: UserLike) {
             const firm = a.entrepreneur ?? a.organization;
             const suggestions = a.rentContractId ? [] : candidates.filter((c) => c.entrepreneurId === a.entrepreneurId).sort((x, y) => Number(y.unitId === a.unitId) - Number(x.unitId === a.unitId));
             return {
-                id: a.id, unitId: a.unit!.id, unitCode: a.unit!.code, unitArea: a.unit!.area, unitTypeLabel: UNIT_TYPE_LABELS[a.unit!.unitType] ?? a.unit!.unitType,
+                id: a.id, unitId: a.unit!.id, unitCode: a.unit!.code, unitLabel: a.unitLabel, unitArea: a.unit!.area, unitTypeLabel: UNIT_TYPE_LABELS[a.unit!.unitType] ?? a.unit!.unitType,
                 floorName: a.unit!.floor.name, buildingId: a.unit!.floor.building.id, buildingName: a.unit!.floor.building.name,
                 entrepreneurId: a.entrepreneurId, organizationId: a.organizationId, firmName: firm?.name ?? '—', firmHref: a.entrepreneurId ? `/admin/girisimciler/${a.entrepreneurId}` : a.organizationId ? `/admin/rehber/sirket/${a.organizationId}` : null,
                 startDate: a.startDate, endDate: a.endDate, status: a.status, state, stateLabel: ASSIGNMENT_STATE_LABELS[state], notes: a.notes,
@@ -338,6 +352,7 @@ const CONFIG: Record<FacilityKind, ListConfig> = {
             { key: 'buildingName', label: 'Bina', value: (r) => r.buildingName },
             { key: 'floorName', label: 'Kat', value: (r) => r.floorName },
             { key: 'unitCode', label: 'Bölüm', value: (r) => r.unitCode },
+            { key: 'unitLabel', label: 'Masa / yer no', value: (r) => r.unitLabel },
             { key: 'unitArea', label: 'm²', value: (r) => r.unitArea },
             { key: 'startDate', label: 'Başlangıç', value: (r) => fmtD(r.startDate) },
             { key: 'endDate', label: 'Bitiş', value: (r) => fmtD(r.endDate) },
@@ -453,7 +468,9 @@ export class FacilityUnitService {
             totalUnits: units.length,
             maintenance: units.filter((u) => u.displayStatus === 'MAINTENANCE').length,
             reserved: units.filter((u) => u.displayStatus === 'RESERVED').length,
-            available: units.filter((u) => u.displayStatus === 'AVAILABLE' && u.unitType !== 'COMMON').length,
+            available: units.filter((u) => u.unitType !== 'COMMON' && u.status === 'AVAILABLE' && (u.freeSlots ?? 0) > 0).length,
+            desks: { total: units.filter((u) => u.unitType === 'DESK').length, used: units.filter((u) => u.unitType === 'DESK' && u.tenants > 0).length },
+            offices: { total: units.filter((u) => u.unitType === 'OFFICE').length, used: units.filter((u) => u.unitType === 'OFFICE' && u.tenants > 0).length },
             buildings: [...byBuilding.values()].map((b) => ({ id: b.id, name: b.name, ...occOf(b.rows) })).sort((a, b) => a.name.localeCompare(b.name, 'tr')),
         };
     }
@@ -469,6 +486,30 @@ export class FacilityUnitService {
         const today = todayKey();
         const rows = await prisma.spaceAssignment.findMany({ where: { unitId: { not: null }, rentContractId: null, status: { in: LIVE } }, select: { status: true, startDate: true, endDate: true } });
         return rows.filter((a) => assignmentState(a.status, a.startDate, a.endDate, today) === 'ACTIVE').length;
+    }
+
+    /**
+     * Toplu bölüm ekleme (ör. 30 masa): kod = önek + sıra no (sıfır dolgulu). Binada var olan kodlar atlanır ve raporlanır.
+     */
+    static async bulkCreateUnits(input: unknown, actor: Actor) {
+        const v = parseOrThrow(bulkSchema, input);
+        const floor = await prisma.floor.findUnique({ where: { id: v.floorId }, include: { building: true } });
+        if (!floor || floor.isArchived || floor.building.isArchived) throw fieldError('Form alanlarını kontrol edin.', 400, 'floorId', 'Aktif bir kat seçin');
+        const codes = Array.from({ length: v.count }, (_, i) => `${v.prefix}${String(v.startNo + i).padStart(v.digits, '0')}`);
+        const existing = await prisma.spaceUnit.findMany({ where: { floor: { buildingId: floor.buildingId } }, select: { code: true } });
+        const taken = new Set(existing.map((e) => e.code.toLocaleLowerCase('tr-TR')));
+        const fresh = codes.filter((c) => !taken.has(c.toLocaleLowerCase('tr-TR')));
+        if (fresh.length) {
+            await prisma.spaceUnit.createMany({ data: fresh.map((code) => ({ floorId: v.floorId, code, unitType: v.unitType, area: v.area, capacity: v.capacity ?? null, maxTenants: v.maxTenants, status: 'AVAILABLE' })) });
+        }
+        await audit(actor, 'FACILITY_BULK_CREATE', 'SpaceUnit', v.floorId, { ...v, created: fresh.length, skipped: codes.length - fresh.length });
+        return { created: fresh, skipped: codes.filter((c) => !fresh.includes(c)) };
+    }
+
+    /** Tahsis kurallarını (kapasite, mükerrer firma, masa no, tarih) yazmadan denetler. */
+    static async checkAssignment(input: Record<string, unknown>, user: UserLike) {
+        const v = parseOrThrow(SCHEMAS.assignments, input) as Record<string, any>;
+        await this.validate('assignments', v, null, user);
     }
 
     static async get(kind: WritableKind, id: string) {
@@ -529,6 +570,16 @@ export class FacilityUnitService {
         if (res.count === 0) throw fieldError('Bu kayıt siz düzenlerken başka biri tarafından değiştirildi. Sayfayı yenileyip tekrar deneyin.', 409, '_conflict', 'updatedAt');
         await audit(actor, 'FACILITY_UPDATE', ENTITY[kind].model, id, v, Object.fromEntries(Object.keys(v).map((k) => [k, before[k]])));
         if (kind === 'assignments' && 'rentContractId' in v && v.rentContractId !== before.rentContractId) await this.afterAssignmentChange(id, { ...before, ...v }, actor, 'contract');
+        // Bölüm kodu değişirse otomatik oluşmuş sözleşme alan adlarına da yansır
+        if (kind === 'units' && v.code && v.code !== before.code) {
+            const linked = await prisma.rentContract.findMany({ where: { unitId: id }, select: { id: true, spaceName: true, roomDeskNo: true } });
+            for (const c of linked) {
+                if (!c.spaceName.includes(before.code) && c.roomDeskNo !== before.code) continue;
+                const data = { spaceName: c.spaceName.split(before.code).join(v.code), ...(c.roomDeskNo === before.code ? { roomDeskNo: v.code } : {}) };
+                await prisma.rentContract.update({ where: { id: c.id }, data });
+                await audit(actor, 'UPDATE', 'RentContract', c.id, { ...data, via: 'unit-rename' }, { spaceName: c.spaceName });
+            }
+        }
         return d.findUnique({ where: { id } });
     }
 
@@ -586,11 +637,21 @@ export class FacilityUnitService {
                 if (!c) throw fieldError('Form alanlarını kontrol edin.', 400, 'rentContractId', 'Sözleşme bulunamadı');
                 if (merged.entrepreneurId && c.entrepreneurId !== merged.entrepreneurId) throw fieldError('Form alanlarını kontrol edin.', 400, 'rentContractId', 'Sözleşme başka bir girişime ait');
             }
-            // Ortak alan dışındaki bölümler aynı dönemde tek firmaya verilir
-            if (unit.unitType !== 'COMMON' && (merged.status === undefined || LIVE.includes(merged.status))) {
-                const others = await prisma.spaceAssignment.findMany({ where: { unitId: merged.unitId, status: { in: LIVE }, ...(id ? { NOT: { id } } : {}) }, include: { entrepreneur: { select: { name: true } }, organization: { select: { name: true } } } });
-                const clash = others.find((o) => rangesOverlap(start, end, o.startDate ?? new Date(0), o.endDate));
-                if (clash) throw fieldError(`Bu bölüm bu tarihlerde ${clash.entrepreneur?.name ?? clash.organization?.name ?? 'başka bir firma'} ile eşleştirilmiş.`, 409, 'startDate', 'Tarih aralığı çakışıyor');
+            // Kapasite: aynı dönemde çakışan tahsis sayısı bölüm kapasitesini (maxTenants) aşamaz; ortak alan sınırsız.
+            // Aynı firma aynı bölümde aynı dönemde iki kez olamaz; aynı masa / yer numarası iki firmaya verilemez.
+            if (merged.status === undefined || LIVE.includes(merged.status)) {
+                const others = (await prisma.spaceAssignment.findMany({ where: { unitId: merged.unitId, status: { in: LIVE }, ...(id ? { NOT: { id } } : {}) }, include: { entrepreneur: { select: { name: true } }, organization: { select: { name: true } } } }))
+                    .filter((o) => assignmentState(o.status, o.startDate, o.endDate, todayKey()) !== 'ENDED' && rangesOverlap(start, end, o.startDate ?? new Date(0), o.endDate));
+                const sameFirm = others.find((o) => (merged.entrepreneurId && o.entrepreneurId === merged.entrepreneurId) || (merged.organizationId && o.organizationId === merged.organizationId));
+                if (sameFirm) throw fieldError('Bu firma bu bölümde aynı dönemde zaten tahsisli.', 409, 'unitId', 'Mükerrer tahsis');
+                if (!hasRoom(others.length, unit.maxTenants, unit.unitType)) {
+                    const names = others.map((o) => o.entrepreneur?.name ?? o.organization?.name ?? 'firma').join(', ');
+                    throw fieldError(unit.maxTenants > 1 ? `Bölüm kapasitesi dolu (${unit.maxTenants} firma): ${names}. Kapasiteyi artırın veya başka bölüm seçin.` : `Bu bölüm bu tarihlerde ${names} ile eşleştirilmiş. Paylaşımlı kullanım için bölümün "aynı anda firma" kapasitesini artırın.`, 409, 'startDate', 'Kapasite dolu');
+                }
+                const label = merged.unitLabel ? String(merged.unitLabel).trim().toLocaleLowerCase('tr-TR') : '';
+                if (label && others.some((o) => o.unitLabel && o.unitLabel.trim().toLocaleLowerCase('tr-TR') === label)) {
+                    throw fieldError('Bu masa / yer numarası bu bölümde aynı dönemde başka firmaya verilmiş.', 409, 'unitLabel', 'Numara kullanımda');
+                }
             }
         }
         if (kind === 'policies') {
@@ -644,10 +705,9 @@ export class FacilityUnitService {
             if (row.status !== 'CANCELLED') throw new DomainError('Bu tahsis arşivde değil.', 409);
             const unit = await prisma.spaceUnit.findUnique({ where: { id: row.unitId } });
             if (!unit || unit.isArchived) throw new DomainError('Bağlı bölüm arşivde. Önce bölümü geri alın.', 409);
-            if (unit.unitType !== 'COMMON') {
-                const others = await prisma.spaceAssignment.findMany({ where: { unitId: row.unitId, status: { in: LIVE }, NOT: { id: row.id } } });
-                if (others.some((o) => rangesOverlap(row.startDate ?? new Date(0), row.endDate, o.startDate ?? new Date(0), o.endDate))) throw new DomainError('Geri alınamaz: bölüm bu tarihlerde başka bir firmaya tahsisli.', 409);
-            }
+            const others = await prisma.spaceAssignment.findMany({ where: { unitId: row.unitId, status: { in: LIVE }, NOT: { id: row.id } } });
+            const overlapping = others.filter((o) => rangesOverlap(row.startDate ?? new Date(0), row.endDate, o.startDate ?? new Date(0), o.endDate)).length;
+            if (!hasRoom(overlapping, unit.maxTenants, unit.unitType)) throw new DomainError('Geri alınamaz: bölümün bu tarihlerdeki kapasitesi dolu.', 409);
         }
     }
 }

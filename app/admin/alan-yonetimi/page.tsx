@@ -1,7 +1,7 @@
 "use client";
 import { useState } from 'react';
 import Link from 'next/link';
-import { Building2, Plus } from 'lucide-react';
+import { Building2, Plus, Wand2 } from 'lucide-react';
 import { Alert, Button, Card, PageHeader } from '@/components/admin/ui';
 import { useApi, useMe, useNotice, ErrorState, LoadingRows, ProgressBar, Stat } from '@/components/admin/ops-kit';
 import { DataList, type ListColumn } from '@/components/admin/list/DataList';
@@ -10,7 +10,7 @@ import { RowActions, useFacilityLookups, fmtArea, fmtPct } from '@/components/ad
 
 type Occ = { rentableUnits: number; occupiedUnits: number; byCountPct: number | null; rentableArea: number; occupiedArea: number; byAreaPct: number | null };
 type Row = { id: string; name: string; address: string | null; totalArea: number | null; leasableArea: number | null; floorCount: number; unitCount: number; occupancy: Occ; isArchived: boolean; updatedAt: string };
-type Summary = { occupancy: Occ & { totalUnits: number; maintenance: number; reserved: number; available: number }; expiringPolicies: unknown[]; expiryWarningDays: { value: number; isDefault: boolean }; unlinkedActiveAssignments: number };
+type Summary = { occupancy: Occ & { totalUnits: number; maintenance: number; reserved: number; available: number; desks: { total: number; used: number }; offices: { total: number; used: number } }; expiringPolicies: unknown[]; expiryWarningDays: { value: number; isDefault: boolean }; unlinkedActiveAssignments: number };
 
 export default function BuildingsPage() {
     const { can } = useMe();
@@ -37,7 +37,7 @@ export default function BuildingsPage() {
         <div className="space-y-5">
             <PageHeader icon={Building2} title="Alan - Bina Detay"
                 description="Kalıcı ofis tahsisi için bina, kat ve bağımsız bölümler. Toplantı odası rezervasyonu ve halka açık tesis kartları Alanlar & Rezervasyon ekranındadır."
-                actions={can('create', 'facilities') && <Button variant="primary" icon={Plus} onClick={() => setEditing('new')}>Bina Ekle</Button>} />
+                actions={can('create', 'facilities') && <><Link href="/admin/alan-yonetimi/yerlestir" className="inline-flex items-center gap-1.5 rounded-lg border border-primary bg-primary px-3.5 py-2 text-sm font-medium text-white hover:bg-primary/90"><Wand2 className="h-4 w-4" aria-hidden /> Firma Yerleştir</Link><Button icon={Plus} onClick={() => setEditing('new')}>Bina Ekle</Button></>} />
 
             {s && s.unlinkedActiveAssignments > 0 && can('view', 'rent') && (
                 <Alert tone="warning" title={`${s.unlinkedActiveAssignments} aktif tahsiste kira sözleşmesi bağlı değil`}>
@@ -59,7 +59,7 @@ export default function BuildingsPage() {
                         <ProgressBar value={s.occupancy.byAreaPct ?? 0} />
                         <p className="mt-1 text-xs text-gray-500">{fmtArea(s.occupancy.occupiedArea)} / {fmtArea(s.occupancy.rentableArea)}</p>
                     </div>
-                    <Stat label="Bakımda / rezerve" value={`${s.occupancy.maintenance} / ${s.occupancy.reserved}`} hint={`${s.occupancy.totalUnits} bölüm (ortak alanlar dahil)`} />
+                    <Stat label="Masa / kapalı ofis kullanımı" value={`${s.occupancy.desks.used}/${s.occupancy.desks.total} · ${s.occupancy.offices.used}/${s.occupancy.offices.total}`} hint={`Bakımda ${s.occupancy.maintenance} · rezerve ${s.occupancy.reserved}`} />
                     <Stat label={`Bitişi ${s.expiryWarningDays.value} gün içinde poliçe`} value={s.expiringPolicies.length} tone={s.expiringPolicies.length ? 'warn' : 'default'} hint={s.expiryWarningDays.isDefault ? 'Varsayılan süre; Poliçeler → Ayarlar' : undefined} />
                 </div>
             )}

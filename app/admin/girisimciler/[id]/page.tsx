@@ -1,6 +1,8 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { Building } from 'lucide-react';
+import { FirmSpaceCard } from '@/components/admin/facilities/FirmSpaceCard';
 import Link from 'next/link';
 import {
     Rocket, ArrowLeft, Globe, Linkedin, Mail, Phone, Calendar,
@@ -98,6 +100,7 @@ export default function EntrepreneurDetailPage() {
     const tabs = [
         { id: 'genel', label: 'Genel Bilgiler', icon: Rocket },
         { id: 'programlar', label: 'Programlar & Kuluçka', icon: Layers },
+        { id: 'ofis', label: 'Ofis, Masa & Sözleşme', icon: Building },
         { id: 'finans', label: 'Finans & Kira', icon: DollarSign },
         { id: 'kurucular', label: 'Kurucular & Ekip', icon: Users },
         { id: 'mentorluk', label: 'Mentörlük Seansları', icon: Users },
@@ -574,8 +577,8 @@ export default function EntrepreneurDetailPage() {
                                 <button
                                     id="checklist-add-rent-contract-btn"
                                     onClick={() => {
-                                        setActiveTab('finans');
-                                        setShowRentModal(true);
+                                        // Entegre akış: masa / ofis + sözleşme + ıslak imzalı tarama tek kayıtta
+                                        router.push(`/admin/alan-yonetimi/yerlestir?entrepreneurId=${id}`);
                                     }}
                                     className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px] shadow-sm flex items-center justify-center gap-1 cursor-pointer"
                                 >
@@ -602,13 +605,7 @@ export default function EntrepreneurDetailPage() {
                                     <div className="text-[10px] text-gray-400 mt-0.5">İmzalı sözleşme nüshası yüklenmedi.</div>
                                 </div>
                                 <button
-                                    onClick={() => {
-                                        setActiveTab('finans');
-                                        if (rentContracts.length > 0) {
-                                            setDocFormData(prev => ({ ...prev, contractId: rentContracts[0].id }));
-                                            setShowDocModal(true);
-                                        }
-                                    }}
+                                    onClick={() => setActiveTab('ofis')}
                                     className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-[11px] border border-slate-700 flex items-center justify-center gap-1 cursor-pointer"
                                 >
                                     <Upload className="w-3 h-3" /> + Belge Yükle
@@ -650,6 +647,8 @@ export default function EntrepreneurDetailPage() {
                     );
                 })}
             </div>
+
+            {activeTab === 'ofis' && <FirmSpaceCard entrepreneurId={id} />}
 
             {/* TAB CONTENT: GENEL BİLGİLER */}
             {activeTab === 'genel' && (
@@ -880,7 +879,7 @@ export default function EntrepreneurDetailPage() {
                                 </button>
                                 <button
                                     id="add-rent-contract-btn"
-                                    onClick={() => setShowRentModal(true)}
+                                    onClick={() => router.push(`/admin/alan-yonetimi/yerlestir?entrepreneurId=${id}`)}
                                     className="px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl text-xs font-semibold shadow-lg shadow-emerald-950/20 transition-all flex items-center gap-1.5 cursor-pointer"
                                 >
                                     <Plus className="w-3.5 h-3.5" /> + Kira Sözleşmesi Ekle
@@ -981,7 +980,7 @@ export default function EntrepreneurDetailPage() {
             )}
 
             {/* TAB CONTENT: GENERIC PLACEHOLDER FOR OTHER TABS */}
-            {activeTab !== 'genel' && activeTab !== 'programlar' && activeTab !== 'finans' && (
+            {activeTab !== 'genel' && activeTab !== 'programlar' && activeTab !== 'finans' && activeTab !== 'ofis' && (
                 <div className="bg-[#0e0e18] border border-white/10 rounded-2xl p-6 shadow-xl space-y-4">
                     <div className="flex items-center justify-between pb-3 border-b border-white/10">
                         <h3 className="font-orbitron font-bold text-sm text-white capitalize">

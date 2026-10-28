@@ -5,7 +5,7 @@
  */
 import { useId, useState } from 'react';
 import Link from 'next/link';
-import { Activity, Building2, CalendarClock, FileSignature, HeartPulse, Timer, TrendingUp, Wallet } from 'lucide-react';
+import { Activity, AlertTriangle, Building2, CalendarClock, FileSignature, HeartPulse, Timer, TrendingUp, Wallet } from 'lucide-react';
 import { Badge } from '@/components/admin/ui';
 import { useApi, ErrorState, ProgressBar, fmtDate } from '@/components/admin/ops-kit';
 import type { OperationsDashboard as D } from '@/lib/services/operations-dashboard-service';
@@ -78,8 +78,8 @@ function HBars({ rows, empty }: { rows: { key: string; label: string; value: num
     );
 }
 
-function DaysPill({ days }: { days: number }) {
-    return <Badge tone={days <= 14 ? 'danger' : 'neutral'}>{days <= 0 ? 'Bugün' : `${days} gün`}</Badge>;
+function DaysPill({ days, critical }: { days: number; critical: number }) {
+    return <Badge tone={days <= critical ? 'danger' : 'warning'}>{days < 0 ? `${-days} gün geçti` : days === 0 ? 'Bugün' : `${days} gün`}</Badge>;
 }
 
 const DESK = [
@@ -111,10 +111,28 @@ export function OperationsInsights() {
                 </label>
             </div>
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
+            {d.renewal && d.renewal.items.length > 0 && (
+                <section aria-labelledby="renewal-h" className="rounded-2xl border border-rose-500/40 bg-rose-950/30 p-4">
+                    <h3 id="renewal-h" className="mb-2 flex items-center gap-2 text-sm font-semibold text-rose-200"><AlertTriangle className="h-4 w-4" aria-hidden /> Acil yenileme — {d.renewal.criticalDays} gün veya daha az kalanlar ({d.renewal.items.length})</h3>
+                    <ul className="grid gap-2 md:grid-cols-2">
+                        {d.renewal.items.slice(0, 12).map((r) => (
+                            <li key={`${r.kind}-${r.id}`}>
+                                <Link href={r.href} className="flex items-center gap-3 rounded-xl border border-rose-500/20 bg-black/20 px-3 py-2 text-sm hover:border-rose-400/50">
+                                    <Badge tone="danger">{r.kind === 'RENT' ? 'Sözleşme' : 'Poliçe'}</Badge>
+                                    <span className="min-w-0 flex-1 truncate text-white">{r.title}<span className="block truncate text-xs text-rose-200/70">{r.detail}</span></span>
+                                    <DaysPill days={r.daysLeft} critical={d.renewal!.criticalDays} />
+                                </Link>
+                            </li>
+                        ))}
+                    </ul>
+                </section>
+            )}
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
+                {k.occupancy && k.occupancy.desks && (k.occupancy.desks.total > 0 || k.occupancy.offices.total > 0) && <Kpi label="Masa · kapalı ofis" value={`${k.occupancy.desks.used}/${k.occupancy.desks.total} · ${k.occupancy.offices.used}/${k.occupancy.offices.total}`} href="/admin/alan-yonetimi/bolumler?status=HAS_ROOM" sub={`${k.occupancy.available} bölümde boş yer var · yerleştirmek için tıklayın`} />}
                 {k.occupancy && <Kpi label="Ofis doluluk oranı" value={pct(k.occupancy.byAreaPct)} href="/admin/alan-yonetimi" sub={k.occupancy.rentableUnits ? `m² bazında · bölüm bazında ${pct(k.occupancy.byCountPct)} (${k.occupancy.occupiedUnits}/${k.occupancy.rentableUnits}) · ${k.occupancy.available} boş` : 'Bağımsız bölüm tanımlı değil'}><div className="mt-2"><ProgressBar value={k.occupancy.byAreaPct ?? 0} /></div></Kpi>}
                 {k.onSite && <Kpi label="Yerleşkede şu an (PDKS)" value={nf.format(k.onSite.total)} href="/admin/pdks" sub={`${k.onSite.staff} personel · ${k.onSite.members} girişim · ${k.onSite.visitors} ziyaretçi · bugün ${k.onSite.entriesToday} giriş`} />}
-                {k.contracts && <Kpi label="Aktif kira sözleşmesi" value={nf.format(k.contracts.active)} href="/admin/finans/kiralar" sub={k.contracts.unlinkedAssignments ? `${k.contracts.unlinkedAssignments} aktif ofis tahsisine sözleşme bağlanmamış` : `Toplam ${k.contracts.total} sözleşme kaydı`} />}
+                {k.contracts && <Kpi label="Aktif kira sözleşmesi" value={nf.format(k.contracts.active)} href="/admin/finans/kiralar" sub={[k.contracts.unlinkedAssignments ? `${k.contracts.unlinkedAssignments} tahsiste sözleşme bağlı değil` : null, k.contracts.unsigned ? `${k.contracts.unsigned} sözleşmede ıslak imzalı tarama eksik` : null].filter(Boolean).join(' · ') || `Toplam ${k.contracts.total} sözleşme kaydı`} />}
                 <Kpi label={`${d.windowDays} gün içinde biten`} value={nf.format((k.expiring.rent ?? 0) + (k.expiring.policies ?? 0) + (k.expiring.projects ?? 0))} sub={[k.expiring.rent !== null && `${k.expiring.rent} sözleşme`, k.expiring.policies !== null && `${k.expiring.policies} poliçe`, k.expiring.projects !== null && `${k.expiring.projects} proje`].filter(Boolean).join(' · ')} />
                 {k.approvals !== null && <Kpi label="Onayımı bekleyen" value={nf.format(k.approvals)} href="/admin/onaylar" sub="İş akışı onayları" />}
             </div>
@@ -181,7 +199,7 @@ export function OperationsInsights() {
                                         <Link href={r.href} className="flex flex-wrap items-center gap-3 px-4 py-2.5 text-sm hover:bg-white/[0.02]">
                                             <span className="min-w-0 flex-1 truncate text-white">{r.title}<span className="block truncate text-xs text-gray-500">{r.detail}</span></span>
                                             <span className="text-xs text-gray-400">{fmtDate(r.endDate)}</span>
-                                            <DaysPill days={r.daysLeft} />
+                                            <DaysPill days={r.daysLeft} critical={d.renewal?.criticalDays ?? 15} />
                                         </Link>
                                     </li>
                                 ))}

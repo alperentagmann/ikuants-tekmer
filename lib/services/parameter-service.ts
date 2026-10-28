@@ -15,7 +15,10 @@ export const PARAMETER_CATEGORIES: Record<string, { label: string; kind: Paramet
     POLICY_TYPE: { label: 'Poliçe türleri', kind: 'options', description: 'Bina ve bağımsız bölüm poliçelerinde seçilebilecek türler.' },
     ALERTS: {
         label: 'Uyarı süreleri', kind: 'number', description: 'Bitiş tarihi yaklaşan kayıtlar için uyarı eşikleri.',
-        keys: [{ key: 'expiry_warning_days', label: 'Poliçe / kira bitiş uyarısı', unit: 'gün' }],
+        keys: [
+            { key: 'expiry_warning_days', label: 'Poliçe / kira bitiş uyarısı', unit: 'gün' },
+            { key: 'critical_days', label: 'Kritik uyarı (yenileme zorunlu, panelde kırmızı)', unit: 'gün' },
+        ],
     },
     DOCUMENT_TEMPLATES: {
         label: 'Belge şablonları', kind: 'text',
@@ -42,7 +45,7 @@ export const PARAMETER_CATEGORIES: Record<string, { label: string; kind: Paramet
 
 /** Parametre girilmemişse kullanılan geçici değerler — ekranda "varsayılan" olarak işaretlenir. */
 // PDKS sınırları görev tanımında verilen değerlerdir (günlük 11, haftalık 45 saat); panelden değiştirilebilir.
-const FALLBACKS: Record<string, number> = { 'ALERTS.expiry_warning_days': 30, 'PDKS.daily_limit_hours': 11, 'PDKS.weekly_limit_hours': 45 };
+const FALLBACKS: Record<string, number> = { 'ALERTS.expiry_warning_days': 30, 'ALERTS.critical_days': 15, 'PDKS.daily_limit_hours': 11, 'PDKS.weekly_limit_hours': 45 };
 
 const keySchema = z.string().trim().min(1).max(64).regex(/^[A-Za-z0-9_\-]+$/, 'Yalnız harf, rakam, - ve _');
 export const parameterSchema = z.object({

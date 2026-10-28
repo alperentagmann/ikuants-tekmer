@@ -3,6 +3,7 @@ import { hasPermission } from '@/lib/rbac';
 import { FacilityUnitService } from '@/lib/services/facility-unit-service';
 import { PdksService } from '@/lib/services/pdks-service';
 import { ParameterService } from '@/lib/services/parameter-service';
+import { RenewalAlertService } from '@/lib/services/renewal-alert-service';
 
 /**
  * Operasyon göstergeleri (yönetim paneli): doluluk, PDKS, sözleşmeler, trendler, aksiyon masası, girişim sağlığı.
@@ -41,6 +42,10 @@ export async function getOperationsDashboard(user: PermissionUser, windowDays: n
     const since12 = new Date(now.getFullYear(), now.getMonth() - 11, 1);
     const since30 = new Date(+now - 30 * DAY);
 
+    const [renewal, unsigned] = await Promise.all([
+        can('view', 'rent') || can('view', 'facilities') ? RenewalAlertService.scan() : null,
+        can('view', 'rent') ? prisma.rentContract.count({ where: { status: 'ACTIVE', documents: { none: { documentType: 'SIGNED_CONTRACT' } } } }) : null,
+    ]);
     const [occupancy, unlinked, expiringPolicies, pdks, pdksDaily, appRows, rentRows, rentContracts, expiringRent, expiringProjects, projectStatus, mentorMonth, approvals, health] = await Promise.all([
         can('view', 'facilities') ? FacilityUnitService.occupancySummary() : null,
         can('view', 'facilities') && can('view', 'rent') ? FacilityUnitService.unlinkedActiveAssignments() : null,
@@ -72,9 +77,9 @@ export async function getOperationsDashboard(user: PermissionUser, windowDays: n
         generatedAt: now.toISOString(),
         windowDays,
         kpis: {
-            occupancy: occupancy && { byAreaPct: occupancy.byAreaPct, byCountPct: occupancy.byCountPct, occupiedUnits: occupancy.occupiedUnits, rentableUnits: occupancy.rentableUnits, available: occupancy.available },
+            occupancy: occupancy && { byAreaPct: occupancy.byAreaPct, byCountPct: occupancy.byCountPct, occupiedUnits: occupancy.occupiedUnits, rentableUnits: occupancy.rentableUnits, available: occupancy.available, desks: occupancy.desks, offices: occupancy.offices },
             onSite: pdks && { total: pdks.total, staff: pdks.staff, members: pdks.members, visitors: pdks.visitors, entriesToday: pdks.entriesToday },
-            contracts: rentContracts && { active: rentContracts.find((c) => c.status === 'ACTIVE')?._count._all ?? 0, total: rentContracts.reduce((s, c) => s + c._count._all, 0), unlinkedAssignments: unlinked },
+            contracts: rentContracts && { active: rentContracts.find((c) => c.status === 'ACTIVE')?._count._all ?? 0, total: rentContracts.reduce((s, c) => s + c._count._all, 0), unlinkedAssignments: unlinked, unsigned },
             expiring: { rent: expiringRent?.length ?? null, policies: expiringPolicies?.length ?? null, projects: expiringProjects?.length ?? null },
             approvals,
         },
@@ -89,6 +94,10 @@ export async function getOperationsDashboard(user: PermissionUser, windowDays: n
             expiringRent: expiringRent?.map((c) => ({ id: c.id, title: c.entrepreneur.name, detail: `${c.contractNo} · ${c.spaceName}${c.autoRenew ? ' · otomatik yenilenir' : ''}`, endDate: c.endDate, daysLeft: daysUntil(c.endDate), href: `/admin/finans/kiralar?contract=${c.id}` })) ?? null,
             expiringPolicies: expiringPolicies?.slice(0, 20).map((p) => ({ id: p.id, title: p.targetLabel, detail: `${p.policyTypeLabel} · ${p.insurer} · ${p.policyNo}`, endDate: p.endDate, daysLeft: p.daysLeft, href: '/admin/alan-yonetimi/policeler' })) ?? null,
             expiringProjects: expiringProjects?.map((p) => ({ id: p.id, title: p.title, detail: p.entrepreneur?.name ?? '', endDate: p.endDate!, daysLeft: daysUntil(p.endDate!), href: `/admin/projeler?id=${p.id}` })) ?? null,
+        },
+        renewal: renewal && {
+            criticalDays: renewal.criticalDays,
+            items: [...renewal.overdue, ...renewal.critical].filter((r) => (r.kind === 'RENT' ? can('view', 'rent') : can('view', 'facilities'))).map((r) => ({ ...r, endDate: r.endDate.toISOString() })),
         },
         mentoring: monthTotals,
         health,

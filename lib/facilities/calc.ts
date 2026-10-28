@@ -3,12 +3,12 @@
  * Tarihler gün bazında karşılaştırılır (Europe/Istanbul takvim günü, YYYY-MM-DD).
  */
 
-export const UNIT_TYPES = ['OFFICE', 'WORKSHOP', 'STORAGE', 'COMMON'] as const;
-export const UNIT_TYPE_LABELS: Record<string, string> = { OFFICE: 'Ofis', WORKSHOP: 'Atölye', STORAGE: 'Depo', COMMON: 'Ortak alan' };
+export const UNIT_TYPES = ['DESK', 'OFFICE', 'WORKSHOP', 'STORAGE', 'COMMON'] as const;
+export const UNIT_TYPE_LABELS: Record<string, string> = { DESK: 'Masa', OFFICE: 'Kapalı ofis', WORKSHOP: 'Atölye', STORAGE: 'Depo', COMMON: 'Ortak alan' };
 
 /** Elle girilen durumlar. "Dolu" saklanmaz; aktif eşleştirmeden hesaplanır. */
 export const UNIT_STATUSES = ['AVAILABLE', 'MAINTENANCE', 'RESERVED'] as const;
-export const UNIT_STATUS_LABELS: Record<string, string> = { AVAILABLE: 'Boş', OCCUPIED: 'Dolu', MAINTENANCE: 'Bakımda', RESERVED: 'Rezerve' };
+export const UNIT_STATUS_LABELS: Record<string, string> = { AVAILABLE: 'Boş', PARTIAL: 'Paylaşımlı — yer var', OCCUPIED: 'Dolu', MAINTENANCE: 'Bakımda', RESERVED: 'Rezerve' };
 
 export type AssignmentState = 'ACTIVE' | 'UPCOMING' | 'ENDED';
 export const ASSIGNMENT_STATE_LABELS: Record<AssignmentState, string> = { ACTIVE: 'Aktif', UPCOMING: 'Başlamadı', ENDED: 'Bitti' };
@@ -51,9 +51,19 @@ export function policyState(start: Date, end: Date, today: string, warnDays: num
     return { state: daysLeft <= warnDays ? 'EXPIRING' : 'ACTIVE', daysLeft };
 }
 
-/** Bölümün ekranda görünen durumu: aktif eşleştirme varsa "Dolu", yoksa elle girilen durum. */
-export function displayStatus(manual: string, hasActiveAssignment: boolean): string {
-    return hasActiveAssignment ? 'OCCUPIED' : manual;
+/**
+ * Bölümün ekranda görünen durumu. Firma yoksa elle girilen durum; kapasite (maxTenants) doluysa "Dolu";
+ * paylaşımlı bölümde yer varsa "Paylaşımlı — yer var". Ortak alan hiçbir zaman dolmaz.
+ */
+export function displayStatus(manual: string, tenants: number, maxTenants = 1, unitType = 'OFFICE'): string {
+    if (tenants <= 0) return manual;
+    if (unitType === 'COMMON' || tenants < Math.max(1, maxTenants)) return 'PARTIAL';
+    return 'OCCUPIED';
+}
+
+/** Yeni tahsis kapasiteye sığar mı: aynı dönemde çakışan tahsis sayısı kapasiteden az olmalı (ortak alan sınırsız). */
+export function hasRoom(overlapping: number, maxTenants: number, unitType: string): boolean {
+    return unitType === 'COMMON' || overlapping < Math.max(1, maxTenants);
 }
 
 export type OccupancyInput = { unitType: string; area: number; occupied: boolean; isArchived?: boolean };

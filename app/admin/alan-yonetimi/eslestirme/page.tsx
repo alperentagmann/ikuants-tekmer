@@ -2,7 +2,7 @@
 import { Suspense, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { FilePlus2, Link2, Plus, Printer, Square, Users } from 'lucide-react';
+import { FilePlus2, Link2, Plus, Printer, Square, Users, Wand2 } from 'lucide-react';
 import { Badge, Button, PageHeader } from '@/components/admin/ui';
 import { api, useMe, useNotice, fmtDate, fmtMoney } from '@/components/admin/ops-kit';
 import { DataList, type ListColumn } from '@/components/admin/list/DataList';
@@ -11,7 +11,7 @@ import { RowActions, StatePill, useFacilityLookups, fmtArea } from '@/components
 import { RentContractForm } from '@/components/admin/rent/RentContractForm';
 
 type Row = {
-    id: string; unitId: string; unitCode: string; unitArea: number; floorName: string; buildingId: string; buildingName: string;
+    id: string; unitId: string; unitCode: string; unitLabel: string | null; unitArea: number; floorName: string; buildingId: string; buildingName: string;
     entrepreneurId: string | null; organizationId: string | null; firmName: string; firmHref: string | null;
     startDate: string | null; endDate: string | null; status: string; state: string; stateLabel: string;
     rentContractId: string | null; contractNo: string | null; contractStatus: string | null; monthlyRent: number | null; totalMonthlyRent: number | null; currency: string | null; hasRentContract: boolean;
@@ -65,7 +65,7 @@ function AssignmentsInner() {
         { key: 'firmName', label: 'Firma', sortable: true, render: (r) => (r.firmHref ? <Link href={r.firmHref} className="font-medium text-white hover:underline">{r.firmName}</Link> : r.firmName) },
         { key: 'buildingName', label: 'Bina', sortable: true },
         { key: 'floorName', label: 'Kat', sortable: true },
-        { key: 'unitCode', label: 'Bölüm', sortable: true },
+        { key: 'unitCode', label: 'Bölüm', sortable: true, render: (r) => (r.unitLabel ? `${r.unitCode} · ${r.unitLabel}` : r.unitCode) },
         { key: 'unitArea', label: 'm²', sortable: true, align: 'right', render: (r) => fmtArea(r.unitArea) },
         { key: 'startDate', label: 'Başlangıç', sortable: true, render: (r) => fmtDate(r.startDate) },
         { key: 'endDate', label: 'Bitiş', sortable: true, render: (r) => (r.endDate ? fmtDate(r.endDate) : 'Açık uçlu') },
@@ -80,7 +80,7 @@ function AssignmentsInner() {
         <div className="space-y-5">
             <PageHeader icon={Users} title="Firma - Bağımsız Bölüm Eşleştirme"
                 description="Hangi firmanın hangi bölümü hangi tarihler arasında kullandığı ve bağlı kira sözleşmesi. Ortak alan dışındaki bölümler aynı dönemde tek firmaya verilir."
-                actions={can('create', 'facilities') && <Button variant="primary" icon={Plus} onClick={() => setEditing('new')} disabled={!l?.units.length} title={l?.units.length ? undefined : 'Önce bağımsız bölüm ekleyin'}>Eşleştir</Button>} />
+                actions={can('create', 'facilities') && <><Link href="/admin/alan-yonetimi/yerlestir" className="inline-flex items-center gap-1.5 rounded-lg border border-primary bg-primary px-3.5 py-2 text-sm font-medium text-white hover:bg-primary/90"><Wand2 className="h-4 w-4" aria-hidden /> Firma Yerleştir</Link><Button icon={Plus} onClick={() => setEditing('new')} disabled={!l?.units.length} title={l?.units.length ? undefined : 'Önce bağımsız bölüm ekleyin'}>Tekli tahsis</Button></>} />
             <DataList<Row> endpoint="/api/admin/facility-units/assignments" label="Eşleştirmeler" columns={columns} searchPlaceholder="Firma, bölüm, bina veya sözleşme no"
                 filters={[
                     { key: 'buildingId', label: 'Bina', type: 'select', options: (l?.buildings ?? []).map((b) => ({ value: b.id, label: b.name })) },

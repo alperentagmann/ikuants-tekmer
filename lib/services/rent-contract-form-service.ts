@@ -166,8 +166,35 @@ export class RentContractFormService {
         if (res.count === 0) throw fieldError('Bu sözleşme siz düzenlerken başka biri tarafından değiştirildi. Sayfayı yenileyip tekrar deneyin.', 409, '_conflict', 'updatedAt');
         const changed = Object.fromEntries(Object.entries(data).filter(([k, val]) => String(val ?? '') !== String((before as Record<string, unknown>)[k] ?? '')));
         await audit(actor, 'UPDATE', id, changed, Object.fromEntries(Object.keys(changed).map((k) => [k, (before as Record<string, unknown>)[k]])));
+        await this.syncAssignments(id, changed, before, actor);
         if (changed.status) await addTimelineEvent({ entityType: 'Entrepreneur', entityId: before.entrepreneurId, eventType: 'STATUS_CHANGE', title: `Kira sözleşmesi ${before.contractNo}: ${RENT_CONTRACT_STATUS_LABELS[String(changed.status)] ?? changed.status}`, actorId: actor.id, actorName: actor.name ?? null });
         return prisma.rentContract.findUniqueOrThrow({ where: { id } });
+    }
+
+    /**
+     * Sözleşme → bağlı bölüm tahsisleri: başlangıç / bitiş tarihi yansır; feshedilen veya süresi dolan sözleşmede
+     * tahsisler sonlanır. Elle farklı tarih verilmiş tahsis (sözleşmenin eski tarihinden farklıysa) korunur.
+     */
+    private static async syncAssignments(contractId: string, changed: Record<string, unknown>, old: { startDate: Date; endDate: Date }, actor: Actor) {
+        const live = await prisma.spaceAssignment.findMany({ where: { rentContractId: contractId, status: { in: ['PLANNED', 'ACTIVE'] } } });
+        if (!live.length) return;
+        const same = (a: Date | null, b: Date) => Boolean(a) && a!.toISOString().slice(0, 10) === b.toISOString().slice(0, 10);
+        const today = new Date(new Date().toISOString().slice(0, 10) + 'T00:00:00Z');
+        for (const a of live) {
+            const data: Record<string, unknown> = {};
+            if (changed.status === 'TERMINATED' || changed.status === 'EXPIRED') {
+                data.status = 'ENDED';
+                data.endDate = a.endDate && a.endDate < today ? a.endDate : today;
+            } else {
+                if ('startDate' in changed && (!a.startDate || same(a.startDate, old.startDate))) data.startDate = changed.startDate;
+                if ('endDate' in changed && (!a.endDate || same(a.endDate, old.endDate))) data.endDate = changed.endDate;
+                const start = (data.startDate as Date | undefined) ?? a.startDate;
+                if (start && a.status !== 'ENDED') data.status = start <= today ? 'ACTIVE' : 'PLANNED';
+            }
+            if (!Object.keys(data).length) continue;
+            await prisma.spaceAssignment.update({ where: { id: a.id }, data });
+            await logAuditEvent({ actorId: actor.id, actorName: actor.name ?? undefined, actorEmail: actor.email ?? undefined, action: 'UPDATE', entityType: 'SpaceAssignment', entityId: a.id, newValues: { ...data, via: 'contract-sync' }, oldValues: { status: a.status, startDate: a.startDate, endDate: a.endDate } });
+        }
     }
 
     /** Ortak kurallar + hesaplanan alanlar. `changed` güncellemede gelen alanlardır. */

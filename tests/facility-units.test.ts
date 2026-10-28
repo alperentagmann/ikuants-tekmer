@@ -40,7 +40,9 @@ describe('Alan yönetimi — saf hesaplar', () => {
         assert.equal(rangesOverlap(d('2026-01-01'), d('2026-01-30'), d('2026-01-31'), null), false);
         assert.deepStrictEqual(policyState(d('2026-01-01'), d('2026-02-10'), '2026-01-11', 30), { state: 'EXPIRING', daysLeft: 30 });
         assert.equal(policyState(d('2026-01-01'), d('2026-01-10'), '2026-01-11', 30).state, 'EXPIRED');
-        assert.equal(displayStatus('MAINTENANCE', true), 'OCCUPIED');
+        assert.equal(displayStatus('MAINTENANCE', 1, 1, 'OFFICE'), 'OCCUPIED');
+        assert.equal(displayStatus('AVAILABLE', 1, 2, 'DESK'), 'PARTIAL');
+        assert.equal(displayStatus('AVAILABLE', 0, 2, 'DESK'), 'AVAILABLE');
     });
 
     test('liste: Türkçe arama, boşlar sonda, izinsiz sıralama yok sayılır', () => {

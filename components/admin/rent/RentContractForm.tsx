@@ -2,7 +2,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { FileText, Printer } from 'lucide-react';
 import { Alert, Button, Modal, Toggle } from '@/components/admin/ui';
-import { api, useApi, useForm, LInput, LSelect, LTextArea, LoadingRows, ErrorState, fmtMoney, toDateInput } from '@/components/admin/ops-kit';
+import { api, useApi, useForm, useMe, LInput, LSelect, LTextArea, LoadingRows, ErrorState, fmtMoney, toDateInput } from '@/components/admin/ops-kit';
+import { ContractDocuments } from './ContractDocuments';
 
 type Opt = { value: string; label: string };
 type FormData = {
@@ -28,13 +29,14 @@ export function RentContractForm({ contractId, entrepreneurId, unitId, assignmen
         <Modal open onClose={onClose} size="xl" title={contractId ? 'Kira sözleşmesini düzenle' : 'Yeni kira sözleşmesi'}
             description="Tüm alanlar kayıtlı bilgiyle doldurulabilir. KDV ve toplam tutar otomatik hesaplanır.">
             {form.error ? <ErrorState error={form.error} onRetry={form.reload} /> : existing.error ? <ErrorState error={existing.error} onRetry={existing.reload} /> : !ready ? <LoadingRows rows={6} /> : (
-                <Inner data={form.data!} contract={existing.data?.contract ?? null} contractId={contractId} assignmentId={assignmentId} onClose={onClose} onSaved={onSaved} />
+                <Inner data={form.data!} contract={existing.data?.contract ?? null} contractId={contractId} assignmentId={assignmentId} onClose={onClose} onSaved={onSaved} onDocs={existing.reload} />
             )}
         </Modal>
     );
 }
 
-function Inner({ data, contract, contractId, assignmentId, onClose, onSaved }: { data: FormData; contract: (Record<string, unknown> & { updatedAt: string }) | null; contractId?: string; assignmentId?: string | null; onClose: () => void; onSaved: (id: string) => void }) {
+function Inner({ data, contract, contractId, assignmentId, onClose, onSaved, onDocs }: { data: FormData; contract: (Record<string, unknown> & { updatedAt: string }) | null; contractId?: string; assignmentId?: string | null; onClose: () => void; onSaved: (id: string) => void; onDocs: () => void }) {
+    const { can } = useMe();
     const p = data.prefill;
     const c = contract;
     const f = useForm({
@@ -125,6 +127,7 @@ function Inner({ data, contract, contractId, assignmentId, onClose, onSaved }: {
                 {isWaived && <LInput label="Muafiyet gerekçesi" required className="sm:col-span-2 lg:col-span-3" {...f.bind('waiverReason')} />}
             </Section>
             <LTextArea label="Notlar" rows={3} {...f.bind('notes')} />
+            {contractId ? <ContractDocuments contractId={contractId} documents={(c?.documents as never) ?? []} canUpload={can('update', 'rent')} onUploaded={onDocs} /> : <p className="text-xs text-gray-500">Islak imzalı taramayı sözleşmeyi kaydettikten sonra “Düzenle” ekranından yükleyebilirsiniz (Firma Yerleştir ekranında kayıtla birlikte yüklenir).</p>}
             <div className="flex flex-wrap items-center justify-end gap-2 border-t border-white/10 pt-4">
                 {contractId && <a href={`/api/admin/rent/contracts/${contractId}/print`} target="_blank" rel="noopener noreferrer" className="mr-auto inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3.5 py-2 text-sm text-gray-200 hover:bg-white/10"><Printer className="h-4 w-4" aria-hidden /> Sözleşme çıktısı</a>}
                 <Button variant="ghost" onClick={onClose}>Vazgeç</Button>

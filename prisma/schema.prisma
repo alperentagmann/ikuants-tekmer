@@ -4208,9 +4208,10 @@ model SpaceUnit {
   id         String   @id @default(uuid())
   floorId    String
   code       String // bina içinde benzersiz (serviste denetlenir)
-  unitType   String // OFFICE, WORKSHOP, STORAGE, COMMON
+  unitType   String // DESK, OFFICE, WORKSHOP, STORAGE, COMMON
   area       Float // m²
   capacity   Int?
+  maxTenants Int      @default(1) // aynı dönemde kaç firmaya verilebilir (paylaşımlı masa / ofis); COMMON sınırsız
   status     String   @default("AVAILABLE") // AVAILABLE, MAINTENANCE, RESERVED — DOLU aktif tahsisten hesaplanır
   notes      String?  @db.Text
   isArchived Boolean  @default(false)

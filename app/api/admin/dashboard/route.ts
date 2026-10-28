@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+import { RenewalAlertService } from '@/lib/services/renewal-alert-service';
+import { ParameterService } from '@/lib/services/parameter-service';
 import { prisma } from '@/lib/prisma';
 import { getCurrentAdminUser } from '@/lib/auth';
 import { hasPermission } from '@/lib/rbac';
@@ -22,7 +24,8 @@ export async function GET() {
         const now = new Date();
         const today = istanbulDayRange(istanbulDayKey(now));
         const weekAgo = new Date(now.getTime() - 7 * 86400000);
-        const in30Days = new Date(now.getTime() + 30 * 86400000);
+        const warnDays = (await ParameterService.getNumber('ALERTS', 'expiry_warning_days')).value;
+        const in30Days = new Date(now.getTime() + warnDays * 86400000);
         const attention: Attention[] = [];
         const result: Record<string, unknown> = { generatedAt: now.toISOString() };
 
@@ -107,7 +110,15 @@ export async function GET() {
             const overdueByCurrency = overdue.reduce<Record<string, number>>((acc, r) => ({ ...acc, [r.currency]: (acc[r.currency] || 0) + r.remainingAmount }), {});
             result.rent = { activeContracts, overdueCount: overdue.length, overdueByCurrency, expiringContracts: expiring };
             if (overdue.length) attention.push({ key: 'rent-overdue', title: `${overdue.length} kira tahakkuku gecikmede`, href: '/admin/finans/kiralar', severity: 'high', count: overdue.length });
-            if (expiring) attention.push({ key: 'contracts-expiring', title: `${expiring} sözleşme 30 gün içinde bitiyor`, href: '/admin/finans/kiralar', severity: 'medium', count: expiring });
+            // Yenileme: kritik eşik (varsayılan 15 gün) kırmızı, uyarı penceresi (30 gün) sarı; bildirim üretimi idempotent
+            const renewal = await RenewalAlertService.scan();
+            await RenewalAlertService.notify().catch((e) => console.error('renewal notify', e));
+            const rentCritical = renewal.critical.filter((r) => r.kind === 'RENT').length;
+            if (renewal.overdue.length) attention.push({ key: 'contracts-overdue', title: `${renewal.overdue.length} sözleşmenin süresi doldu, yenilenmedi — hemen yenileyin`, href: '/admin/finans/kiralar', severity: 'high', count: renewal.overdue.length });
+            if (rentCritical) attention.push({ key: 'contracts-critical', title: `${rentCritical} sözleşme ${renewal.criticalDays} gün içinde bitiyor — yenileyin`, href: '/admin/finans/kiralar', severity: 'high', count: rentCritical });
+            const policyCritical = renewal.critical.filter((r) => r.kind === 'POLICY').length;
+            if (policyCritical && can('view', 'facilities')) attention.push({ key: 'policies-critical', title: `${policyCritical} poliçe ${renewal.criticalDays} gün içinde bitiyor — yenileyin`, href: '/admin/alan-yonetimi/policeler', severity: 'high', count: policyCritical });
+            if (expiring - rentCritical > 0) attention.push({ key: 'contracts-expiring', title: `${expiring - rentCritical} sözleşme ${renewal.warningDays} gün içinde bitiyor`, href: '/admin/finans/kiralar', severity: 'medium', count: expiring - rentCritical });
         }
 
         // Work OS: passes waiting for me and team load

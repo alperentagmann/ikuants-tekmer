@@ -91,7 +91,8 @@ export const NAV_SECTIONS: NavSection[] = [
         title: 'ALAN, OFİS & PDKS',
         items: [
             { title: 'Alanlar & Rezervasyonlar', href: '/admin/alanlar', icon: Building2, perm: 'view:facilities' },
-            { title: 'Bina, Kat & Ofisler', href: '/admin/alan-yonetimi', icon: Building2, perm: 'view:facilities' },
+            { title: 'Firma Yerleştir', href: '/admin/alan-yonetimi/yerlestir', icon: Sparkles, perm: 'create:facilities' },
+            { title: 'Bina, Kat, Masa & Ofisler', href: '/admin/alan-yonetimi', icon: Building2, perm: 'view:facilities' },
             { title: 'Firma - Ofis Eşleştirme', href: '/admin/alan-yonetimi/eslestirme', icon: Handshake, perm: 'view:facilities' },
             { title: 'Poliçeler', href: '/admin/alan-yonetimi/policeler', icon: ShieldCheck, perm: 'view:facilities' },
             { title: 'PDKS & RFID Kartlar', href: '/admin/pdks', icon: Timer, perm: 'view:pdks' },

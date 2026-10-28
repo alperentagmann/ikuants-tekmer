@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import { RenewalAlertService } from '@/lib/services/renewal-alert-service';
 import { logAuditEvent } from '@/lib/audit';
 import { EmailOutboxService } from '@/lib/services/email-outbox-service';
 import { ReportAutomationService } from '@/lib/services/report-automation-service';
@@ -16,6 +17,7 @@ export const SchedulerService = {
             cleanedSessionsCount: 0,
             processedEmails: { processed: 0, succeeded: 0, failed: 0 } as Record<string, unknown>,
             overdueTasksFlagged: 0,
+            renewalNotifications: 0,
             reports: null as Awaited<ReturnType<typeof ReportAutomationService.runScheduled>> | null,
             timestamp: now.toISOString(),
         };
@@ -32,6 +34,9 @@ export const SchedulerService = {
         const thirtyDaysAgo = new Date(now.getTime() - 30 * 86400000);
         const expired = await prisma.session.deleteMany({ where: { OR: [{ isValid: false }, { expiresAt: { lt: thirtyDaysAgo } }] } });
         results.cleanedSessionsCount = expired.count;
+
+        // 2b. Sözleşme / poliçe yenileme bildirimleri (kritik eşik, varsayılan 15 gün)
+        results.renewalNotifications = await RenewalAlertService.notify();
 
         // 3. E-mail outbox (no-op until an SMTP provider is configured)
         results.processedEmails = await EmailOutboxService.processPendingEmails(20);
