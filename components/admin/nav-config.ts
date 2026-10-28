@@ -161,6 +161,7 @@ export const NAV_SECTIONS: NavSection[] = [
             { title: 'Site Ayarları', href: '/admin/ayarlar', icon: Settings, perm: 'manage:settings' },
             { title: 'Terim & Etiketler', href: '/admin/terimler', icon: Tag, perm: 'manage:terminology' },
             { title: 'Özel Alanlar', href: '/admin/ozel-alanlar', icon: SlidersHorizontal, perm: 'manage:custom_fields' },
+            { title: 'Sistem Parametreleri', href: '/admin/parametreler', icon: SlidersHorizontal, perm: 'view:parameters' },
         ],
     },
 ];

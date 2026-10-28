@@ -6,6 +6,7 @@ import {
     RefreshCw, Sparkles, Plus, Newspaper, ClipboardList, ShieldCheck, ArrowRight, Inbox, UsersRound, Calculator, Cpu, ArrowRightLeft,
 } from 'lucide-react';
 import { AiConsole } from '@/components/admin/ai/AiConsole';
+import { OperationsInsights } from '@/components/admin/dashboard/OperationsInsights';
 import { formatDate, formatDateTime } from '@/components/admin/ui';
 
 type DashboardData = {
@@ -150,6 +151,8 @@ export default function AdminDashboardPage() {
             {data && (
                 <>
                     {stats.length > 0 && <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">{stats.map((s) => <StatCard key={s.title} {...s} />)}</div>}
+
+                    <OperationsInsights />
 
                     {shortcuts.length > 0 && (
                         <div className="flex flex-wrap gap-2">

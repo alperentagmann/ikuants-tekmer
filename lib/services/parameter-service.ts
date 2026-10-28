@@ -22,6 +22,15 @@ export const PARAMETER_CATEGORIES: Record<string, { label: string; kind: Paramet
         description: 'Kurumun kendi metni. {{alan}} yer tutucuları kayıttaki bilgilerle doldurulur (ör. {{firmaUnvani}}, {{aylikKira}}). Boş bırakılırsa çıktı yalnız bilgi formu olur.',
         keys: [{ key: 'rent_contract_body', label: 'Kira sözleşmesi metni' }],
     },
+    MENTORING: {
+        label: 'Mentörlük ve girişim sağlığı', kind: 'number',
+        description: 'Panelde mentörlük hedefi ve girişim sağlık durumu için eşikler. Tanımlanmayan eşikte durum hesaplanmaz.',
+        keys: [
+            { key: 'monthly_target_hours', label: 'Aylık mentörlük hedefi', unit: 'saat' },
+            { key: 'health_min_entries_30d', label: 'Sağlıklı sayılmak için son 30 gün en az ofis girişi', unit: 'giriş' },
+            { key: 'health_min_mentor_hours_30d', label: 'Sağlıklı sayılmak için son 30 gün en az mentörlük', unit: 'saat' },
+        ],
+    },
     PDKS: {
         label: 'PDKS sınırları', kind: 'number', description: 'Çalışma süresi raporunda kırmızı işaretlenecek sınırlar.',
         keys: [
@@ -81,6 +90,13 @@ export class ParameterService {
         const fb = FALLBACKS[`${category}.${key}`];
         if (fb === undefined) throw new DomainError(`"${category}.${key}" parametresi tanımlı değil.`, 500);
         return { value: fb, isDefault: true };
+    }
+
+    /** Sayısal parametre; tanımlı değilse null (varsayılan uydurulmaz). */
+    static async getNumberOrNull(category: string, key: string): Promise<number | null> {
+        const row = await prisma.systemParameter.findUnique({ where: { category_key: { category, key } } });
+        const n = row?.isActive ? Number(row.value) : NaN;
+        return Number.isFinite(n) ? n : null;
     }
 
     /** Metin parametresi (belge şablonu vb.); tanımlı değilse null. */
